@@ -42,6 +42,11 @@ export type RuntimeState = PhoneShellRenderState & {
 	setModel?: (model: Model<any>) => Promise<boolean>;
 	agentTracker?: AgentStateTracker;
 	headerInstalled?: boolean;
+	viewportDrag?: {
+		anchorRow: number;
+		anchorScrollTop: number;
+		lastRow: number;
+	};
 };
 
 export const state: RuntimeState = {
@@ -71,6 +76,8 @@ export const state: RuntimeState = {
 	modelMenuProviderButtons: [],
 	modelMenuModelButtons: [],
 	promptMirrorVisible: DEFAULT_CONFIG.promptMirror.enabled,
+	viewportRow: 0,
+	viewportHeight: 0,
 	agentState: { ...DEFAULT_AGENT_STATE },
 	logQueue: Promise.resolve(),
 	renderQueued: false,

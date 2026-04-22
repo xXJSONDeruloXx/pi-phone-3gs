@@ -17,9 +17,16 @@ export class TouchViewport implements Component {
 	) {}
 
 	render(width: number): string[] {
-		const fixedHeight = this.tui.children
-			.filter((child) => child !== this)
-			.reduce((sum, child) => sum + child.render(width).length, 0);
+		let rowsBefore = 0;
+		let fixedHeight = 0;
+		const viewportIndex = this.tui.children.indexOf(this);
+		for (let index = 0; index < this.tui.children.length; index++) {
+			const child = this.tui.children[index]!;
+			if (child === this) continue;
+			const childHeight = child.render(width).length;
+			fixedHeight += childHeight;
+			if (index < viewportIndex) rowsBefore += childHeight;
+		}
 		const visibleHeight = Math.max(1, this.tui.terminal.rows - fixedHeight);
 		const lines = this.content.render(width);
 		const maxTop = Math.max(0, lines.length - visibleHeight);
@@ -29,6 +36,8 @@ export class TouchViewport implements Component {
 		this.lastVisibleHeight = visibleHeight;
 		this.lastTotalLines = lines.length;
 		this.lastMaxTop = maxTop;
+		this.ctx.state.viewportRow = rowsBefore + 1;
+		this.ctx.state.viewportHeight = visibleHeight;
 
 		const visible = lines.slice(this.scrollTop, this.scrollTop + visibleHeight);
 		while (visible.length < visibleHeight) visible.push("");
@@ -64,6 +73,13 @@ export class TouchViewport implements Component {
 	toBottom(): void {
 		this.followBottom = true;
 		this.scrollTop = this.lastMaxTop;
+		this.tui.requestRender();
+	}
+
+	setScrollTop(scrollTop: number): void {
+		this.followBottom = false;
+		this.scrollTop = Math.max(0, Math.min(this.lastMaxTop, Math.round(scrollTop)));
+		if (this.scrollTop >= this.lastMaxTop) this.followBottom = true;
 		this.tui.requestRender();
 	}
 

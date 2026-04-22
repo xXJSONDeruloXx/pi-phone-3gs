@@ -143,7 +143,7 @@ export interface MouseInput {
 	code: number;
 	col: number;
 	row: number;
-	phase: "press" | "release";
+	phase: "press" | "release" | "move";
 }
 
 export interface ViewportDebugState {
@@ -160,6 +160,7 @@ export interface ViewportController extends Component {
 	pageUp(): void;
 	pageDown(): void;
 	toBottom(): void;
+	setScrollTop(scrollTop: number): void;
 	getDebugState(): ViewportDebugState;
 }
 
@@ -215,6 +216,8 @@ export interface PhoneShellRenderState {
 	modelMenuSelectedProvider?: string;
 	promptMirrorVisible: boolean;
 	originalChat?: Component;
+	viewportRow: number;
+	viewportHeight: number;
 	agentState: AgentStateInfo;
 }
 

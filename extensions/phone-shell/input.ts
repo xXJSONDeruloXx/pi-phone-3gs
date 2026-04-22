@@ -15,17 +15,24 @@ import type {
 export function parseMouseInput(data: string): MouseInput | undefined {
 	const match = data.match(/^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/);
 	if (!match) return undefined;
+	const code = Number.parseInt(match[1]!, 10);
 	return {
 		raw: data,
-		code: Number.parseInt(match[1]!, 10),
+		code,
 		col: Number.parseInt(match[2]!, 10),
 		row: Number.parseInt(match[3]!, 10),
-		phase: match[4] === "M" ? "press" : "release",
+		phase: match[4] === "m" ? "release" : ((code & 32) !== 0 ? "move" : "press"),
 	};
 }
 
 function isPrimaryPointerPress(mouse: MouseInput): boolean {
 	if (mouse.phase !== "press") return false;
+	if ((mouse.code & 64) !== 0) return false;
+	return (mouse.code & 0b11) === 0;
+}
+
+function isPrimaryPointerDrag(mouse: MouseInput): boolean {
+	if (mouse.phase !== "move") return false;
 	if ((mouse.code & 64) !== 0) return false;
 	return (mouse.code & 0b11) === 0;
 }
@@ -51,6 +58,38 @@ export function findHitRegion(buttons: ButtonHitRegion[], rowOffset: number, col
 		if (region.rowOffset === rowOffset && col >= region.colStart && col <= region.colEnd) return region.button;
 	}
 	return undefined;
+}
+
+function isViewportRow(row: number): boolean {
+	return state.viewportRow > 0 && row >= state.viewportRow && row < state.viewportRow + state.viewportHeight;
+}
+
+function startViewportDrag(mouse: MouseInput): InputResponse {
+	const debug = state.viewport?.getDebugState();
+	if (!debug) return { consume: true };
+	state.viewportDrag = {
+		anchorRow: mouse.row,
+		anchorScrollTop: debug.scrollTop,
+		lastRow: mouse.row,
+	};
+	setLastAction("mouse:viewport-drag-start");
+	return { consume: true };
+}
+
+function updateViewportDrag(mouse: MouseInput): InputResponse {
+	if (!state.viewportDrag || !state.viewport) return { consume: true };
+	const deltaRows = mouse.row - state.viewportDrag.anchorRow;
+	state.viewportDrag.lastRow = mouse.row;
+	state.viewport.setScrollTop(state.viewportDrag.anchorScrollTop - deltaRows);
+	return { consume: true };
+}
+
+function finishViewportDrag(mouse: MouseInput): InputResponse {
+	if (!state.viewportDrag) return { consume: true };
+	const moved = Math.abs(mouse.row - state.viewportDrag.anchorRow);
+	state.viewportDrag = undefined;
+	if (moved > 0) setLastAction("mouse:viewport-drag-end");
+	return { consume: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -217,8 +256,13 @@ export function registerInputHandler(ctx: { ui: any }): void {
 		const mouse = parseMouseInput(data);
 		if (mouse) {
 			state.lastMouse = mouse;
-			queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
-			if (!state.enabled || !isPrimaryPointerPress(mouse)) return { consume: true };
+			if (mouse.phase !== "move") {
+				queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
+			}
+			if (!state.enabled) return { consume: true };
+			if (state.viewportDrag && mouse.phase === "release") return finishViewportDrag(mouse);
+			if (state.viewportDrag && isPrimaryPointerDrag(mouse)) return updateViewportDrag(mouse);
+			if (!isPrimaryPointerPress(mouse)) return { consume: true };
 
 			const inHeader = state.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
 			if (inHeader) {
@@ -239,10 +283,17 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			}
 
 			const inBar = state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;
-			if (!inBar) return { consume: true };
-			const clickedRow = Math.floor((mouse.row - state.barRow) / BAR_HEIGHT);
-			const button = findHitRegion(state.barButtons, clickedRow, mouse.col);
-			return button ? activateButton(button, "bar") : { consume: true };
+			if (inBar) {
+				const clickedRow = Math.floor((mouse.row - state.barRow) / BAR_HEIGHT);
+				const button = findHitRegion(state.barButtons, clickedRow, mouse.col);
+				return button ? activateButton(button, "bar") : { consume: true };
+			}
+
+			if (isViewportRow(mouse.row)) {
+				return startViewportDrag(mouse);
+			}
+
+			return { consume: true };
 		}
 
 		if (state.enabled && state.utilityOverlayVisible) scheduleRender();
@@ -276,4 +327,5 @@ export function registerInputHandler(ctx: { ui: any }): void {
 export function unregisterInputHandler(): void {
 	state.inputUnsubscribe?.();
 	state.inputUnsubscribe = undefined;
+	state.viewportDrag = undefined;
 }

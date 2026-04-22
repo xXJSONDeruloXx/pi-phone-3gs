@@ -80,6 +80,9 @@ function uninstallViewport(): void {
 	}
 	state.viewport = undefined;
 	state.originalChat = undefined;
+	state.viewportRow = 0;
+	state.viewportHeight = 0;
+	state.viewportDrag = undefined;
 }
 
 // ---------------------------------------------------------------------------

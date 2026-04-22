@@ -9,8 +9,8 @@ export const BOOTSTRAP_WIDGET_KEY = "phone-shell-bootstrap";
 export const BAR_WIDGET_KEY = "phone-shell-bar";
 export const CHAT_CHILD_INDEX = 1;
 export const BAR_HEIGHT = 3;
-export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1006h";
-export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1006l";
+export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1002h\x1b[?1006h";
+export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1002l\x1b[?1006l";
 
 export const COMMANDS: readonly CommandMode[] = [
 	"on",
