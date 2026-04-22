@@ -1,7 +1,6 @@
-import { TouchViewport } from "./viewport.js";
+import type { Component, TUI } from "@mariozechner/pi-tui";
 import { BottomBarComponent } from "./bar.js";
-import { HeaderBarComponent } from "./header.js";
-import { PhoneShellEditor, PromptProxyComponent } from "./editor.js";
+import { savePersistedShellState } from "./config.js";
 import {
 	BAR_HEIGHT,
 	BAR_WIDGET_KEY,
@@ -10,20 +9,28 @@ import {
 	DISABLE_MOUSE,
 	ENABLE_MOUSE,
 	HEADER_CHILD_INDEX,
-	PRIMARY_COMMAND,
 	STATUS_KEY,
-	TOGGLE_ALIAS_COMMAND,
-	TOGGLE_SHORTCUT,
 } from "./defaults.js";
-import { savePersistedShellState } from "./config.js";
-import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, scheduleRender, state } from "./state.js";
+import { PhoneShellEditor, PromptProxyComponent } from "./editor.js";
+import { HeaderBarComponent } from "./header.js";
 import { hideModelMenu, hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
-import type { Component, TUI } from "@mariozechner/pi-tui";
+import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, state } from "./state.js";
+import type { PersistedShellState } from "./types.js";
+import { TouchViewport } from "./viewport.js";
 
 const EMPTY_COMPONENT: Component = {
 	render: () => [],
 	invalidate: () => {},
 };
+
+function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<void> {
+	return savePersistedShellState(state.paths, {
+		enabled: state.enabled,
+		proxyOnly: state.proxyOnly,
+		barVisible: state.barVisible,
+		...patch,
+	});
+}
 
 // ---------------------------------------------------------------------------
 // TUI capture
@@ -123,7 +130,7 @@ function uninstallHeader(): void {
 function installMirroredEditor(): void {
 	if (!state.setEditorComponent || state.mirroredEditor) return;
 	state.setEditorComponent((tui: TUI, theme: any, keybindings: any) => {
-		const editor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender());
+		const editor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender(), () => state.proxyOnly);
 		state.mirroredEditor = editor;
 		queueMicrotask(() => tui.requestRender());
 		return editor;
@@ -168,7 +175,7 @@ export function togglePromptProxyMode(): void {
 		queueLog("prompt proxy mode: proxy-only");
 		state.tui.requestRender(true);
 		// persist
-		void savePersistedShellState(state.paths, state.enabled, state.proxyOnly, state.barVisible).catch(() => undefined);
+		void persistShellState().catch(() => undefined);
 		return;
 	}
 	// switch to native-only
@@ -178,7 +185,7 @@ export function togglePromptProxyMode(): void {
 	queueLog("prompt proxy mode: native-only");
 	state.tui.requestRender(true);
 	// persist
-	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly, state.barVisible).catch(() => undefined);
+	void persistShellState().catch(() => undefined);
 }
 
 export function toggleBottomBar(): void {
@@ -190,7 +197,7 @@ export function toggleBottomBar(): void {
 		showPanel();
 		state.barVisible = true;
 	}
-	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly, state.barVisible).catch(() => undefined);
+	void persistShellState().catch(() => undefined);
 	state.tui?.requestRender(true);
 }
 
@@ -254,11 +261,11 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	state.enabled = true;
 	installViewport();
 	installHeader();
-	if (state.barVisible !== false) showPanel();
+	if (state.barVisible) showPanel();
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
-	if (persist) await savePersistedShellState(state.paths, true, state.proxyOnly, state.barVisible).catch(() => undefined);
+	if (persist) await persistShellState().catch(() => undefined);
 	ctx.ui.setStatus(STATUS_KEY, touchStatusText());
 	if (state.loadErrors.length > 0) {
 		ctx.ui.notify(`phone-shell enabled • ${state.loadErrors.length} config warning(s)`, "warning");
@@ -286,7 +293,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 		destroyPanel();
 		clearCapturedTui();
 	}
-	if (persist) await savePersistedShellState(state.paths, false, state.proxyOnly, state.barVisible).catch(() => undefined);
+	if (persist) await persistShellState().catch(() => undefined);
 	ctx?.ui.notify("phone-shell disabled", "info");
 	queueLog(`disabled permanent=${permanent}`);
 }

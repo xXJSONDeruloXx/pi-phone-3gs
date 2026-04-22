@@ -1,7 +1,6 @@
 import { CustomEditor } from "@mariozechner/pi-coding-agent";
 import { CURSOR_MARKER, type Component, type EditorTheme, type TUI } from "@mariozechner/pi-tui";
 import type { PhoneShellRenderContext } from "./types.js";
-import { state } from "./state.js";
 
 export class PhoneShellEditor extends CustomEditor {
 	constructor(
@@ -9,6 +8,7 @@ export class PhoneShellEditor extends CustomEditor {
 		theme: EditorTheme,
 		keybindings: any,
 		private readonly onProxyUpdate: () => void,
+		private readonly isProxyOnly: () => boolean,
 	) {
 		super(tui, theme, keybindings);
 	}
@@ -29,7 +29,7 @@ export class PhoneShellEditor extends CustomEditor {
 
 	override render(width: number): string[] {
 		// When proxy-only mode is active, minimize the bottom editor's visual
-		if (state.proxyOnly) {
+		if (this.isProxyOnly()) {
 			// Return a single blank line so the bottom editor consumes minimal space
 			return [""];
 		}

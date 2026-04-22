@@ -42,7 +42,7 @@ export type RuntimeState = PhoneShellRenderState & {
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
 	agentTracker?: AgentStateTracker;
-	headerInstalled?: boolean;
+	headerInstalled: boolean;
 	viewportDrag?: {
 		anchorRow: number;
 		anchorScrollTop: number;
@@ -66,14 +66,12 @@ export const state: RuntimeState = {
 	utilityOverlayCol: 0,
 	utilityOverlayWidth: 0,
 	utilityButtons: [],
-	utilityButtonsHeight: 3,
 	utilityActualHeight: 3,
 	viewOverlayVisible: false,
 	viewOverlayRow: 0,
 	viewOverlayCol: 0,
 	viewOverlayWidth: 0,
 	viewButtons: [],
-	viewButtonsHeight: 3,
 	viewActualHeight: 3,
 	modelMenuVisible: false,
 	modelMenuRow: 0,
@@ -91,6 +89,7 @@ export const state: RuntimeState = {
 	agentState: { ...DEFAULT_AGENT_STATE },
 	logQueue: Promise.resolve(),
 	renderQueued: false,
+	headerInstalled: false,
 };
 
 // ---------------------------------------------------------------------------

@@ -80,7 +80,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		await reloadRuntimeSettings(ctx, false);
 		try {
 			const persisted = await loadPersistedShellState(state.paths);
-			state.barVisible = persisted.barVisible !== false;
+			state.barVisible = persisted.barVisible;
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
 				await enableTouchMode(ctx, false).catch(() => undefined);

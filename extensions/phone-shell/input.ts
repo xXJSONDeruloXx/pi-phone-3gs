@@ -198,106 +198,131 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 import { ButtonDropdownOverlayComponent, getDropdownInnerWidth } from "./overlay.js";
 import { renderContext } from "./state.js";
 
-function showUtilityOverlay(): void {
-	if (!state.tui || state.utilityOverlay) return;
-	hideViewOverlay();
-	const overlayWidth = getDropdownInnerWidth(state.layout.utilityButtons) + 2;
+type DropdownKind = "utility" | "view";
+
+function getDropdownButtons(kind: DropdownKind): ButtonSpec[] {
+	return kind === "utility" ? state.layout.utilityButtons : VIEW_MENU_BUTTONS;
+}
+
+function getDropdownAnchorButtonId(kind: DropdownKind): string {
+	return kind === "utility" ? "header-etc" : "header-view";
+}
+
+function getDropdownHandle(kind: DropdownKind) {
+	return kind === "utility" ? state.utilityOverlay : state.viewOverlay;
+}
+
+function setDropdownLayoutState(kind: DropdownKind, hitRegions: ButtonHitRegion[], actualHeight: number): void {
+	if (kind === "utility") {
+		state.utilityButtons = hitRegions;
+		state.utilityActualHeight = actualHeight;
+		return;
+	}
+	state.viewButtons = hitRegions;
+	state.viewActualHeight = actualHeight;
+}
+
+function setDropdownPlacement(kind: DropdownKind, row: number, col: number, width: number): void {
+	if (kind === "utility") {
+		state.utilityOverlayRow = row;
+		state.utilityOverlayCol = col;
+		state.utilityOverlayWidth = width;
+		return;
+	}
+	state.viewOverlayRow = row;
+	state.viewOverlayCol = col;
+	state.viewOverlayWidth = width;
+}
+
+function showDropdown(kind: DropdownKind): void {
+	if (!state.tui || getDropdownHandle(kind)) return;
+	if (kind === "utility") hideViewOverlay();
+	else hideUtilityOverlay();
+
+	const buttons = getDropdownButtons(kind);
+	const overlayWidth = getDropdownInnerWidth(buttons) + 2;
 	const overlayRow = HEADER_HEIGHT;
-	const etcButton = state.headerButtons.find((button) => button.button.id === "header-etc" && button.rowOffset === 0);
-	const overlayCol = Math.max(1, etcButton?.colStart ?? (state.config.render.leadingColumns + 1));
-	const overlayColZero = overlayCol - 1;
-	state.utilityOverlayRow = overlayRow;
-	state.utilityOverlayCol = overlayCol;
-	state.utilityOverlayWidth = overlayWidth;
-	state.utilityOverlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
+	const anchorButton = state.headerButtons.find((button) => button.button.id === getDropdownAnchorButtonId(kind) && button.rowOffset === 0);
+	const overlayCol = Math.max(1, anchorButton?.colStart ?? (state.config.render.leadingColumns + 1));
+	setDropdownPlacement(kind, overlayRow, overlayCol, overlayWidth);
+
+	const overlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
 		state.tui,
 		renderContext,
-		state.layout.utilityButtons,
-		() => state.utilityOverlayRow,
-		() => state.utilityOverlayCol,
-		(hitRegions, actualHeight) => {
-			state.utilityButtons = hitRegions;
-			state.utilityButtonsHeight = state.layout.utilityButtons.length * 3;
-			state.utilityActualHeight = actualHeight;
-		},
+		buttons,
+		() => (kind === "utility" ? state.utilityOverlayRow : state.viewOverlayRow),
+		() => (kind === "utility" ? state.utilityOverlayCol : state.viewOverlayCol),
+		(hitRegions, actualHeight) => setDropdownLayoutState(kind, hitRegions, actualHeight),
 	), {
 		anchor: "top-left",
 		row: overlayRow,
-		col: overlayColZero,
+		col: overlayCol - 1,
 		width: overlayWidth,
 		nonCapturing: true,
 	});
-	state.utilityOverlayVisible = true;
-	queueLog("utility overlay shown");
+
+	if (kind === "utility") {
+		state.utilityOverlay = overlay;
+		state.utilityOverlayVisible = true;
+	} else {
+		state.viewOverlay = overlay;
+		state.viewOverlayVisible = true;
+	}
+	queueLog(`${kind} overlay shown`);
 }
 
-function hideUtilityOverlay(): void {
-	state.utilityOverlay?.hide();
-	state.utilityOverlay = undefined;
-	state.utilityOverlayVisible = false;
-	state.utilityOverlayRow = 0;
-	state.utilityOverlayCol = 0;
-	state.utilityOverlayWidth = 0;
-	state.utilityButtons = [];
-	state.utilityButtonsHeight = BAR_HEIGHT;
-	state.utilityActualHeight = BAR_HEIGHT;
-	queueLog("utility overlay hidden");
+function hideDropdown(kind: DropdownKind): void {
+	if (kind === "utility") {
+		state.utilityOverlay?.hide();
+		state.utilityOverlay = undefined;
+		state.utilityOverlayVisible = false;
+		state.utilityOverlayRow = 0;
+		state.utilityOverlayCol = 0;
+		state.utilityOverlayWidth = 0;
+		state.utilityButtons = [];
+		state.utilityActualHeight = BAR_HEIGHT;
+	} else {
+		state.viewOverlay?.hide();
+		state.viewOverlay = undefined;
+		state.viewOverlayVisible = false;
+		state.viewOverlayRow = 0;
+		state.viewOverlayCol = 0;
+		state.viewOverlayWidth = 0;
+		state.viewButtons = [];
+		state.viewActualHeight = BAR_HEIGHT;
+	}
+	queueLog(`${kind} overlay hidden`);
 }
 
-function toggleUtilityOverlay(): void {
-	if (state.utilityOverlayVisible) hideUtilityOverlay();
-	else showUtilityOverlay();
+function toggleDropdown(kind: DropdownKind): void {
+	if (kind === "utility" ? state.utilityOverlayVisible : state.viewOverlayVisible) hideDropdown(kind);
+	else showDropdown(kind);
 }
 
-function showViewOverlay(): void {
-	if (!state.tui || state.viewOverlay) return;
-	hideUtilityOverlay();
-	const overlayWidth = getDropdownInnerWidth(VIEW_MENU_BUTTONS) + 2;
-	const overlayRow = HEADER_HEIGHT;
-	const viewButton = state.headerButtons.find((button) => button.button.id === "header-view" && button.rowOffset === 0);
-	const overlayCol = Math.max(1, viewButton?.colStart ?? (state.config.render.leadingColumns + 1));
-	const overlayColZero = overlayCol - 1;
-	state.viewOverlayRow = overlayRow;
-	state.viewOverlayCol = overlayCol;
-	state.viewOverlayWidth = overlayWidth;
-	state.viewOverlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
-		state.tui,
-		renderContext,
-		VIEW_MENU_BUTTONS,
-		() => state.viewOverlayRow,
-		() => state.viewOverlayCol,
-		(hitRegions, actualHeight) => {
-			state.viewButtons = hitRegions;
-			state.viewButtonsHeight = VIEW_MENU_BUTTONS.length * 3;
-			state.viewActualHeight = actualHeight;
-		},
-	), {
-		anchor: "top-left",
-		row: overlayRow,
-		col: overlayColZero,
-		width: overlayWidth,
-		nonCapturing: true,
-	});
-	state.viewOverlayVisible = true;
-	queueLog("view overlay shown");
-}
+const showUtilityOverlay = (): void => showDropdown("utility");
+const hideUtilityOverlay = (): void => hideDropdown("utility");
+const toggleUtilityOverlay = (): void => toggleDropdown("utility");
+const showViewOverlay = (): void => showDropdown("view");
+const hideViewOverlay = (): void => hideDropdown("view");
+const toggleViewOverlay = (): void => toggleDropdown("view");
 
-function hideViewOverlay(): void {
-	state.viewOverlay?.hide();
-	state.viewOverlay = undefined;
-	state.viewOverlayVisible = false;
-	state.viewOverlayRow = 0;
-	state.viewOverlayCol = 0;
-	state.viewOverlayWidth = 0;
-	state.viewButtons = [];
-	state.viewButtonsHeight = BAR_HEIGHT;
-	state.viewActualHeight = BAR_HEIGHT;
-	queueLog("view overlay hidden");
-}
+function handleDropdownMouse(kind: DropdownKind, mouse: MouseInput): InputResponse | undefined {
+	const visible = kind === "utility" ? state.utilityOverlayVisible : state.viewOverlayVisible;
+	if (!visible) return undefined;
 
-function toggleViewOverlay(): void {
-	if (state.viewOverlayVisible) hideViewOverlay();
-	else showViewOverlay();
+	const row = kind === "utility" ? state.utilityOverlayRow : state.viewOverlayRow;
+	const col = kind === "utility" ? state.utilityOverlayCol : state.viewOverlayCol;
+	const width = kind === "utility" ? state.utilityOverlayWidth : state.viewOverlayWidth;
+	const actualHeight = kind === "utility" ? state.utilityActualHeight : state.viewActualHeight;
+	const buttons = kind === "utility" ? state.utilityButtons : state.viewButtons;
+	const inOverlayRows = mouse.row >= row + 1 && mouse.row <= row + actualHeight;
+	const inOverlayCols = mouse.col >= col && mouse.col <= col + width - 1;
+	if (inOverlayRows && inOverlayCols) {
+		const button = findHitRegion(buttons, mouse.row - 1, mouse.col);
+		return button ? activateButton(button, kind) : { consume: true };
+	}
+	if (visible) hideDropdown(kind);
+	return { consume: true };
 }
 
 function hideModelMenu(): void {
@@ -341,29 +366,13 @@ export function registerInputHandler(ctx: { ui: any }): void {
 				return button ? activateButton(button, "header") : { consume: true };
 			}
 
-			if (state.utilityOverlayVisible) {
-				const inOverlayRows = mouse.row >= state.utilityOverlayRow + 1 && mouse.row <= state.utilityOverlayRow + state.utilityActualHeight;
-				const inOverlayCols = mouse.col >= state.utilityOverlayCol && mouse.col <= state.utilityOverlayCol + state.utilityOverlayWidth - 1;
-				if (inOverlayRows && inOverlayCols) {
-					const button = findHitRegion(state.utilityButtons, mouse.row - 1, mouse.col);
-					return button ? activateButton(button, "utility") : { consume: true };
-				}
-				hideUtilityOverlay();
-				return { consume: true };
-			}
+			const utilityDropdownResponse = handleDropdownMouse("utility", mouse);
+			if (utilityDropdownResponse) return utilityDropdownResponse;
 
-			if (state.viewOverlayVisible) {
-				const inOverlayRows = mouse.row >= state.viewOverlayRow + 1 && mouse.row <= state.viewOverlayRow + state.viewActualHeight;
-				const inOverlayCols = mouse.col >= state.viewOverlayCol && mouse.col <= state.viewOverlayCol + state.viewOverlayWidth - 1;
-				if (inOverlayRows && inOverlayCols) {
-					const button = findHitRegion(state.viewButtons, mouse.row - 1, mouse.col);
-					return button ? activateButton(button, "view") : { consume: true };
-				}
-				hideViewOverlay();
-				return { consume: true };
-			}
+			const viewDropdownResponse = handleDropdownMouse("view", mouse);
+			if (viewDropdownResponse) return viewDropdownResponse;
 
-			const inBar = state.barVisible !== false && state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;
+			const inBar = state.barVisible && state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;
 			if (inBar) {
 				const clickedRow = Math.floor((mouse.row - state.barRow) / BAR_HEIGHT);
 				const button = findHitRegion(state.barButtons, clickedRow, mouse.col);

@@ -125,8 +125,8 @@ export interface PhoneShellConfig {
 export interface PersistedShellState {
 	enabled: boolean;
 	autoEnable: boolean;
-	proxyOnly?: boolean;
-	barVisible?: boolean;
+	proxyOnly: boolean;
+	barVisible: boolean;
 }
 
 export interface PhoneShellPaths {
@@ -194,14 +194,13 @@ export interface PhoneShellRenderState {
 	barRow: number;
 	barButtons: ButtonHitRegion[];
 	barActualHeight: number;
-	barVisible?: boolean;
+	barVisible: boolean;
 	utilityOverlay?: OverlayHandle;
 	utilityOverlayVisible: boolean;
 	utilityOverlayRow: number;
 	utilityOverlayCol: number;
 	utilityOverlayWidth: number;
 	utilityButtons: ButtonHitRegion[];
-	utilityButtonsHeight: number;
 	utilityActualHeight: number;
 	viewOverlay?: OverlayHandle;
 	viewOverlayVisible: boolean;
@@ -209,7 +208,6 @@ export interface PhoneShellRenderState {
 	viewOverlayCol: number;
 	viewOverlayWidth: number;
 	viewButtons: ButtonHitRegion[];
-	viewButtonsHeight: number;
 	viewActualHeight: number;
 	modelMenuOverlay?: OverlayHandle;
 	modelMenuVisible: boolean;
@@ -223,8 +221,8 @@ export interface PhoneShellRenderState {
 	modelMenuModelButtons: ModelHitRegion[];
 	modelMenuSelectedProvider?: string;
 	originalChat?: Component;
-	promptProxyInstalled?: boolean;
-	proxyOnly?: boolean;
+	promptProxyInstalled: boolean;
+	proxyOnly: boolean;
 	viewportRow: number;
 	viewportHeight: number;
 	agentState: AgentStateInfo;

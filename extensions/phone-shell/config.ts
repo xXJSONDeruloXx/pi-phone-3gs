@@ -267,36 +267,35 @@ export function getPhoneShellPaths(): PhoneShellPaths {
 	};
 }
 
+function normalizePersistedShellState(value: unknown, fallback = DEFAULT_PERSISTED_STATE): PersistedShellState {
+	if (!isRecord(value)) return fallback;
+	return {
+		enabled: value.enabled === true,
+		autoEnable: value.autoEnable !== false,
+		proxyOnly: value.proxyOnly === true,
+		barVisible: value.barVisible !== false,
+	};
+}
+
 export async function loadPersistedShellState(paths: PhoneShellPaths): Promise<PersistedShellState> {
 	try {
 		const value = await readJsonIfExists(paths.state);
-		if (!isRecord(value)) return DEFAULT_PERSISTED_STATE;
-		return {
-			enabled: value.enabled === true,
-			autoEnable: value.autoEnable !== false,
-			proxyOnly: value.proxyOnly === true,
-			barVisible: value.barVisible !== false,
-		};
+		return normalizePersistedShellState(value);
 	} catch {
 		return DEFAULT_PERSISTED_STATE;
 	}
 }
 
-export async function savePersistedShellState(
-	paths: PhoneShellPaths,
-	enabled: boolean,
-	proxyOnly?: boolean,
-	barVisible?: boolean,
-): Promise<void> {
+export async function savePersistedShellState(paths: PhoneShellPaths, patch: Partial<PersistedShellState>): Promise<void> {
 	const current = await loadPersistedShellState(paths);
+	const next: PersistedShellState = {
+		enabled: patch.enabled ?? current.enabled,
+		autoEnable: patch.autoEnable ?? current.autoEnable,
+		proxyOnly: patch.proxyOnly ?? current.proxyOnly,
+		barVisible: patch.barVisible ?? current.barVisible,
+	};
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
-	const finalProxy = proxyOnly === undefined ? !!current.proxyOnly : !!proxyOnly;
-	const finalBarVisible = barVisible === undefined ? current.barVisible !== false : !!barVisible;
-	await fs.writeFile(
-		paths.state,
-		JSON.stringify({ enabled, autoEnable: current.autoEnable, proxyOnly: finalProxy, barVisible: finalBarVisible }, null, 2),
-		"utf8",
-	);
+	await fs.writeFile(paths.state, JSON.stringify(next, null, 2), "utf8");
 }
 
 export async function loadPhoneShellSettings(paths: PhoneShellPaths): Promise<{
