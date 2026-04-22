@@ -32,7 +32,7 @@ export const COMMANDS: readonly CommandMode[] = [
 ] as const;
 
 export const HEADER_CHILD_INDEX = 0;
-export const HEADER_HEIGHT = 2;
+export const HEADER_HEIGHT = 3;
 
 export const DEFAULT_AGENT_STATE: AgentStateInfo = {
 	phase: "idle",

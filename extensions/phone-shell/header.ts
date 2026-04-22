@@ -1,6 +1,7 @@
 import type { Component } from "@mariozechner/pi-tui";
-import { visibleWidth } from "@mariozechner/pi-tui";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
+import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
 import type { AgentPhase, AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellConfig, PhoneShellRenderContext } from "./types.js";
 
 function phaseAccent(phase: AgentPhase): "accent" | "warning" | "muted" {
@@ -10,10 +11,6 @@ function phaseAccent(phase: AgentPhase): "accent" | "warning" | "muted" {
 		case "streaming": return "accent";
 		case "tool_calling": return "warning";
 	}
-}
-
-function renderHeaderButton(label: string, color: "accent" | "warning" | "muted", theme: ReturnType<PhoneShellRenderContext["getTheme"]>): string {
-	return theme.bold(theme.fg(color, `[${label}]`));
 }
 
 function getHeaderButtonSpecs(_phase: AgentPhase, utilityOverlayVisible: boolean): ButtonSpec[] {
@@ -31,15 +28,14 @@ export function getHeaderButtonRegions(config: PhoneShellConfig, phase: AgentPha
 	const regions: ButtonHitRegion[] = [];
 	for (let i = 0; i < specs.length; i++) {
 		const spec = specs[i]!;
-		const buttonWidth = visibleWidth(`[${spec.label}]`);
+		const buttonWidth = makeButtonWidth(spec);
 		regions.push({
 			button: spec,
 			colStart: col,
 			colEnd: col + buttonWidth - 1,
 			rowOffset: 0,
 		});
-		col += buttonWidth;
-		if (i < specs.length - 1) col += 1;
+		col += buttonWidth + config.render.buttonGap;
 	}
 	return regions;
 }
@@ -53,17 +49,64 @@ export class HeaderBarComponent implements Component {
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
 		const specs = getHeaderButtonSpecs(this.ctx.state.agentState.phase, this.ctx.state.utilityOverlayVisible);
-		const regions = getHeaderButtonRegions(config, this.ctx.state.agentState.phase, this.ctx.state.utilityOverlayVisible);
 
-		const parts = specs.map((spec) => renderHeaderButton(spec.label, spec.palette ?? "accent", theme));
-		const line1Body = parts.join(" ");
-		const pad = Math.max(0, usableWidth - visibleWidth(line1Body));
-		this.ctx.state.headerButtons = regions;
+		const tops: string[] = [];
+		const mids: string[] = [];
+		const bots: string[] = [];
+		const hitRegions: ButtonHitRegion[] = [];
+		let col = config.render.leadingColumns + 1;
 
-		const line1 = lead + line1Body + " ".repeat(pad);
-		const line2 = lead + theme.fg("dim", "─".repeat(usableWidth));
+		for (let i = 0; i < specs.length; i++) {
+			const spec = specs[i]!;
+			const buttonWidth = makeButtonWidth(spec);
+			const innerWidth = Math.max(1, buttonWidth - 2);
+			const palette = buttonPalette(spec);
 
-		return [line1, line2];
+			// top border
+			tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
+
+			// middle - center the label in innerWidth
+			const raw = spec.label.trim();
+			const rawWidth = Math.max(0, visibleWidth(raw));
+			let label = raw;
+			if (rawWidth > innerWidth) label = truncateToWidth(raw, innerWidth, "", true);
+			const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
+			const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
+			const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
+			mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"));
+
+			// bottom border
+			bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
+
+			// push hit region for each header row (0..2)
+			for (let rowOffset = 0; rowOffset < 3; rowOffset++) {
+				hitRegions.push({ button: spec, colStart: col, colEnd: col + buttonWidth - 1, rowOffset });
+			}
+
+			col += buttonWidth;
+			if (i < specs.length - 1) {
+				tops.push(" ".repeat(config.render.buttonGap));
+				mids.push(" ".repeat(config.render.buttonGap));
+				bots.push(" ".repeat(config.render.buttonGap));
+				col += config.render.buttonGap;
+			}
+		}
+
+		const lineTop = lead + tops.join("");
+		const lineMid = lead + mids.join("");
+		const lineBot = lead + bots.join("");
+
+		const padTop = Math.max(0, usableWidth - visibleWidth(lineTop.slice(lead.length)));
+		const padMid = Math.max(0, usableWidth - visibleWidth(lineMid.slice(lead.length)));
+		const padBot = Math.max(0, usableWidth - visibleWidth(lineBot.slice(lead.length)));
+
+		const paddedTop = truncateToWidth(lineTop + " ".repeat(padTop), width);
+		const paddedMid = truncateToWidth(lineMid + " ".repeat(padMid), width);
+		const paddedBot = truncateToWidth(lineBot + " ".repeat(padBot), width);
+
+		this.ctx.state.headerButtons = hitRegions;
+
+		return [paddedTop, paddedMid, paddedBot];
 	}
 
 	invalidate(): void {}
