@@ -168,7 +168,7 @@ export function togglePromptProxyMode(): void {
 		queueLog("prompt proxy mode: proxy-only");
 		state.tui.requestRender(true);
 		// persist
-		void savePersistedShellState(state.paths, state.enabled, state.proxyOnly).catch(() => undefined);
+		void savePersistedShellState(state.paths, state.enabled, state.proxyOnly, state.barVisible).catch(() => undefined);
 		return;
 	}
 	// switch to native-only
@@ -178,7 +178,7 @@ export function togglePromptProxyMode(): void {
 	queueLog("prompt proxy mode: native-only");
 	state.tui.requestRender(true);
 	// persist
-	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly).catch(() => undefined);
+	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly, state.barVisible).catch(() => undefined);
 }
 
 export function toggleBottomBar(): void {
@@ -190,6 +190,7 @@ export function toggleBottomBar(): void {
 		showPanel();
 		state.barVisible = true;
 	}
+	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly, state.barVisible).catch(() => undefined);
 	state.tui?.requestRender(true);
 }
 
@@ -257,7 +258,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
-	if (persist) await savePersistedShellState(state.paths, true).catch(() => undefined);
+	if (persist) await savePersistedShellState(state.paths, true, state.proxyOnly, state.barVisible).catch(() => undefined);
 	ctx.ui.setStatus(STATUS_KEY, touchStatusText());
 	if (state.loadErrors.length > 0) {
 		ctx.ui.notify(`phone-shell enabled • ${state.loadErrors.length} config warning(s)`, "warning");
@@ -285,7 +286,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 		destroyPanel();
 		clearCapturedTui();
 	}
-	if (persist) await savePersistedShellState(state.paths, false).catch(() => undefined);
+	if (persist) await savePersistedShellState(state.paths, false, state.proxyOnly, state.barVisible).catch(() => undefined);
 	ctx?.ui.notify("phone-shell disabled", "info");
 	queueLog(`disabled permanent=${permanent}`);
 }

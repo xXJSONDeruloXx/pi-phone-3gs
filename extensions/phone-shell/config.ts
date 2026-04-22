@@ -275,19 +275,26 @@ export async function loadPersistedShellState(paths: PhoneShellPaths): Promise<P
 			enabled: value.enabled === true,
 			autoEnable: value.autoEnable !== false,
 			proxyOnly: value.proxyOnly === true,
+			barVisible: value.barVisible !== false,
 		};
 	} catch {
 		return DEFAULT_PERSISTED_STATE;
 	}
 }
 
-export async function savePersistedShellState(paths: PhoneShellPaths, enabled: boolean, proxyOnly?: boolean): Promise<void> {
+export async function savePersistedShellState(
+	paths: PhoneShellPaths,
+	enabled: boolean,
+	proxyOnly?: boolean,
+	barVisible?: boolean,
+): Promise<void> {
 	const current = await loadPersistedShellState(paths);
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
 	const finalProxy = proxyOnly === undefined ? !!current.proxyOnly : !!proxyOnly;
+	const finalBarVisible = barVisible === undefined ? current.barVisible !== false : !!barVisible;
 	await fs.writeFile(
 		paths.state,
-		JSON.stringify({ enabled, autoEnable: current.autoEnable, proxyOnly: finalProxy }, null, 2),
+		JSON.stringify({ enabled, autoEnable: current.autoEnable, proxyOnly: finalProxy, barVisible: finalBarVisible }, null, 2),
 		"utf8",
 	);
 }

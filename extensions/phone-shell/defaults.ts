@@ -115,6 +115,7 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	enabled: false,
 	autoEnable: true,
 	proxyOnly: false,
+	barVisible: true,
 };
 
 export const CONFIG_TEMPLATE = JSON.stringify(DEFAULT_CONFIG, null, 2);

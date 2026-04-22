@@ -126,6 +126,7 @@ export interface PersistedShellState {
 	enabled: boolean;
 	autoEnable: boolean;
 	proxyOnly?: boolean;
+	barVisible?: boolean;
 }
 
 export interface PhoneShellPaths {
