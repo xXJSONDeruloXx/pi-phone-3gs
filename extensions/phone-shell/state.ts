@@ -38,6 +38,8 @@ export type RuntimeState = PhoneShellRenderState & {
 		getEditorText?: () => string;
 		setWidget?: (key: string, content: any, options?: any) => void;
 		setEditorComponent?: (factory: ((tui: any, theme: any, keybindings: any) => any) | undefined) => void;
+		abort?: () => void;
+		isIdle?: () => boolean;
 	};
 	inputUnsubscribe?: () => void;
 	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
@@ -126,6 +128,8 @@ export const state: RuntimeState = {
 		getEditorText: undefined,
 		setWidget: undefined,
 		setEditorComponent: undefined,
+		abort: undefined,
+		isIdle: undefined,
 	},
 	inputUnsubscribe: undefined,
 	modelRegistry: undefined,
@@ -179,7 +183,7 @@ export function setLastAction(label: string): void {
 	queueLog(`action ${label}`);
 }
 
-export function captureUiBindings(ctx: { ui: any }): void {
+export function captureUiBindings(ctx: { ui: any; abort?: () => void; isIdle?: () => boolean }): void {
 	state.bindings.statusSink = ctx.ui.setStatus.bind(ctx.ui);
 	state.bindings.notify = ctx.ui.notify.bind(ctx.ui);
 	state.session.theme = ctx.ui.theme;
@@ -187,6 +191,8 @@ export function captureUiBindings(ctx: { ui: any }): void {
 	state.bindings.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);
 	state.bindings.setWidget = ctx.ui.setWidget.bind(ctx.ui);
 	state.bindings.setEditorComponent = ctx.ui.setEditorComponent?.bind(ctx.ui);
+	state.bindings.abort = ctx.abort?.bind(ctx);
+	state.bindings.isIdle = ctx.isIdle?.bind(ctx);
 }
 
 // ---------------------------------------------------------------------------
