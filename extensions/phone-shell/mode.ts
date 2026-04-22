@@ -238,10 +238,8 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 		return;
 	}
 	state.enabled = true;
-	installMirroredEditor();
 	installViewport();
 	installHeader();
-	installPromptProxy();
 	showPanel();
 	enableMouseTracking();
 	registerInputHandler(ctx);
