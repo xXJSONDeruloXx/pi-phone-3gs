@@ -1,6 +1,7 @@
 import {
 	COMMANDS,
 	CONFIG_TEMPLATE,
+	FAVORITES_TEMPLATE,
 	LAYOUT_TEMPLATE,
 } from "./defaults.js";
 import { getLogTail, getStatusReport, reloadRuntimeSettings, state } from "./state.js";
@@ -35,6 +36,7 @@ export function commandItems() {
 		{ value: "show-layout", label: "show-layout", description: "Paste effective layout JSON into the editor" },
 		{ value: "config-template", label: "config-template", description: "Paste a config template into the editor" },
 		{ value: "layout-template", label: "layout-template", description: "Paste a layout template into the editor" },
+		{ value: "favorites-template", label: "favorites-template", description: "Paste a favorites template into the editor" },
 		{ value: "paths", label: "paths", description: "Paste config, layout, state, and log paths into the editor" },
 		{ value: "top", label: "top", description: "Scroll chat viewport to the top" },
 		{ value: "bottom", label: "bottom", description: "Scroll chat viewport to the bottom" },
@@ -98,12 +100,17 @@ export async function handlePrimaryCommand(args: string, ctx: ExtensionCommandCo
 			ctx.ui.setEditorText(LAYOUT_TEMPLATE);
 			ctx.ui.notify("phone-shell layout template pasted into editor", "info");
 			return;
+		case "favorites-template":
+			ctx.ui.setEditorText(FAVORITES_TEMPLATE);
+			ctx.ui.notify("phone-shell favorites template pasted into editor", "info");
+			return;
 		case "paths":
 			ctx.ui.setEditorText([
-				`config: ${state.paths.config}`,
-				`layout: ${state.paths.layout}`,
-				`state: ${state.paths.state}`,
-				`log: ${state.paths.log}`,
+				`config:    ${state.paths.config}`,
+				`layout:    ${state.paths.layout}`,
+				`favorites: ${state.paths.favorites}`,
+				`state:     ${state.paths.state}`,
+				`log:       ${state.paths.log}`,
 			].join("\n"));
 			ctx.ui.notify("phone-shell paths pasted into editor", "info");
 			return;

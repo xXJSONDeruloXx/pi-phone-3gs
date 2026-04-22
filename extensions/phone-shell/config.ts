@@ -9,6 +9,7 @@ import {
 import type {
 	ButtonPalette,
 	ButtonSpec,
+	FavoriteEntry,
 	PersistedShellState,
 	PhoneShellConfig,
 	PhoneShellLayout,
@@ -268,6 +269,7 @@ export function getPhoneShellPaths(): PhoneShellPaths {
 		config: path.join(baseDir, "phone-shell.config.json"),
 		layout: path.join(baseDir, "phone-shell.layout.json"),
 		state: path.join(baseDir, "phone-shell.state.json"),
+		favorites: path.join(baseDir, "phone-shell.favorites.json"),
 		log: path.join(os.homedir(), ".pi", "agent", "logs", "pi-phone-3gs-phone-shell.log"),
 	};
 }
@@ -339,4 +341,33 @@ export async function loadPhoneShellSettings(paths: PhoneShellPaths): Promise<{
 	}
 
 	return { config, layout, errors };
+}
+
+export async function loadFavorites(paths: PhoneShellPaths): Promise<{ favorites: FavoriteEntry[]; errors: string[] }> {
+	const errors: string[] = [];
+	try {
+		const raw = await readJsonIfExists(paths.favorites);
+		if (raw === undefined) return { favorites: [], errors: [] };
+		if (!Array.isArray(raw)) {
+			errors.push("favorites: file must contain a JSON array");
+			return { favorites: [], errors };
+		}
+		const favorites: FavoriteEntry[] = [];
+		for (let i = 0; i < raw.length; i++) {
+			const item = raw[i];
+			if (!isRecord(item)) {
+				errors.push(`favorites[${i}] must be an object`);
+				continue;
+			}
+			const label = typeof item.label === "string" && item.label.trim().length > 0 ? item.label.trim() : undefined;
+			const command = typeof item.command === "string" && item.command.trim().length > 0 ? item.command.trim() : undefined;
+			if (!label) { errors.push(`favorites[${i}].label must be a non-empty string`); continue; }
+			if (!command) { errors.push(`favorites[${i}].command must be a non-empty string`); continue; }
+			const palette = readPalette(item.palette);
+			favorites.push({ label, command, palette });
+		}
+		return { favorites, errors };
+	} catch (error) {
+		return { favorites: [], errors: [`favorites: ${(error as Error).message}`] };
+	}
 }

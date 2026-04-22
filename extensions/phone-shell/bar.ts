@@ -3,32 +3,7 @@ import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT } from "./defaults.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
-// ---------------------------------------------------------------------------
-// Strip item definition
-// ---------------------------------------------------------------------------
-
-interface StripChip {
-	id: string;
-	label: string;
-	palette?: "accent" | "warning" | "muted";
-}
-
-// Placeholder items — replace with real data once the interaction model is proven
-const STRIP_ITEMS: StripChip[] = [
-	{ id: "strip-start", label: "  START  ", palette: "accent" },
-	{ id: "strip-foo-1", label: "  foo bar  " },
-	{ id: "strip-foo-2", label: "  foo bar  " },
-	{ id: "strip-foo-3", label: "  foo bar  " },
-	{ id: "strip-foo-4", label: "  foo bar  " },
-	{ id: "strip-foo-5", label: "  foo bar  " },
-	{ id: "strip-end", label: "  END  ", palette: "accent" },
-];
-
 const CHIP_GAP = 1; // columns between chips
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export class BottomBarComponent implements Component {
 	constructor(
@@ -39,9 +14,9 @@ export class BottomBarComponent implements Component {
 	render(width: number): string[] {
 		const theme = this.ctx.getTheme();
 		const config = this.ctx.getConfig();
+		const favorites = this.ctx.getFavorites();
 		const lead = " ".repeat(config.render.leadingColumns);
 		// prefix = lead (leadingColumns) + indicator char (1) = leadingColumns+1 visible cols
-		// Chips are rendered after that prefix, so the available chip area is smaller by the same amount.
 		const prefixCols = config.render.leadingColumns + 1;
 		const usableWidth = Math.max(1, width - prefixCols);
 
@@ -49,24 +24,28 @@ export class BottomBarComponent implements Component {
 		// Layout: compute virtual X position for each chip
 		// ---------------------------------------------------------------------------
 
-		type ChipLayout = { chip: StripChip; spec: ButtonSpec; virtualX: number; chipWidth: number };
+		type ChipLayout = { spec: ButtonSpec; label: string; palette: "accent" | "warning" | "muted"; virtualX: number; chipWidth: number };
 		const layouts: ChipLayout[] = [];
 		let vx = 0;
-		for (const chip of STRIP_ITEMS) {
-			const innerWidth = visibleWidth(chip.label);
+
+		for (let i = 0; i < favorites.length; i++) {
+			const fav = favorites[i]!;
+			const displayLabel = ` ${fav.label} `;
+			const innerWidth = visibleWidth(displayLabel);
 			const chipWidth = innerWidth + 2; // +2 for │ borders
+			const palette = fav.palette ?? "accent";
 			const spec: ButtonSpec = {
-				kind: "input",
-				id: chip.id,
-				label: chip.label,
-				data: "", // placeholder — no action yet
-				palette: chip.palette,
+				kind: "command",
+				id: `fav-${i}`,
+				label: fav.label,
+				command: fav.command,
+				palette,
 			};
-			layouts.push({ chip, spec, virtualX: vx, chipWidth });
+			layouts.push({ spec, label: displayLabel, palette, virtualX: vx, chipWidth });
 			vx += chipWidth + CHIP_GAP;
 		}
 
-		const totalVirtualWidth = Math.max(0, vx - CHIP_GAP);
+		const totalVirtualWidth = layouts.length > 0 ? Math.max(0, vx - CHIP_GAP) : 0;
 		const maxScrollX = Math.max(0, totalVirtualWidth - usableWidth);
 
 		// Clamp and sync scroll state
@@ -76,24 +55,24 @@ export class BottomBarComponent implements Component {
 		this.ctx.state.ui.bar.actualHeight = BAR_HEIGHT;
 
 		// ---------------------------------------------------------------------------
-		// Render: only fully-visible chips (simplest correct approach)
+		// Render: only fully-visible chips
 		// ---------------------------------------------------------------------------
 
 		const tops: string[] = [];
 		const mids: string[] = [];
 		const bots: string[] = [];
 		const hitRegions: ButtonHitRegion[] = [];
-		let cursorX = 0; // tracks position within usable area
+		let cursorX = 0;
 
-		for (const { chip, spec, virtualX, chipWidth } of layouts) {
+		for (const { spec, label, palette, virtualX, chipWidth } of layouts) {
 			const screenX = virtualX - scrollX;
 
-			if (screenX >= usableWidth) break;           // off right — done
-			if (screenX + chipWidth <= 0) continue;      // off left — skip
-			if (screenX < 0) continue;                   // partially off left — skip for now
+			if (screenX >= usableWidth) break;            // off right — done
+			if (screenX + chipWidth <= 0) continue;       // off left — skip
+			if (screenX < 0) continue;                    // partially off left — skip
 			if (screenX + chipWidth > usableWidth) continue; // partially off right — skip
 
-			// Fill gap from current cursor to this chip's screen position
+			// Fill gap between current cursor and this chip
 			const gap = screenX - cursorX;
 			if (gap > 0) {
 				const spaces = " ".repeat(gap);
@@ -103,11 +82,9 @@ export class BottomBarComponent implements Component {
 				cursorX += gap;
 			}
 
-			const palette = chip.palette ?? "muted";
 			const innerWidth = chipWidth - 2;
-
 			tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-			mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, chip.label)) + theme.fg(palette, "│"));
+			mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, label)) + theme.fg(palette, "│"));
 			bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
 
 			const colStart = prefixCols + 1 + screenX; // 1-based terminal column
@@ -135,7 +112,7 @@ export class BottomBarComponent implements Component {
 		}
 
 		// ---------------------------------------------------------------------------
-		// Scroll indicators: show ‹ / › in leading area and right edge of mid line
+		// Scroll indicators and empty-state hint
 		// ---------------------------------------------------------------------------
 
 		const hasLeft = scrollX > 0;
@@ -143,11 +120,17 @@ export class BottomBarComponent implements Component {
 		const leftInd = hasLeft ? theme.fg("dim", "‹") : " ";
 		const rightInd = hasRight ? theme.fg("dim", "›") : "";
 
-		const midContent = lead + leftInd + mids.join("") + rightInd;
+		let midRow: string;
+		if (favorites.length === 0) {
+			const hint = theme.fg("dim", "  no favorites — say \"add to favorites\" to populate  ");
+			midRow = truncateToWidth(lead + leftInd + hint, width);
+		} else {
+			midRow = truncateToWidth(lead + leftInd + mids.join("") + rightInd, width);
+		}
 
 		return [
 			truncateToWidth(lead + " " + tops.join(""), width),
-			truncateToWidth(midContent, width),
+			midRow,
 			truncateToWidth(lead + " " + bots.join(""), width),
 		];
 	}

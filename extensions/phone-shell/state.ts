@@ -3,8 +3,9 @@ import type { Model } from "@mariozechner/pi-ai";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { DEFAULT_CONFIG } from "./defaults.js";
-import { getPhoneShellPaths, loadPhoneShellSettings } from "./config.js";
+import { getPhoneShellPaths, loadFavorites, loadPhoneShellSettings } from "./config.js";
 import type {
+	FavoriteEntry,
 	MouseInput,
 	PhoneShellConfig,
 	PhoneShellLayout,
@@ -20,6 +21,7 @@ import type { AgentStateTracker } from "./header.js";
 export type RuntimeState = PhoneShellRenderState & {
 	config: PhoneShellConfig;
 	layout: PhoneShellLayout;
+	favorites: FavoriteEntry[];
 	paths: ReturnType<typeof getPhoneShellPaths>;
 	diagnostics: {
 		loadErrors: string[];
@@ -107,6 +109,7 @@ export const state: RuntimeState = {
 	},
 	config: DEFAULT_CONFIG,
 	layout: { utilityButtons: [], bottomGroups: [] },
+	favorites: [],
 	paths: getPhoneShellPaths(),
 	diagnostics: {
 		loadErrors: [],
@@ -144,6 +147,7 @@ export const renderContext: PhoneShellRenderContext = {
 	state,
 	getConfig: () => state.config,
 	getLayout: () => state.layout,
+	getFavorites: () => state.favorites,
 	getTheme,
 };
 
@@ -191,14 +195,17 @@ export function captureUiBindings(ctx: { ui: any }): void {
 
 export async function reloadRuntimeSettings(ctx?: { ui: any }, notifyOnProblems = false): Promise<void> {
 	const { config, layout, errors } = await loadPhoneShellSettings(state.paths);
+	const { favorites, errors: favErrors } = await loadFavorites(state.paths);
 	state.config = config;
 	state.layout = layout;
-	state.diagnostics.loadErrors = errors;
-	if (notifyOnProblems && errors.length > 0) {
-		ctx?.ui.notify(`phone-shell loaded with ${errors.length} config warning(s)`, "warning");
+	state.favorites = favorites;
+	const allErrors = [...errors, ...favErrors];
+	state.diagnostics.loadErrors = allErrors;
+	if (notifyOnProblems && allErrors.length > 0) {
+		ctx?.ui.notify(`phone-shell loaded with ${allErrors.length} config warning(s)`, "warning");
 	}
-	if (errors.length > 0) {
-		queueLog(`config warnings: ${errors.join(" | ")}`);
+	if (allErrors.length > 0) {
+		queueLog(`config warnings: ${allErrors.join(" | ")}`);
 	}
 	scheduleRender();
 }
@@ -220,6 +227,7 @@ export function getStatusReport(): string {
 		`- state file: ${state.paths.state}`,
 		`- config file: ${state.paths.config}`,
 		`- layout file: ${state.paths.layout}`,
+		`- favorites file: ${state.paths.favorites} (${state.favorites.length} item(s))`,
 		`- log file: ${state.paths.log}`,
 		state.session.tui ? `- terminal: ${state.session.tui.terminal.columns} cols × ${state.session.tui.terminal.rows} rows` : "- terminal: (not captured)",
 		state.ui.bar.row > 0 ? `- bar: row=${state.ui.bar.row} buttons=${state.ui.bar.buttons.length}` : "- bar: (not rendered)",

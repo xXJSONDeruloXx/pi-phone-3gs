@@ -48,6 +48,7 @@ export type CommandMode =
 	| "show-layout"
 	| "config-template"
 	| "layout-template"
+	| "favorites-template"
 	| "paths"
 	| "top"
 	| "bottom"
@@ -128,10 +129,20 @@ export interface PersistedShellState {
 	viewportJumpButtonsVisible: boolean;
 }
 
+export interface FavoriteEntry {
+	/** Short label shown on the rail button. Keep ≤ 6 chars. */
+	label: string;
+	/** Full slash command sent when tapped, e.g. "/skill:ralph-wiggum" or "/compact". */
+	command: string;
+	/** Optional palette override. Defaults to "accent". */
+	palette?: ButtonPalette;
+}
+
 export interface PhoneShellPaths {
 	config: string;
 	layout: string;
 	state: string;
+	favorites: string;
 	log: string;
 }
 
@@ -256,5 +267,6 @@ export interface PhoneShellRenderContext {
 	state: PhoneShellRenderState;
 	getConfig(): PhoneShellConfig;
 	getLayout(): PhoneShellLayout;
+	getFavorites(): FavoriteEntry[];
 	getTheme(): Theme;
 }

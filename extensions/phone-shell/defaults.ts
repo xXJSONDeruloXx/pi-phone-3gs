@@ -1,4 +1,4 @@
-import type { AgentStateInfo, ButtonSpec, CommandMode, PersistedShellState, PhoneShellConfig, PhoneShellLayout, ShellModeState } from "./types.js";
+import type { AgentStateInfo, ButtonSpec, CommandMode, FavoriteEntry, PersistedShellState, PhoneShellConfig, PhoneShellLayout, ShellModeState } from "./types.js";
 
 export const PRIMARY_COMMAND = "phone-shell";
 export const TOGGLE_ALIAS_COMMAND = "touch";
@@ -24,6 +24,7 @@ export const COMMANDS: readonly CommandMode[] = [
 	"show-layout",
 	"config-template",
 	"layout-template",
+	"favorites-template",
 	"paths",
 	"top",
 	"bottom",
@@ -127,6 +128,18 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	navPadVisible: false,
 	viewportJumpButtonsVisible: true,
 };
+
+export const DEFAULT_FAVORITES: FavoriteEntry[] = [];
+
+export const FAVORITES_TEMPLATE = JSON.stringify(
+	[
+		{ label: "NEW", command: "/new", palette: "warning" },
+		{ label: "CMPT", command: "/compact", palette: "warning" },
+		{ label: "RLPH", command: "/skill:ralph-wiggum" },
+	],
+	null,
+	2,
+);
 
 export const CONFIG_TEMPLATE = JSON.stringify(DEFAULT_CONFIG, null, 2);
 export const LAYOUT_TEMPLATE = JSON.stringify(DEFAULT_LAYOUT, null, 2);
