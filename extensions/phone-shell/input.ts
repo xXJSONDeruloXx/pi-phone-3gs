@@ -154,8 +154,8 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 	setLastAction(`${origin}:${button.id}`);
 
 	const shouldAutoHideOverlay = (origin === "utility" || origin === "view") && !state.config.utilityOverlay.keepOpenAfterButtonActivation;
-	const maybeHideOverlay = () => {
-		if (!shouldAutoHideOverlay) return;
+	const maybeHideOverlay = (force = false) => {
+		if (!force && !shouldAutoHideOverlay) return;
 		if (origin === "utility") hideUtilityOverlay();
 		if (origin === "view") hideViewOverlay();
 	};
@@ -183,7 +183,10 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 		return { data: button.data };
 	}
 
-	return performAction(button.action);
+	const result = performAction(button.action);
+	if (origin === "view") maybeHideOverlay(true);
+	else maybeHideOverlay();
+	return result;
 }
 
 // ---------------------------------------------------------------------------

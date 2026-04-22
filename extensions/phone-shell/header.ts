@@ -60,8 +60,8 @@ export class HeaderBarComponent implements Component {
 		const etcSpec = specs.find((s) => s.id === "header-etc")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;
 		const viewSpec = specs.find((s) => s.id === "header-view")!;
-		const leftSpecs = [etcSpec];
-		const rightSpecs = [modelSpec, viewSpec];
+		const leftSpecs = [etcSpec, viewSpec];
+		const rightSpecs = [modelSpec];
 
 		const left = renderButtonRow(leftSpecs, config.render.buttonGap, theme);
 		const right = renderButtonRow(rightSpecs, config.render.buttonGap, theme);
