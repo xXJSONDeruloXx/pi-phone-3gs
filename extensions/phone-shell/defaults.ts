@@ -54,6 +54,9 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 	},
 	utilityOverlay: {
 		autoOpenOnEnable: false,
+		keepOpenAfterButtonActivation: false,
+	},
+	viewOverlay: {
 		keepOpenAfterButtonActivation: true,
 	},
 	render: {

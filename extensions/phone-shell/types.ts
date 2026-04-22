@@ -103,6 +103,9 @@ export interface PhoneShellConfig {
 		autoOpenOnEnable: boolean;
 		keepOpenAfterButtonActivation: boolean;
 	};
+	viewOverlay: {
+		keepOpenAfterButtonActivation: boolean;
+	};
 	render: {
 		buttonGap: number;
 		leadingColumns: number;

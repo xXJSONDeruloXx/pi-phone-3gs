@@ -200,6 +200,9 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 	const utilityOverlay = isRecord(value.utilityOverlay) ? value.utilityOverlay : {};
 	if (value.utilityOverlay !== undefined && !isRecord(value.utilityOverlay)) errors.push("utilityOverlay must be an object");
 
+	const viewOverlay = isRecord(value.viewOverlay) ? value.viewOverlay : {};
+	if (value.viewOverlay !== undefined && !isRecord(value.viewOverlay)) errors.push("viewOverlay must be an object");
+
 	const render = isRecord(value.render) ? value.render : {};
 	if (value.render !== undefined && !isRecord(value.render)) errors.push("render must be an object");
 
@@ -223,6 +226,13 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 				utilityOverlay,
 				"keepOpenAfterButtonActivation",
 				DEFAULT_CONFIG.utilityOverlay.keepOpenAfterButtonActivation,
+			),
+		},
+		viewOverlay: {
+			keepOpenAfterButtonActivation: readBoolean(
+				viewOverlay,
+				"keepOpenAfterButtonActivation",
+				DEFAULT_CONFIG.viewOverlay.keepOpenAfterButtonActivation,
 			),
 		},
 		render: {

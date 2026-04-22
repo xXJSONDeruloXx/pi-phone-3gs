@@ -202,9 +202,12 @@ export function performAction(action: ShellAction): InputResponse {
 export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "bar" | "nav" | "header"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
-	const shouldAutoHideOverlay = (origin === "utility" || origin === "view") && !state.config.utilityOverlay.keepOpenAfterButtonActivation;
-	const maybeHideOverlay = (force = false) => {
-		if (!force && !shouldAutoHideOverlay) return;
+	const keepOpen = origin === "view"
+		? state.config.viewOverlay.keepOpenAfterButtonActivation
+		: state.config.utilityOverlay.keepOpenAfterButtonActivation;
+	const shouldAutoHideOverlay = (origin === "utility" || origin === "view") && !keepOpen;
+	const maybeHideOverlay = () => {
+		if (!shouldAutoHideOverlay) return;
 		if (origin === "utility") hideUtilityOverlay();
 		if (origin === "view") hideViewOverlay();
 	};
@@ -233,8 +236,7 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 	}
 
 	const result = performAction(button.action);
-	if (origin === "view") maybeHideOverlay(true);
-	else maybeHideOverlay();
+	maybeHideOverlay();
 	return result;
 }
 
