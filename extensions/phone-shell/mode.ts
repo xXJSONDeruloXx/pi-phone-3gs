@@ -292,6 +292,7 @@ function hidePanel(): void {
 	state.ui.bar.row = 0;
 	state.ui.bar.buttons = [];
 	state.ui.bar.actualHeight = BAR_HEIGHT;
+	state.ui.bar.drag = undefined;
 	queueLog("bar hidden");
 }
 

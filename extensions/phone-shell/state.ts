@@ -68,6 +68,9 @@ export const state: RuntimeState = {
 			row: 0,
 			buttons: [],
 			actualHeight: 3,
+			scrollX: 0,
+			maxScrollX: 0,
+			drag: undefined,
 		},
 		nav: {
 			row: 0,

@@ -175,10 +175,21 @@ export interface DropdownOverlayState {
 	actualHeight: number;
 }
 
+export interface BarDragState {
+	anchorCol: number;
+	anchorScrollX: number;
+	phase: "potential-tap" | "dragging";
+	tapCol: number;
+	tapRow: number;
+}
+
 export interface BarLayoutState {
 	row: number;
 	buttons: ButtonHitRegion[];
 	actualHeight: number;
+	scrollX: number;
+	maxScrollX: number;
+	drag?: BarDragState;
 }
 
 export interface NavLayoutState {

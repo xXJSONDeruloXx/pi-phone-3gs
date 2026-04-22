@@ -65,6 +65,49 @@ function isViewportRow(row: number): boolean {
 	return state.ui.viewport.row > 0 && row >= state.ui.viewport.row && row < state.ui.viewport.row + state.ui.viewport.height;
 }
 
+// ---------------------------------------------------------------------------
+// Bar horizontal drag (panning strip)
+// ---------------------------------------------------------------------------
+
+function startBarDrag(mouse: MouseInput): InputResponse {
+	state.ui.bar.drag = {
+		anchorCol: mouse.col,
+		anchorScrollX: state.ui.bar.scrollX,
+		phase: "potential-tap",
+		tapCol: mouse.col,
+		tapRow: mouse.row,
+	};
+	setLastAction("mouse:bar-drag-start");
+	return { consume: true };
+}
+
+function updateBarDrag(mouse: MouseInput): InputResponse {
+	if (!state.ui.bar.drag) return { consume: true };
+	const delta = mouse.col - state.ui.bar.drag.anchorCol;
+	if (Math.abs(delta) > 2) state.ui.bar.drag.phase = "dragging";
+	if (state.ui.bar.drag.phase === "dragging") {
+		state.ui.bar.scrollX = Math.max(0, Math.min(state.ui.bar.maxScrollX, state.ui.bar.drag.anchorScrollX - delta));
+		scheduleRender();
+	}
+	return { consume: true };
+}
+
+function finishBarDrag(mouse: MouseInput): InputResponse {
+	if (!state.ui.bar.drag) return { consume: true };
+	const drag = state.ui.bar.drag;
+	state.ui.bar.drag = undefined;
+	if (drag.phase === "potential-tap") {
+		const button = findHitRegion(state.ui.bar.buttons, 0, drag.tapCol);
+		if (button) return activateButton(button, "bar");
+	}
+	setLastAction("mouse:bar-drag-end");
+	return { consume: true };
+}
+
+// ---------------------------------------------------------------------------
+// Viewport drag
+// ---------------------------------------------------------------------------
+
 function startViewportDrag(mouse: MouseInput): InputResponse {
 	const debug = state.session.viewport?.getDebugState();
 	if (!debug) return { consume: true };
@@ -349,6 +392,8 @@ export function registerInputHandler(ctx: { ui: any }): void {
 				queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
 			}
 			if (!state.shell.enabled) return { consume: true };
+			if (state.ui.bar.drag && mouse.phase === "release") return finishBarDrag(mouse);
+			if (state.ui.bar.drag && isPrimaryPointerDrag(mouse)) return updateBarDrag(mouse);
 			if (state.ui.viewport.drag && mouse.phase === "release") return finishViewportDrag(mouse);
 			if (state.ui.viewport.drag && isPrimaryPointerDrag(mouse)) return updateViewportDrag(mouse);
 			if (!isPrimaryPointerPress(mouse)) return { consume: true };
@@ -374,11 +419,7 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			}
 
 			const inBar = state.shell.barVisible && state.ui.bar.row > 0 && mouse.row >= state.ui.bar.row && mouse.row < state.ui.bar.row + state.ui.bar.actualHeight;
-			if (inBar) {
-				const clickedRow = Math.floor((mouse.row - state.ui.bar.row) / BAR_HEIGHT);
-				const button = findHitRegion(state.ui.bar.buttons, clickedRow, mouse.col);
-				return button ? activateButton(button, "bar") : { consume: true };
-			}
+			if (inBar) return startBarDrag(mouse);
 
 			if (isViewportRow(mouse.row)) {
 				const viewportButton = findHitRegion(state.ui.viewport.buttons, mouse.row - state.ui.viewport.row, mouse.col);
@@ -421,4 +462,5 @@ export function unregisterInputHandler(): void {
 	state.inputUnsubscribe?.();
 	state.inputUnsubscribe = undefined;
 	state.ui.viewport.drag = undefined;
+	state.ui.bar.drag = undefined;
 }
