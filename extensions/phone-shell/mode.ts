@@ -89,7 +89,7 @@ function uninstallViewport(): void {
 function installHeader(): void {
 	if (!state.tui || state.headerInstalled) return;
 	if (!state.config.header.enabled) return;
-	const header = new HeaderBarComponent(state.tui, renderContext);
+	const header = new HeaderBarComponent(renderContext);
 	state.tui.children.splice(HEADER_CHILD_INDEX, 0, header);
 	state.headerInstalled = true;
 	state.tui.requestRender(true);
@@ -104,6 +104,7 @@ function uninstallHeader(): void {
 		state.tui.requestRender(true);
 		queueLog("header uninstalled");
 	}
+	state.headerButtons = [];
 	state.headerInstalled = false;
 }
 

@@ -170,6 +170,7 @@ export interface PhoneShellRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
+	headerButtons: ButtonHitRegion[];
 	barRow: number;
 	barButtons: ButtonHitRegion[];
 	barActualHeight: number;

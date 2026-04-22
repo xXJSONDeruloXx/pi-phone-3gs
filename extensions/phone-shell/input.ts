@@ -1,5 +1,5 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
-import { BAR_HEIGHT } from "./defaults.js";
+import { BAR_HEIGHT, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
 import type {
 	ButtonHitRegion,
@@ -105,7 +105,7 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
-export function activateButton(button: ButtonSpec, origin: "utility" | "bar"): InputResponse {
+export function activateButton(button: ButtonSpec, origin: "utility" | "bar" | "header"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
 	if (button.kind === "command") {
@@ -200,6 +200,13 @@ export function registerInputHandler(ctx: { ui: any }): void {
 				const clickedRow = Math.floor((mouse.row - 1) / BAR_HEIGHT);
 				const button = findHitRegion(state.utilityButtons, clickedRow, mouse.col);
 				return button ? activateButton(button, "utility") : { consume: true };
+			}
+
+			const inHeader = state.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
+			if (inHeader) {
+				const clickedRow = mouse.row - 1;
+				const button = findHitRegion(state.headerButtons, clickedRow, mouse.col);
+				return button ? activateButton(button, "header") : { consume: true };
 			}
 
 			const inBar = state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;

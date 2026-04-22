@@ -1,29 +1,9 @@
-import type { Component, TUI } from "@mariozechner/pi-tui";
-import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import type { Component } from "@mariozechner/pi-tui";
+import { visibleWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
-import type { AgentPhase, AgentStateInfo, PhoneShellRenderContext } from "./types.js";
+import type { AgentPhase, AgentStateInfo, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
-function formatTime(timestamp: number): string {
-	const d = new Date(timestamp);
-	return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
-}
-
-function renderContextBar(percent: number, barWidth: number): string {
-	const filled = Math.round((percent / 100) * barWidth);
-	const empty = barWidth - filled;
-	return "█".repeat(Math.max(0, filled)) + "░".repeat(Math.max(0, empty));
-}
-
-function phaseLabel(phase: AgentPhase): string {
-	switch (phase) {
-		case "idle": return "idle";
-		case "thinking": return "think";
-		case "streaming": return "stream";
-		case "tool_calling": return "tools";
-	}
-}
-
-function phaseDotColor(phase: AgentPhase): "accent" | "warning" | "muted" {
+function phaseAccent(phase: AgentPhase): "accent" | "warning" | "muted" {
 	switch (phase) {
 		case "idle": return "muted";
 		case "thinking": return "accent";
@@ -33,68 +13,38 @@ function phaseDotColor(phase: AgentPhase): "accent" | "warning" | "muted" {
 }
 
 export class HeaderBarComponent implements Component {
-	constructor(
-		private readonly tui: TUI,
-		private readonly ctx: PhoneShellRenderContext,
-	) {}
+	constructor(private readonly ctx: PhoneShellRenderContext) {}
 
 	render(width: number): string[] {
 		const theme = this.ctx.getTheme();
 		const config = this.ctx.getConfig();
-		const agentState = this.ctx.state.agentState;
-		const headerConfig = config.header;
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
+		const color = phaseAccent(this.ctx.state.agentState.phase);
 
-		const phase = agentState.phase;
-		const model = agentState.model;
-		const dotColor = phaseDotColor(phase);
-		const label = phaseLabel(phase);
+		const button: ButtonSpec = {
+			kind: "action",
+			id: "header-model",
+			label: "MODEL",
+			action: "cycleModel",
+			palette: color,
+		};
+		const buttonColStart = config.render.leadingColumns + 1;
+		const buttonTextRaw = `[MODEL]`;
+		const buttonVisibleWidth = visibleWidth(buttonTextRaw);
+		this.ctx.state.headerButtons = [{
+			button,
+			colStart: buttonColStart,
+			colEnd: buttonColStart + buttonVisibleWidth - 1,
+			rowOffset: 0,
+		}];
 
-		// Line 1: model name (left) + state indicator (right)
-		const stateVisual = `${theme.fg(dotColor, "●")} ${theme.fg(dotColor, label)}`;
-		const stateVisibleWidth = visibleWidth("●") + 1 + label.length;
-		const modelMax = Math.max(1, usableWidth - 1 - stateVisibleWidth);
-		let modelDisplay = model;
-		if (visibleWidth(modelDisplay) > modelMax) {
-			modelDisplay = truncateToWidth(modelDisplay, modelMax, "", true);
-		}
-		const modelVisible = visibleWidth(modelDisplay);
-		const pad1 = Math.max(0, usableWidth - modelVisible - 1 - stateVisibleWidth);
-		const line1 = lead + modelDisplay + " ".repeat(pad1) + " " + stateVisual;
+		const line1 = lead
+			+ theme.bold(theme.fg(color, buttonTextRaw))
+			+ " ".repeat(Math.max(0, usableWidth - buttonVisibleWidth));
+		const line2 = lead + theme.fg("dim", "─".repeat(usableWidth));
 
-		// Line 2: context bar + jobs + timestamp
-		const parts: string[] = [];
-
-		if (headerConfig.showContext && agentState.contextPercent != null) {
-			const pct = Math.round(agentState.contextPercent);
-			const bar = renderContextBar(agentState.contextPercent, headerConfig.contextBarWidth);
-			parts.push(`ctx ${bar} ${pct}%`);
-		} else if (headerConfig.showContext && agentState.contextTokens != null) {
-			const tok = agentState.contextTokens >= 1000
-				? `${Math.round(agentState.contextTokens / 1000)}k`
-				: `${agentState.contextTokens}`;
-			parts.push(`ctx ${tok}`);
-		}
-
-		if (headerConfig.showJobs && agentState.backgroundJobs > 0) {
-			parts.push(`⚙${agentState.backgroundJobs}`);
-		}
-
-		if (headerConfig.showTimestamp && agentState.lastUpdate > 0) {
-			parts.push(formatTime(agentState.lastUpdate));
-		}
-
-		const line2Raw = parts.join("  ");
-		const line2Pad = Math.max(0, usableWidth - visibleWidth(line2Raw));
-		const line2 = parts.length > 0
-			? lead + theme.fg("dim", line2Raw) + " ".repeat(line2Pad)
-			: lead + " ".repeat(usableWidth);
-
-		return [
-			truncateToWidth(line1, width),
-			truncateToWidth(line2, width),
-		];
+		return [line1, line2];
 	}
 
 	invalidate(): void {}

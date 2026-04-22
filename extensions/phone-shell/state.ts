@@ -45,6 +45,7 @@ export const state: RuntimeState = {
 	layout: { utilityButtons: [], bottomGroups: [] },
 	paths: getPhoneShellPaths(),
 	loadErrors: [],
+	headerButtons: [],
 	barRow: 0,
 	barButtons: [],
 	barActualHeight: 3,
