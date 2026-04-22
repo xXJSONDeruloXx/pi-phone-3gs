@@ -14,7 +14,7 @@ export class BottomBarComponent implements Component {
 		const theme = this.ctx.getTheme();
 		const config = this.ctx.getConfig();
 		const layout = this.ctx.getLayout();
-		const debugState = this.ctx.state.viewport?.getDebugState();
+		const debugState = this.ctx.state.session.viewport?.getDebugState();
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
 
@@ -74,9 +74,9 @@ export class BottomBarComponent implements Component {
 		const footerChild = this.tui.children[this.tui.children.length - 1];
 		const footerHeight = footerChild ? footerChild.render(width).length : 3;
 
-		this.ctx.state.barRow = this.tui.terminal.rows - footerHeight - actualBarHeight + 1;
-		this.ctx.state.barButtons = hitRegions;
-		this.ctx.state.barActualHeight = actualBarHeight;
+		this.ctx.state.ui.bar.row = this.tui.terminal.rows - footerHeight - actualBarHeight + 1;
+		this.ctx.state.ui.bar.buttons = hitRegions;
+		this.ctx.state.ui.bar.actualHeight = actualBarHeight;
 		return allLines;
 	}
 

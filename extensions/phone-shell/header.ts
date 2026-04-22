@@ -55,7 +55,7 @@ export class HeaderBarComponent implements Component {
 		const config = this.ctx.getConfig();
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
-		const specs = getHeaderButtonSpecs(this.ctx.state.utilityOverlayVisible, this.ctx.state.viewOverlayVisible);
+		const specs = getHeaderButtonSpecs(this.ctx.state.ui.overlays.utility.visible, this.ctx.state.ui.overlays.view.visible);
 
 		const etcSpec = specs.find((s) => s.id === "header-etc")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;
@@ -82,7 +82,7 @@ export class HeaderBarComponent implements Component {
 			rightCol += buttonWidth + (i < rightSpecs.length - 1 ? config.render.buttonGap : 0);
 		}
 
-		this.ctx.state.headerButtons = hitRegions;
+		this.ctx.state.ui.headerButtons = hitRegions;
 
 		return [
 			truncateToWidth(lead + left.top + " ".repeat(fill) + right.top, width),

@@ -62,13 +62,13 @@ export function findHitRegion(buttons: ButtonHitRegion[], rowOffset: number, col
 }
 
 function isViewportRow(row: number): boolean {
-	return state.viewportRow > 0 && row >= state.viewportRow && row < state.viewportRow + state.viewportHeight;
+	return state.ui.viewport.row > 0 && row >= state.ui.viewport.row && row < state.ui.viewport.row + state.ui.viewport.height;
 }
 
 function startViewportDrag(mouse: MouseInput): InputResponse {
-	const debug = state.viewport?.getDebugState();
+	const debug = state.session.viewport?.getDebugState();
 	if (!debug) return { consume: true };
-	state.viewportDrag = {
+	state.ui.viewport.drag = {
 		anchorRow: mouse.row,
 		anchorScrollTop: debug.scrollTop,
 		lastRow: mouse.row,
@@ -78,17 +78,17 @@ function startViewportDrag(mouse: MouseInput): InputResponse {
 }
 
 function updateViewportDrag(mouse: MouseInput): InputResponse {
-	if (!state.viewportDrag || !state.viewport) return { consume: true };
-	const deltaRows = mouse.row - state.viewportDrag.anchorRow;
-	state.viewportDrag.lastRow = mouse.row;
-	state.viewport.setScrollTop(state.viewportDrag.anchorScrollTop - deltaRows);
+	if (!state.ui.viewport.drag || !state.session.viewport) return { consume: true };
+	const deltaRows = mouse.row - state.ui.viewport.drag.anchorRow;
+	state.ui.viewport.drag.lastRow = mouse.row;
+	state.session.viewport.setScrollTop(state.ui.viewport.drag.anchorScrollTop - deltaRows);
 	return { consume: true };
 }
 
 function finishViewportDrag(mouse: MouseInput): InputResponse {
-	if (!state.viewportDrag) return { consume: true };
-	const moved = Math.abs(mouse.row - state.viewportDrag.anchorRow);
-	state.viewportDrag = undefined;
+	if (!state.ui.viewport.drag) return { consume: true };
+	const moved = Math.abs(mouse.row - state.ui.viewport.drag.anchorRow);
+	state.ui.viewport.drag = undefined;
 	if (moved > 0) setLastAction("mouse:viewport-drag-end");
 	return { consume: true };
 }
@@ -114,18 +114,18 @@ export function performAction(action: ShellAction): InputResponse {
 			togglePromptProxyMode();
 			return { consume: true };
 		case "scrollTop":
-			state.viewport?.toTop();
+			state.session.viewport?.toTop();
 			return { consume: true };
 		case "pageUp":
-			state.viewport?.pageUp();
+			state.session.viewport?.pageUp();
 			return { consume: true };
 		case "cycleModel":
 			return { data: state.config.inputs.modelCycle };
 		case "pageDown":
-			state.viewport?.pageDown();
+			state.session.viewport?.pageDown();
 			return { consume: true };
 		case "scrollBottom":
-			state.viewport?.toBottom();
+			state.session.viewport?.toBottom();
 			return { consume: true };
 		case "sendEscape":
 			return { data: "\x1b" };
@@ -134,7 +134,7 @@ export function performAction(action: ShellAction): InputResponse {
 		case "sendFollowUp":
 			return { data: state.config.inputs.followUp };
 		case "openSlash":
-			state.setEditorText?.("");
+			state.bindings.setEditorText?.("");
 			scheduleRender();
 			return { data: "/" };
 		case "arrowLeft":
@@ -161,7 +161,7 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 	};
 
 	if (button.kind === "command") {
-		state.setEditorText?.(button.command);
+		state.bindings.setEditorText?.(button.command);
 		maybeHideOverlay();
 		scheduleRender();
 		return { data: "\r" };
@@ -174,9 +174,9 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 
 	if (button.kind === "editorKey") {
 		if (button.clearFirst) {
-			state.setEditorText?.(button.setText ?? "");
+			state.bindings.setEditorText?.(button.setText ?? "");
 		} else if (button.setText !== undefined) {
-			state.setEditorText?.(button.setText);
+			state.bindings.setEditorText?.(button.setText);
 		}
 		maybeHideOverlay();
 		scheduleRender();
@@ -209,48 +209,48 @@ function getDropdownAnchorButtonId(kind: DropdownKind): string {
 }
 
 function getDropdownHandle(kind: DropdownKind) {
-	return kind === "utility" ? state.utilityOverlay : state.viewOverlay;
+	return kind === "utility" ? state.ui.overlays.utility.handle : state.ui.overlays.view.handle;
 }
 
 function setDropdownLayoutState(kind: DropdownKind, hitRegions: ButtonHitRegion[], actualHeight: number): void {
 	if (kind === "utility") {
-		state.utilityButtons = hitRegions;
-		state.utilityActualHeight = actualHeight;
+		state.ui.overlays.utility.buttons = hitRegions;
+		state.ui.overlays.utility.actualHeight = actualHeight;
 		return;
 	}
-	state.viewButtons = hitRegions;
-	state.viewActualHeight = actualHeight;
+	state.ui.overlays.view.buttons = hitRegions;
+	state.ui.overlays.view.actualHeight = actualHeight;
 }
 
 function setDropdownPlacement(kind: DropdownKind, row: number, col: number, width: number): void {
 	if (kind === "utility") {
-		state.utilityOverlayRow = row;
-		state.utilityOverlayCol = col;
-		state.utilityOverlayWidth = width;
+		state.ui.overlays.utility.row = row;
+		state.ui.overlays.utility.col = col;
+		state.ui.overlays.utility.width = width;
 		return;
 	}
-	state.viewOverlayRow = row;
-	state.viewOverlayCol = col;
-	state.viewOverlayWidth = width;
+	state.ui.overlays.view.row = row;
+	state.ui.overlays.view.col = col;
+	state.ui.overlays.view.width = width;
 }
 
 function showDropdown(kind: DropdownKind): void {
-	if (!state.tui || getDropdownHandle(kind)) return;
+	if (!state.session.tui || getDropdownHandle(kind)) return;
 	if (kind === "utility") hideViewOverlay();
 	else hideUtilityOverlay();
 
 	const buttons = getDropdownButtons(kind);
 	const overlayWidth = getDropdownInnerWidth(buttons) + 2;
 	const overlayRow = HEADER_HEIGHT;
-	const anchorButton = state.headerButtons.find((button) => button.button.id === getDropdownAnchorButtonId(kind) && button.rowOffset === 0);
+	const anchorButton = state.ui.headerButtons.find((button) => button.button.id === getDropdownAnchorButtonId(kind) && button.rowOffset === 0);
 	const overlayCol = Math.max(1, anchorButton?.colStart ?? (state.config.render.leadingColumns + 1));
 	setDropdownPlacement(kind, overlayRow, overlayCol, overlayWidth);
 
-	const overlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
+	const overlay = state.session.tui.showOverlay(new ButtonDropdownOverlayComponent(
 		renderContext,
 		buttons,
-		() => (kind === "utility" ? state.utilityOverlayRow : state.viewOverlayRow),
-		() => (kind === "utility" ? state.utilityOverlayCol : state.viewOverlayCol),
+		() => (kind === "utility" ? state.ui.overlays.utility.row : state.ui.overlays.view.row),
+		() => (kind === "utility" ? state.ui.overlays.utility.col : state.ui.overlays.view.col),
 		(hitRegions, actualHeight) => setDropdownLayoutState(kind, hitRegions, actualHeight),
 	), {
 		anchor: "top-left",
@@ -261,40 +261,40 @@ function showDropdown(kind: DropdownKind): void {
 	});
 
 	if (kind === "utility") {
-		state.utilityOverlay = overlay;
-		state.utilityOverlayVisible = true;
+		state.ui.overlays.utility.handle = overlay;
+		state.ui.overlays.utility.visible = true;
 	} else {
-		state.viewOverlay = overlay;
-		state.viewOverlayVisible = true;
+		state.ui.overlays.view.handle = overlay;
+		state.ui.overlays.view.visible = true;
 	}
 	queueLog(`${kind} overlay shown`);
 }
 
 function hideDropdown(kind: DropdownKind): void {
 	if (kind === "utility") {
-		state.utilityOverlay?.hide();
-		state.utilityOverlay = undefined;
-		state.utilityOverlayVisible = false;
-		state.utilityOverlayRow = 0;
-		state.utilityOverlayCol = 0;
-		state.utilityOverlayWidth = 0;
-		state.utilityButtons = [];
-		state.utilityActualHeight = BAR_HEIGHT;
+		state.ui.overlays.utility.handle?.hide();
+		state.ui.overlays.utility.handle = undefined;
+		state.ui.overlays.utility.visible = false;
+		state.ui.overlays.utility.row = 0;
+		state.ui.overlays.utility.col = 0;
+		state.ui.overlays.utility.width = 0;
+		state.ui.overlays.utility.buttons = [];
+		state.ui.overlays.utility.actualHeight = BAR_HEIGHT;
 	} else {
-		state.viewOverlay?.hide();
-		state.viewOverlay = undefined;
-		state.viewOverlayVisible = false;
-		state.viewOverlayRow = 0;
-		state.viewOverlayCol = 0;
-		state.viewOverlayWidth = 0;
-		state.viewButtons = [];
-		state.viewActualHeight = BAR_HEIGHT;
+		state.ui.overlays.view.handle?.hide();
+		state.ui.overlays.view.handle = undefined;
+		state.ui.overlays.view.visible = false;
+		state.ui.overlays.view.row = 0;
+		state.ui.overlays.view.col = 0;
+		state.ui.overlays.view.width = 0;
+		state.ui.overlays.view.buttons = [];
+		state.ui.overlays.view.actualHeight = BAR_HEIGHT;
 	}
 	queueLog(`${kind} overlay hidden`);
 }
 
 function toggleDropdown(kind: DropdownKind): void {
-	if (kind === "utility" ? state.utilityOverlayVisible : state.viewOverlayVisible) hideDropdown(kind);
+	if (kind === "utility" ? state.ui.overlays.utility.visible : state.ui.overlays.view.visible) hideDropdown(kind);
 	else showDropdown(kind);
 }
 
@@ -306,14 +306,14 @@ const hideViewOverlay = (): void => hideDropdown("view");
 const toggleViewOverlay = (): void => toggleDropdown("view");
 
 function handleDropdownMouse(kind: DropdownKind, mouse: MouseInput): InputResponse | undefined {
-	const visible = kind === "utility" ? state.utilityOverlayVisible : state.viewOverlayVisible;
+	const visible = kind === "utility" ? state.ui.overlays.utility.visible : state.ui.overlays.view.visible;
 	if (!visible) return undefined;
 
-	const row = kind === "utility" ? state.utilityOverlayRow : state.viewOverlayRow;
-	const col = kind === "utility" ? state.utilityOverlayCol : state.viewOverlayCol;
-	const width = kind === "utility" ? state.utilityOverlayWidth : state.viewOverlayWidth;
-	const actualHeight = kind === "utility" ? state.utilityActualHeight : state.viewActualHeight;
-	const buttons = kind === "utility" ? state.utilityButtons : state.viewButtons;
+	const row = kind === "utility" ? state.ui.overlays.utility.row : state.ui.overlays.view.row;
+	const col = kind === "utility" ? state.ui.overlays.utility.col : state.ui.overlays.view.col;
+	const width = kind === "utility" ? state.ui.overlays.utility.width : state.ui.overlays.view.width;
+	const actualHeight = kind === "utility" ? state.ui.overlays.utility.actualHeight : state.ui.overlays.view.actualHeight;
+	const buttons = kind === "utility" ? state.ui.overlays.utility.buttons : state.ui.overlays.view.buttons;
 	const inOverlayRows = mouse.row >= row + 1 && mouse.row <= row + actualHeight;
 	const inOverlayCols = mouse.col >= col && mouse.col <= col + width - 1;
 	if (inOverlayRows && inOverlayCols) {
@@ -334,23 +334,23 @@ export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewO
 export function registerInputHandler(ctx: { ui: any }): void {
 	unregisterInputHandler();
 	state.inputUnsubscribe = ctx.ui.onTerminalInput((data: string) => {
-		state.lastInput = visualizeInput(data);
+		state.diagnostics.lastInput = visualizeInput(data);
 
 		const mouse = parseMouseInput(data);
 		if (mouse) {
-			state.lastMouse = mouse;
+			state.diagnostics.lastMouse = mouse;
 			if (mouse.phase !== "move") {
 				queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
 			}
-			if (!state.enabled) return { consume: true };
-			if (state.viewportDrag && mouse.phase === "release") return finishViewportDrag(mouse);
-			if (state.viewportDrag && isPrimaryPointerDrag(mouse)) return updateViewportDrag(mouse);
+			if (!state.shell.enabled) return { consume: true };
+			if (state.ui.viewport.drag && mouse.phase === "release") return finishViewportDrag(mouse);
+			if (state.ui.viewport.drag && isPrimaryPointerDrag(mouse)) return updateViewportDrag(mouse);
 			if (!isPrimaryPointerPress(mouse)) return { consume: true };
 
-			const inHeader = state.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
+			const inHeader = state.shell.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
 			if (inHeader) {
 				const clickedRow = mouse.row - 1;
-				const button = findHitRegion(state.headerButtons, clickedRow, mouse.col);
+				const button = findHitRegion(state.ui.headerButtons, clickedRow, mouse.col);
 				return button ? activateButton(button, "header") : { consume: true };
 			}
 
@@ -360,10 +360,10 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			const viewDropdownResponse = handleDropdownMouse("view", mouse);
 			if (viewDropdownResponse) return viewDropdownResponse;
 
-			const inBar = state.barVisible && state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;
+			const inBar = state.shell.barVisible && state.ui.bar.row > 0 && mouse.row >= state.ui.bar.row && mouse.row < state.ui.bar.row + state.ui.bar.actualHeight;
 			if (inBar) {
-				const clickedRow = Math.floor((mouse.row - state.barRow) / BAR_HEIGHT);
-				const button = findHitRegion(state.barButtons, clickedRow, mouse.col);
+				const clickedRow = Math.floor((mouse.row - state.ui.bar.row) / BAR_HEIGHT);
+				const button = findHitRegion(state.ui.bar.buttons, clickedRow, mouse.col);
 				return button ? activateButton(button, "bar") : { consume: true };
 			}
 
@@ -374,27 +374,27 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			return { consume: true };
 		}
 
-		if (state.enabled && state.utilityOverlayVisible) scheduleRender();
-		if (!state.enabled) return undefined;
+		if (state.shell.enabled && state.ui.overlays.utility.visible) scheduleRender();
+		if (!state.shell.enabled) return undefined;
 
 		if (matchesKey(data, Key.pageUp)) {
 			setLastAction("keyboard:pageUp");
-			state.viewport?.pageUp();
+			state.session.viewport?.pageUp();
 			return { consume: true };
 		}
 		if (matchesKey(data, Key.pageDown)) {
 			setLastAction("keyboard:pageDown");
-			state.viewport?.pageDown();
+			state.session.viewport?.pageDown();
 			return { consume: true };
 		}
 		if (matchesKey(data, Key.home)) {
 			setLastAction("keyboard:top");
-			state.viewport?.toTop();
+			state.session.viewport?.toTop();
 			return { consume: true };
 		}
 		if (matchesKey(data, Key.end)) {
 			setLastAction("keyboard:bottom");
-			state.viewport?.toBottom();
+			state.session.viewport?.toBottom();
 			return { consume: true };
 		}
 
@@ -405,5 +405,5 @@ export function registerInputHandler(ctx: { ui: any }): void {
 export function unregisterInputHandler(): void {
 	state.inputUnsubscribe?.();
 	state.inputUnsubscribe = undefined;
-	state.viewportDrag = undefined;
+	state.ui.viewport.drag = undefined;
 }

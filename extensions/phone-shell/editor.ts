@@ -41,7 +41,7 @@ export class PromptProxyComponent implements Component {
 	constructor(private readonly ctx: PhoneShellRenderContext) {}
 
 	render(width: number): string[] {
-		return this.ctx.state.mirroredEditor?.getProxyLines(width) ?? [];
+		return this.ctx.state.session.mirroredEditor?.getProxyLines(width) ?? [];
 	}
 
 	invalidate(): void {}

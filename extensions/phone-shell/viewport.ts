@@ -36,8 +36,8 @@ export class TouchViewport implements Component {
 		this.lastVisibleHeight = visibleHeight;
 		this.lastTotalLines = lines.length;
 		this.lastMaxTop = maxTop;
-		this.ctx.state.viewportRow = rowsBefore + 1;
-		this.ctx.state.viewportHeight = visibleHeight;
+		this.ctx.state.ui.viewport.row = rowsBefore + 1;
+		this.ctx.state.ui.viewport.height = visibleHeight;
 
 		const visible = lines.slice(this.scrollTop, this.scrollTop + visibleHeight);
 		while (visible.length < visibleHeight) visible.push("");

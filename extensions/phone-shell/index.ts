@@ -79,7 +79,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		await reloadRuntimeSettings(ctx, false);
 		try {
 			const persisted = await loadPersistedShellState(state.paths);
-			state.barVisible = persisted.barVisible;
+			state.shell.barVisible = persisted.barVisible;
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
 				await enableTouchMode(ctx, false).catch(() => undefined);
@@ -92,14 +92,14 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 
 	pi.on("session_shutdown", async () => {
 		await disableTouchMode(undefined, true, false);
-		state.lastInput = undefined;
-		state.lastMouse = undefined;
-		state.lastAction = undefined;
-		state.statusSink = undefined;
-		state.theme = undefined;
-		state.getEditorText = undefined;
-		state.setWidget = undefined;
-		state.notify = undefined;
+		state.diagnostics.lastInput = undefined;
+		state.diagnostics.lastMouse = undefined;
+		state.diagnostics.lastAction = undefined;
+		state.bindings.statusSink = undefined;
+		state.session.theme = undefined;
+		state.bindings.getEditorText = undefined;
+		state.bindings.setWidget = undefined;
+		state.bindings.notify = undefined;
 		state.modelRegistry = undefined;
 		state.currentModel = undefined;
 		state.setModel = undefined;
@@ -111,7 +111,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		handler: async (ctx) => {
 			if (!ctx.hasUI) return;
 			captureUiBindings(ctx);
-			if (state.enabled) await disableTouchMode(ctx);
+			if (state.shell.enabled) await disableTouchMode(ctx);
 			else await enableTouchMode(ctx);
 		},
 	});
@@ -124,7 +124,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 				return;
 			}
 			captureUiBindings(ctx);
-			if (state.enabled) await disableTouchMode(ctx);
+			if (state.shell.enabled) await disableTouchMode(ctx);
 			else await enableTouchMode(ctx);
 		},
 	});

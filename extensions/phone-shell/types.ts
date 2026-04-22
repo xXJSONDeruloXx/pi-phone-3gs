@@ -161,35 +161,62 @@ export interface ButtonHitRegion {
 	rowOffset: number;
 }
 
-export interface PhoneShellRenderState {
+export interface DropdownOverlayState {
+	handle?: OverlayHandle;
+	visible: boolean;
+	row: number;
+	col: number;
+	width: number;
+	buttons: ButtonHitRegion[];
+	actualHeight: number;
+}
+
+export interface BarLayoutState {
+	row: number;
+	buttons: ButtonHitRegion[];
+	actualHeight: number;
+}
+
+export interface ViewportLayoutState {
+	row: number;
+	height: number;
+	drag?: {
+		anchorRow: number;
+		anchorScrollTop: number;
+		lastRow: number;
+	};
+}
+
+export interface SessionRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
 	mirroredEditor?: { getProxyLines(width: number): string[] };
-	headerButtons: ButtonHitRegion[];
-	barRow: number;
-	barButtons: ButtonHitRegion[];
-	barActualHeight: number;
-	barVisible: boolean;
-	utilityOverlay?: OverlayHandle;
-	utilityOverlayVisible: boolean;
-	utilityOverlayRow: number;
-	utilityOverlayCol: number;
-	utilityOverlayWidth: number;
-	utilityButtons: ButtonHitRegion[];
-	utilityActualHeight: number;
-	viewOverlay?: OverlayHandle;
-	viewOverlayVisible: boolean;
-	viewOverlayRow: number;
-	viewOverlayCol: number;
-	viewOverlayWidth: number;
-	viewButtons: ButtonHitRegion[];
-	viewActualHeight: number;
 	originalChat?: Component;
-	promptProxyInstalled: boolean;
+}
+
+export interface ShellModeState {
+	enabled: boolean;
+	barVisible: boolean;
 	proxyOnly: boolean;
-	viewportRow: number;
-	viewportHeight: number;
+	promptProxyInstalled: boolean;
+	headerInstalled: boolean;
+}
+
+export interface PhoneShellUIState {
+	headerButtons: ButtonHitRegion[];
+	bar: BarLayoutState;
+	overlays: {
+		utility: DropdownOverlayState;
+		view: DropdownOverlayState;
+	};
+	viewport: ViewportLayoutState;
+}
+
+export interface PhoneShellRenderState {
+	session: SessionRenderState;
+	shell: ShellModeState;
+	ui: PhoneShellUIState;
 }
 
 export interface PhoneShellRenderContext {

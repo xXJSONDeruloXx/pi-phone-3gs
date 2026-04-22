@@ -18,65 +18,104 @@ import type { AgentStateTracker } from "./header.js";
 // ---------------------------------------------------------------------------
 
 export type RuntimeState = PhoneShellRenderState & {
-	enabled: boolean;
 	config: PhoneShellConfig;
 	layout: PhoneShellLayout;
 	paths: ReturnType<typeof getPhoneShellPaths>;
-	loadErrors: string[];
+	diagnostics: {
+		loadErrors: string[];
+		logQueue: Promise<void>;
+		renderQueued: boolean;
+		lastInput?: string;
+		lastMouse?: MouseInput;
+		lastAction?: string;
+	};
+	bindings: {
+		statusSink?: (key: string, text: string | undefined) => void;
+		notify?: (text: string, type?: string) => void;
+		setEditorText?: (text: string) => void;
+		getEditorText?: () => string;
+		setWidget?: (key: string, content: any, options?: any) => void;
+		setEditorComponent?: (factory: ((tui: any, theme: any, keybindings: any) => any) | undefined) => void;
+	};
 	inputUnsubscribe?: () => void;
-	logQueue: Promise<void>;
-	renderQueued: boolean;
-	lastInput?: string;
-	lastMouse?: MouseInput;
-	lastAction?: string;
-	statusSink?: (key: string, text: string | undefined) => void;
-	notify?: (text: string, type?: string) => void;
-	setEditorText?: (text: string) => void;
-	getEditorText?: () => string;
-	setWidget?: (key: string, content: any, options?: any) => void;
-	setEditorComponent?: (factory: ((tui: any, theme: any, keybindings: any) => any) | undefined) => void;
 	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
 	agentTracker?: AgentStateTracker;
-	headerInstalled: boolean;
-	viewportDrag?: {
-		anchorRow: number;
-		anchorScrollTop: number;
-		lastRow: number;
-	};
 };
 
 export const state: RuntimeState = {
-	enabled: false,
+	session: {
+		tui: undefined,
+		theme: undefined,
+		viewport: undefined,
+		mirroredEditor: undefined,
+		originalChat: undefined,
+	},
+	shell: {
+		enabled: false,
+		barVisible: true,
+		proxyOnly: false,
+		promptProxyInstalled: false,
+		headerInstalled: false,
+	},
+	ui: {
+		headerButtons: [],
+		bar: {
+			row: 0,
+			buttons: [],
+			actualHeight: 3,
+		},
+		overlays: {
+			utility: {
+				handle: undefined,
+				visible: false,
+				row: 0,
+				col: 0,
+				width: 0,
+				buttons: [],
+				actualHeight: 3,
+			},
+			view: {
+				handle: undefined,
+				visible: false,
+				row: 0,
+				col: 0,
+				width: 0,
+				buttons: [],
+				actualHeight: 3,
+			},
+		},
+		viewport: {
+			row: 0,
+			height: 0,
+			drag: undefined,
+		},
+	},
 	config: DEFAULT_CONFIG,
 	layout: { utilityButtons: [], bottomGroups: [] },
 	paths: getPhoneShellPaths(),
-	loadErrors: [],
-	headerButtons: [],
-	barRow: 0,
-	barButtons: [],
-	barActualHeight: 3,
-	barVisible: true,
-	utilityOverlayVisible: false,
-	utilityOverlayRow: 0,
-	utilityOverlayCol: 0,
-	utilityOverlayWidth: 0,
-	utilityButtons: [],
-	utilityActualHeight: 3,
-	viewOverlayVisible: false,
-	viewOverlayRow: 0,
-	viewOverlayCol: 0,
-	viewOverlayWidth: 0,
-	viewButtons: [],
-	viewActualHeight: 3,
-	promptProxyInstalled: false,
-	proxyOnly: false,
-	viewportRow: 0,
-	viewportHeight: 0,
-	logQueue: Promise.resolve(),
-	renderQueued: false,
-	headerInstalled: false,
+	diagnostics: {
+		loadErrors: [],
+		logQueue: Promise.resolve(),
+		renderQueued: false,
+		lastInput: undefined,
+		lastMouse: undefined,
+		lastAction: undefined,
+	},
+	bindings: {
+		statusSink: undefined,
+		notify: undefined,
+		setEditorText: undefined,
+		getEditorText: undefined,
+		setWidget: undefined,
+		setEditorComponent: undefined,
+	},
+	inputUnsubscribe: undefined,
+	modelRegistry: undefined,
+	currentModel: undefined,
+	setModel: undefined,
+	agentTracker: undefined,
 };
 
 // ---------------------------------------------------------------------------
@@ -84,8 +123,8 @@ export const state: RuntimeState = {
 // ---------------------------------------------------------------------------
 
 export function getTheme(): Theme {
-	if (!state.theme) throw new Error("phone-shell theme not initialized");
-	return state.theme;
+	if (!state.session.theme) throw new Error("phone-shell theme not initialized");
+	return state.session.theme;
 }
 
 export const renderContext: PhoneShellRenderContext = {
@@ -100,7 +139,7 @@ export const renderContext: PhoneShellRenderContext = {
 // ---------------------------------------------------------------------------
 
 export function queueLog(message: string): void {
-	state.logQueue = state.logQueue
+	state.diagnostics.logQueue = state.diagnostics.logQueue
 		.catch(() => undefined)
 		.then(async () => {
 			await fs.mkdir(path.dirname(state.paths.log), { recursive: true });
@@ -110,27 +149,27 @@ export function queueLog(message: string): void {
 }
 
 export function scheduleRender(): void {
-	if (state.renderQueued) return;
-	state.renderQueued = true;
+	if (state.diagnostics.renderQueued) return;
+	state.diagnostics.renderQueued = true;
 	queueMicrotask(() => {
-		state.renderQueued = false;
-		state.tui?.requestRender();
+		state.diagnostics.renderQueued = false;
+		state.session.tui?.requestRender();
 	});
 }
 
 export function setLastAction(label: string): void {
-	state.lastAction = label;
+	state.diagnostics.lastAction = label;
 	queueLog(`action ${label}`);
 }
 
 export function captureUiBindings(ctx: { ui: any }): void {
-	state.statusSink = ctx.ui.setStatus.bind(ctx.ui);
-	state.notify = ctx.ui.notify.bind(ctx.ui);
-	state.theme = ctx.ui.theme;
-	state.setEditorText = ctx.ui.setEditorText.bind(ctx.ui);
-	state.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);
-	state.setWidget = ctx.ui.setWidget.bind(ctx.ui);
-	state.setEditorComponent = ctx.ui.setEditorComponent?.bind(ctx.ui);
+	state.bindings.statusSink = ctx.ui.setStatus.bind(ctx.ui);
+	state.bindings.notify = ctx.ui.notify.bind(ctx.ui);
+	state.session.theme = ctx.ui.theme;
+	state.bindings.setEditorText = ctx.ui.setEditorText.bind(ctx.ui);
+	state.bindings.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);
+	state.bindings.setWidget = ctx.ui.setWidget.bind(ctx.ui);
+	state.bindings.setEditorComponent = ctx.ui.setEditorComponent?.bind(ctx.ui);
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +180,7 @@ export async function reloadRuntimeSettings(ctx?: { ui: any }, notifyOnProblems 
 	const { config, layout, errors } = await loadPhoneShellSettings(state.paths);
 	state.config = config;
 	state.layout = layout;
-	state.loadErrors = errors;
+	state.diagnostics.loadErrors = errors;
 	if (notifyOnProblems && errors.length > 0) {
 		ctx?.ui.notify(`phone-shell loaded with ${errors.length} config warning(s)`, "warning");
 	}
@@ -156,26 +195,26 @@ export async function reloadRuntimeSettings(ctx?: { ui: any }, notifyOnProblems 
 // ---------------------------------------------------------------------------
 
 export function getStatusReport(): string {
-	const viewport = state.viewport?.getDebugState();
-	const mouse = state.lastMouse
-		? `phase=${state.lastMouse.phase} code=${state.lastMouse.code} row=${state.lastMouse.row} col=${state.lastMouse.col}`
+	const viewport = state.session.viewport?.getDebugState();
+	const mouse = state.diagnostics.lastMouse
+		? `phase=${state.diagnostics.lastMouse.phase} code=${state.diagnostics.lastMouse.code} row=${state.diagnostics.lastMouse.row} col=${state.diagnostics.lastMouse.col}`
 		: "(none)";
 
 	return [
 		"# phone-shell status",
 		"",
-		`- enabled: ${state.enabled}`,
+		`- enabled: ${state.shell.enabled}`,
 		`- state file: ${state.paths.state}`,
 		`- config file: ${state.paths.config}`,
 		`- layout file: ${state.paths.layout}`,
 		`- log file: ${state.paths.log}`,
-		state.tui ? `- terminal: ${state.tui.terminal.columns} cols × ${state.tui.terminal.rows} rows` : "- terminal: (not captured)",
-		state.barRow > 0 ? `- bar: row=${state.barRow} buttons=${state.barButtons.length}` : "- bar: (not rendered)",
-		`- utility overlay: ${state.utilityOverlayVisible}`,
-		`- view overlay: ${state.viewOverlayVisible}`,
-		`- config warnings: ${state.loadErrors.length === 0 ? "none" : state.loadErrors.join(" | ")}`,
-		`- last action: ${state.lastAction ?? "(none)"}`,
-		`- last input: ${state.lastInput ?? "(none)"}`,
+		state.session.tui ? `- terminal: ${state.session.tui.terminal.columns} cols × ${state.session.tui.terminal.rows} rows` : "- terminal: (not captured)",
+		state.ui.bar.row > 0 ? `- bar: row=${state.ui.bar.row} buttons=${state.ui.bar.buttons.length}` : "- bar: (not rendered)",
+		`- utility overlay: ${state.ui.overlays.utility.visible}`,
+		`- view overlay: ${state.ui.overlays.view.visible}`,
+		`- config warnings: ${state.diagnostics.loadErrors.length === 0 ? "none" : state.diagnostics.loadErrors.join(" | ")}`,
+		`- last action: ${state.diagnostics.lastAction ?? "(none)"}`,
+		`- last input: ${state.diagnostics.lastInput ?? "(none)"}`,
 		`- last mouse: ${mouse}`,
 		viewport
 			? `- viewport: scrollTop=${viewport.scrollTop} visibleHeight=${viewport.visibleHeight} totalLines=${viewport.totalLines} maxTop=${viewport.maxTop} followBottom=${viewport.followBottom} percent=${viewport.percent}`

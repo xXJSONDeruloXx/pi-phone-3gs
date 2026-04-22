@@ -65,7 +65,7 @@ export async function handlePrimaryCommand(args: string, ctx: ExtensionCommandCo
 			await disableTouchMode(ctx);
 			return;
 		case "toggle":
-			if (state.enabled) await disableTouchMode(ctx);
+			if (state.shell.enabled) await disableTouchMode(ctx);
 			else await enableTouchMode(ctx);
 			return;
 		case "status":
@@ -80,7 +80,7 @@ export async function handlePrimaryCommand(args: string, ctx: ExtensionCommandCo
 		}
 		case "reload-config":
 			await reloadRuntimeSettings(ctx, true);
-			ctx.ui.notify("phone-shell config reloaded", state.loadErrors.length > 0 ? "warning" : "info");
+			ctx.ui.notify("phone-shell config reloaded", state.diagnostics.loadErrors.length > 0 ? "warning" : "info");
 			return;
 		case "show-config":
 			ctx.ui.setEditorText(JSON.stringify(state.config, null, 2));
@@ -108,19 +108,19 @@ export async function handlePrimaryCommand(args: string, ctx: ExtensionCommandCo
 			ctx.ui.notify("phone-shell paths pasted into editor", "info");
 			return;
 		case "top":
-			state.viewport?.toTop();
+			state.session.viewport?.toTop();
 			ctx.ui.notify("phone-shell: top", "info");
 			return;
 		case "bottom":
-			state.viewport?.toBottom();
+			state.session.viewport?.toBottom();
 			ctx.ui.notify("phone-shell: bottom", "info");
 			return;
 		case "page-up":
-			state.viewport?.pageUp();
+			state.session.viewport?.pageUp();
 			ctx.ui.notify("phone-shell: page up", "info");
 			return;
 		case "page-down":
-			state.viewport?.pageDown();
+			state.session.viewport?.pageDown();
 			ctx.ui.notify("phone-shell: page down", "info");
 			return;
 	}
