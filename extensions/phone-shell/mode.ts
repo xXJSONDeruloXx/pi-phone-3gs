@@ -12,7 +12,7 @@ import {
 	NAV_WIDGET_KEY,
 	STATUS_KEY,
 } from "./defaults.js";
-import { PhoneShellEditor, PromptProxyComponent } from "./editor.js";
+import { PhoneShellEditor } from "./editor.js";
 import { HeaderBarComponent } from "./header.js";
 import { hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, state } from "./state.js";
@@ -48,6 +48,8 @@ export function clearCapturedTui(): void {
 	state.bindings.setWidget = undefined;
 	state.bindings.setEditorComponent = undefined;
 	state.session.mirroredEditor = undefined;
+	state.session.editorContainer = undefined;
+	state.session.editorContainerOriginalIndex = undefined;
 	state.shell.promptProxyInstalled = false;
 	state.ui.overlays.view.visible = false;
 	state.ui.nav.row = 0;
@@ -140,67 +142,118 @@ function uninstallHeader(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Prompt proxy + editor mirror
+// Editor container management (proxy mode = editorContainer moved to top)
 // ---------------------------------------------------------------------------
 
-function installMirroredEditor(): void {
-	if (!state.bindings.setEditorComponent || state.session.mirroredEditor) return;
+/**
+ * Temporarily installs a custom editor to locate Pi's editorContainer in
+ * tui.children, then immediately restores the default editor.
+ * After this call Pi's default editor is active; we hold a reference to the
+ * Container so we can reposition it for proxy mode.
+ */
+function captureEditorContainer(): void {
+	if (!state.session.tui || !state.bindings.setEditorComponent) return;
+	if (state.session.editorContainer) return; // already captured
+
+	let tempEditor: PhoneShellEditor | undefined;
 	state.bindings.setEditorComponent((tui: TUI, theme: any, keybindings: any) => {
-		const editor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender(), () => state.shell.proxyOnly);
-		state.session.mirroredEditor = editor;
-		queueMicrotask(() => tui.requestRender());
-		return editor;
+		tempEditor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender());
+		state.session.mirroredEditor = tempEditor;
+		return tempEditor;
 	});
-	queueLog("mirrored editor installed");
-}
 
-function uninstallMirroredEditor(): void {
-	state.bindings.setEditorComponent?.(undefined);
-	state.session.mirroredEditor = undefined;
-	queueLog("mirrored editor uninstalled");
-}
-
-function installPromptProxy(): void {
-	if (!state.session.tui || state.shell.promptProxyInstalled) return;
-	const viewportIndex = state.session.viewport ? state.session.tui.children.indexOf(state.session.viewport) : -1;
-	if (viewportIndex < 0) return;
-	state.session.tui.children.splice(viewportIndex, 0, new PromptProxyComponent(renderContext));
-	state.shell.promptProxyInstalled = true;
-	state.session.tui.requestRender(true);
-	queueLog("prompt proxy installed");
-}
-
-function uninstallPromptProxy(): void {
-	if (!state.session.tui || !state.shell.promptProxyInstalled) return;
-	const index = state.session.tui.children.findIndex((child) => (child as any) instanceof PromptProxyComponent);
-	if (index >= 0) {
-		state.session.tui.children.splice(index, 1);
-		state.session.tui.requestRender(true);
-		queueLog("prompt proxy uninstalled");
+	// Pi has synchronously called our factory and done editorContainer.addChild(tempEditor)
+	if (tempEditor) {
+		for (const child of state.session.tui.children) {
+			const c = child as any;
+			if (c && Array.isArray(c.children) && c.children.includes(tempEditor)) {
+				state.session.editorContainer = c;
+				state.session.editorContainerOriginalIndex = state.session.tui.children.indexOf(c);
+				queueLog(`editorContainer found at index ${state.session.editorContainerOriginalIndex}`);
+				break;
+			}
+		}
 	}
+
+	if (!state.session.editorContainer) {
+		queueLog("editorContainer not found — proxy mode disabled");
+		state.session.mirroredEditor = undefined;
+		return;
+	}
+
+	// Restore default editor; we only needed the temp to find the container
+	state.bindings.setEditorComponent(undefined);
+	state.session.mirroredEditor = undefined;
+	queueLog("editorContainer captured, default editor restored");
+}
+
+/**
+ * Move editorContainer to index 1 (right after our HeaderBarComponent).
+ * Pi's dialogs / selectors still inject into this Container object by
+ * reference, so they automatically appear at the top of the screen.
+ */
+function moveEditorToTop(): void {
+	if (!state.session.tui || !state.session.editorContainer) return;
+	const tui = state.session.tui;
+	const ec = state.session.editorContainer as any;
+	const currentIndex = tui.children.indexOf(ec);
+	if (currentIndex === -1) return;
+	const targetIndex = state.shell.headerInstalled ? 1 : 0;
+	if (currentIndex === targetIndex) {
+		state.shell.promptProxyInstalled = true;
+		return;
+	}
+	tui.children.splice(currentIndex, 1);
+	tui.children.splice(targetIndex, 0, ec);
+	state.shell.promptProxyInstalled = true;
+	tui.requestRender(true);
+	queueLog(`editorContainer moved to top (was ${currentIndex}, now ${targetIndex})`);
+}
+
+/**
+ * Restore editorContainer to its original position.
+ * Must be called before uninstallHeader so the viewport ends up at
+ * children[CHAT_CHILD_INDEX] as expected by uninstallViewport.
+ */
+function moveEditorToOriginalPosition(): void {
+	if (!state.session.tui || !state.session.editorContainer) return;
+	const tui = state.session.tui;
+	const ec = state.session.editorContainer as any;
+	const currentIndex = tui.children.indexOf(ec);
+	if (currentIndex === -1) {
+		state.shell.promptProxyInstalled = false;
+		return;
+	}
+	const originalIndex = state.session.editorContainerOriginalIndex;
+	if (originalIndex === undefined || currentIndex === originalIndex) {
+		state.shell.promptProxyInstalled = false;
+		return;
+	}
+	tui.children.splice(currentIndex, 1);
+	tui.children.splice(originalIndex, 0, ec);
 	state.shell.promptProxyInstalled = false;
+	tui.requestRender(true);
+	queueLog(`editorContainer restored to index ${originalIndex}`);
 }
 
 export function togglePromptProxyMode(): void {
-	if (!state.session.tui) return;
+	if (!state.session.tui || !state.session.editorContainer) return;
 	if (!state.shell.proxyOnly) {
-		// switch to proxy-only
-		installMirroredEditor();
-		if (!state.shell.promptProxyInstalled) installPromptProxy();
+		// Switch to proxy mode: move editor to top
+		moveEditorToTop();
 		state.shell.proxyOnly = true;
 		syncNavPadPlacement();
-		queueLog("prompt proxy mode: proxy-only");
+		queueLog("proxy mode: editor at top");
 		state.session.tui.requestRender(true);
 		void persistShellState().catch(() => undefined);
 		return;
 	}
-	// switch to native-only
+	// Switch to native mode: restore editor to bottom
 	uninstallTopNavPad();
-	uninstallPromptProxy();
-	uninstallMirroredEditor();
+	moveEditorToOriginalPosition();
 	state.shell.proxyOnly = false;
 	syncNavPadPlacement();
-	queueLog("prompt proxy mode: native-only");
+	queueLog("proxy mode: editor at bottom");
 	state.session.tui.requestRender(true);
 	void persistShellState().catch(() => undefined);
 }
@@ -341,6 +394,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	state.shell.enabled = true;
 	installViewport();
 	installHeader();
+	captureEditorContainer();
 	syncNavPadPlacement();
 	enableMouseTracking();
 	registerInputHandler(ctx);
@@ -364,10 +418,12 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	hideViewOverlay();
 	destroyPanel();
 	uninstallTopNavPad();
-	uninstallPromptProxy();
+	// Restore editorContainer position BEFORE uninstallHeader so uninstallViewport
+	// finds the viewport at children[CHAT_CHILD_INDEX] as expected.
+	moveEditorToOriginalPosition();
+	state.shell.proxyOnly = false;
 	uninstallHeader();
 	uninstallViewport();
-	uninstallMirroredEditor();
 	state.bindings.statusSink?.(STATUS_KEY, undefined);
 	if (permanent) {
 		destroyPanel();

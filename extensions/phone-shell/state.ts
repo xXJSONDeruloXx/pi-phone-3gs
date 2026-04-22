@@ -50,6 +50,8 @@ export const state: RuntimeState = {
 		theme: undefined,
 		viewport: undefined,
 		mirroredEditor: undefined,
+		editorContainer: undefined,
+		editorContainerOriginalIndex: undefined,
 		originalChat: undefined,
 	},
 	shell: {

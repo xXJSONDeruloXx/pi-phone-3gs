@@ -203,7 +203,12 @@ export interface SessionRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
-	mirroredEditor?: { getProxyLines(width: number): string[] };
+	/** Temporary reference used during editorContainer discovery; cleared after capture. */
+	mirroredEditor?: object;
+	/** Pi's editorContainer Container instance — selectors and dialogs inject here. */
+	editorContainer?: object;
+	/** Original index of editorContainer in tui.children before proxy mode moves it. */
+	editorContainerOriginalIndex?: number;
 	originalChat?: Component;
 }
 
