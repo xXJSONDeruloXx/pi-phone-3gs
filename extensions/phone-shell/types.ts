@@ -22,6 +22,7 @@ export type ShellAction =
 	| "setModelScopeScoped"
 	| "setModelScopeAll"
 	| "togglePromptMirror"
+	| "togglePromptProxy"
 	| "scrollTop"
 	| "pageUp"
 	| "cycleModel"
@@ -191,6 +192,7 @@ export interface PhoneShellRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
+	mirroredEditor?: { getProxyLines(width: number): string[] };
 	headerButtons: ButtonHitRegion[];
 	barRow: number;
 	barButtons: ButtonHitRegion[];
@@ -216,6 +218,8 @@ export interface PhoneShellRenderState {
 	modelMenuSelectedProvider?: string;
 	promptMirrorVisible: boolean;
 	originalChat?: Component;
+	promptProxyInstalled?: boolean;
+	proxyOnly?: boolean;
 	viewportRow: number;
 	viewportHeight: number;
 	agentState: AgentStateInfo;

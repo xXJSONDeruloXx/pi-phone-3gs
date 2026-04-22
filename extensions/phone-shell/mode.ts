@@ -1,6 +1,7 @@
 import { TouchViewport } from "./viewport.js";
 import { BottomBarComponent } from "./bar.js";
 import { HeaderBarComponent } from "./header.js";
+import { PhoneShellEditor, PromptProxyComponent } from "./editor.js";
 import {
 	BAR_HEIGHT,
 	BAR_WIDGET_KEY,
@@ -34,6 +35,9 @@ export function clearCapturedTui(): void {
 	state.setEditorText = undefined;
 	state.getEditorText = undefined;
 	state.setWidget = undefined;
+	state.setEditorComponent = undefined;
+	state.mirroredEditor = undefined;
+	state.promptProxyInstalled = false;
 }
 
 export function captureTui(ctx: { ui: any }): boolean {
@@ -112,6 +116,65 @@ function uninstallHeader(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Prompt proxy + editor mirror
+// ---------------------------------------------------------------------------
+
+function installMirroredEditor(): void {
+	if (!state.setEditorComponent || state.mirroredEditor) return;
+	state.setEditorComponent((tui: TUI, theme: any, keybindings: any) => {
+		const editor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender());
+		state.mirroredEditor = editor;
+		queueMicrotask(() => tui.requestRender());
+		return editor;
+	});
+	queueLog("mirrored editor installed");
+}
+
+function uninstallMirroredEditor(): void {
+	state.setEditorComponent?.(undefined);
+	state.mirroredEditor = undefined;
+	queueLog("mirrored editor uninstalled");
+}
+
+function installPromptProxy(): void {
+	if (!state.tui || state.promptProxyInstalled) return;
+	const viewportIndex = state.viewport ? state.tui.children.indexOf(state.viewport) : -1;
+	if (viewportIndex < 0) return;
+	state.tui.children.splice(viewportIndex, 0, new PromptProxyComponent(renderContext));
+	state.promptProxyInstalled = true;
+	state.tui.requestRender(true);
+	queueLog("prompt proxy installed");
+}
+
+function uninstallPromptProxy(): void {
+	if (!state.tui || !state.promptProxyInstalled) return;
+	const index = state.tui.children.findIndex((child) => (child as any) instanceof PromptProxyComponent);
+	if (index >= 0) {
+		state.tui.children.splice(index, 1);
+		state.tui.requestRender(true);
+		queueLog("prompt proxy uninstalled");
+	}
+	state.promptProxyInstalled = false;
+}
+
+export function togglePromptProxyMode(): void {
+	if (!state.tui) return;
+	if (!state.proxyOnly) {
+		// switch to proxy-only
+		if (!state.promptProxyInstalled) installPromptProxy();
+		state.proxyOnly = true;
+		queueLog("prompt proxy mode: proxy-only");
+		state.tui.requestRender(true);
+		return;
+	}
+	// switch to native-only
+	uninstallPromptProxy();
+	state.proxyOnly = false;
+	queueLog("prompt proxy mode: native-only");
+	state.tui.requestRender(true);
+}
+
+// ---------------------------------------------------------------------------
 // Bottom bar widget
 // ---------------------------------------------------------------------------
 
@@ -169,8 +232,10 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 		return;
 	}
 	state.enabled = true;
+	installMirroredEditor();
 	installViewport();
 	installHeader();
+	installPromptProxy();
 	showPanel();
 	enableMouseTracking();
 	registerInputHandler(ctx);
@@ -193,8 +258,10 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	hideModelMenu();
 	hideUtilityOverlay();
 	hidePanel();
+	uninstallPromptProxy();
 	uninstallHeader();
 	uninstallViewport();
+	uninstallMirroredEditor();
 	state.statusSink?.(STATUS_KEY, undefined);
 	if (permanent) {
 		destroyPanel();

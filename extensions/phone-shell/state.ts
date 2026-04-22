@@ -37,6 +37,7 @@ export type RuntimeState = PhoneShellRenderState & {
 	setEditorText?: (text: string) => void;
 	getEditorText?: () => string;
 	setWidget?: (key: string, content: any, options?: any) => void;
+	setEditorComponent?: (factory: ((tui: any, theme: any, keybindings: any) => any) | undefined) => void;
 	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
@@ -76,6 +77,8 @@ export const state: RuntimeState = {
 	modelMenuProviderButtons: [],
 	modelMenuModelButtons: [],
 	promptMirrorVisible: DEFAULT_CONFIG.promptMirror.enabled,
+	promptProxyInstalled: false,
+	proxyOnly: false,
 	viewportRow: 0,
 	viewportHeight: 0,
 	agentState: { ...DEFAULT_AGENT_STATE },
@@ -141,6 +144,7 @@ export function captureUiBindings(ctx: { ui: any }): void {
 	state.setEditorText = ctx.ui.setEditorText.bind(ctx.ui);
 	state.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);
 	state.setWidget = ctx.ui.setWidget.bind(ctx.ui);
+	state.setEditorComponent = ctx.ui.setEditorComponent?.bind(ctx.ui);
 }
 
 // ---------------------------------------------------------------------------

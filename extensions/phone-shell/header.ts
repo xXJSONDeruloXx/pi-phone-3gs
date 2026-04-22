@@ -20,6 +20,7 @@ function getHeaderButtonSpecs(_phase: AgentPhase, utilityOverlayVisible: boolean
 	const etcColor = utilityOverlayVisible ? "accent" : "muted";
 	return [
 		{ kind: "action", id: "header-model", label: "MODEL", action: "cycleModel", palette: "warning" },
+		{ kind: "action", id: "header-proxy", label: "PXY", action: "togglePromptProxy", palette: "accent" },
 		{ kind: "action", id: "header-etc", label: "ETC", action: "toggleUtilities", palette: etcColor },
 	];
 }

@@ -1,6 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
+import { togglePromptProxyMode } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -106,6 +107,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "togglePromptMirror":
 			state.promptMirrorVisible = !state.promptMirrorVisible;
 			scheduleRender();
+			return { consume: true };
+		case "togglePromptProxy":
+			togglePromptProxyMode();
 			return { consume: true };
 		case "scrollTop":
 			state.viewport?.toTop();
