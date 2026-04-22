@@ -102,6 +102,8 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		state.bindings.getEditorText = undefined;
 		state.bindings.setWidget = undefined;
 		state.bindings.notify = undefined;
+		state.bindings.abort = undefined;
+		state.bindings.isIdle = undefined;
 		state.modelRegistry = undefined;
 		state.currentModel = undefined;
 		state.setModel = undefined;

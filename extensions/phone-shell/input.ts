@@ -177,6 +177,10 @@ export function performAction(action: ShellAction): InputResponse {
 			state.session.viewport?.toBottom();
 			return { consume: true };
 		case "sendEscape":
+			if (state.bindings.isIdle && !state.bindings.isIdle()) {
+				state.bindings.abort?.();
+				return { consume: true };
+			}
 			return { data: "\x1b" };
 		case "sendInterrupt":
 			return { data: "\x03" };

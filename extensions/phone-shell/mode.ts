@@ -47,6 +47,8 @@ export function clearCapturedTui(): void {
 	state.bindings.getEditorText = undefined;
 	state.bindings.setWidget = undefined;
 	state.bindings.setEditorComponent = undefined;
+	state.bindings.abort = undefined;
+	state.bindings.isIdle = undefined;
 	state.session.editorContainer = undefined;
 	state.session.editorContainerOriginalIndex = undefined;
 	state.shell.editorAtTop = false;
