@@ -25,7 +25,7 @@ function addFullWidthHitRows(hitRegions: ButtonHitRegion[], button: ButtonSpec, 
 export class ButtonDropdownOverlayComponent implements Component {
 	constructor(
 		private readonly ctx: PhoneShellRenderContext,
-		private readonly buttons: ButtonSpec[],
+		private readonly getButtons: () => ButtonSpec[],
 		private readonly getOverlayRow: () => number,
 		private readonly getOverlayCol: () => number,
 		private readonly setLayoutState: (hitRegions: ButtonHitRegion[], actualHeight: number) => void,
@@ -40,9 +40,10 @@ export class ButtonDropdownOverlayComponent implements Component {
 		const hitRegions: ButtonHitRegion[] = [];
 		const colStart = this.getOverlayCol();
 		const colEnd = colStart + width - 1;
+		const buttons = this.getButtons();
 
 		lines.push(theme.fg("accent", `╭${"─".repeat(innerWidth)}╮`));
-		for (const button of this.buttons) {
+		for (const button of buttons) {
 			const rowStart = this.getOverlayRow() + lines.length;
 			const displayLabel = button.label.trim();
 			const buttonLabel = truncateToWidth(displayLabel, Math.max(1, buttonInnerWidth - 2), "", true);

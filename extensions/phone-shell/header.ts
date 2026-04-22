@@ -5,12 +5,12 @@ import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
 import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 function getHeaderButtonSpecs(utilityOverlayVisible: boolean, viewOverlayVisible: boolean): ButtonSpec[] {
-	const etcColor = utilityOverlayVisible ? "accent" : "muted";
+	const fileColor = utilityOverlayVisible ? "accent" : "muted";
 	const viewColor = viewOverlayVisible ? "accent" : "muted";
 	return [
 		{ kind: "action", id: "header-model", label: "MODEL", action: "cycleModel", palette: "warning" },
 		{ kind: "action", id: "header-view", label: "VIEW", action: "toggleViewMenu", palette: viewColor },
-		{ kind: "action", id: "header-etc", label: "ETC", action: "toggleUtilities", palette: etcColor },
+		{ kind: "action", id: "header-file", label: "FILE", action: "toggleUtilities", palette: fileColor },
 	];
 }
 

@@ -1,4 +1,4 @@
-import type { AgentStateInfo, ButtonSpec, CommandMode, PersistedShellState, PhoneShellConfig, PhoneShellLayout } from "./types.js";
+import type { AgentStateInfo, ButtonSpec, CommandMode, PersistedShellState, PhoneShellConfig, PhoneShellLayout, ShellModeState } from "./types.js";
 
 export const PRIMARY_COMMAND = "phone-shell";
 export const TOGGLE_ALIAS_COMMAND = "touch";
@@ -75,16 +75,22 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "compact", label: "/compact", command: "/compact", palette: "warning" },
 	{ kind: "command", id: "resume", label: "/resume", command: "/resume", palette: "warning" },
 	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
-	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\x03", palette: "warning" },
-	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
 ];
 
-export const VIEW_MENU_BUTTONS: ButtonSpec[] = [
-	{ kind: "action", id: "view-editor-top", label: " PXY ", action: "toggleEditorPosition", palette: "accent" },
-	{ kind: "action", id: "view-bar", label: " BAR ", action: "toggleBottomBar", palette: "warning" },
-	{ kind: "action", id: "view-nav", label: " NAV ", action: "toggleNavPad", palette: "accent" },
-	{ kind: "action", id: "view-jump-buttons", label: " JUMP ", action: "toggleViewportJumpButtons", palette: "accent" },
-];
+/**
+ * Returns VIEW dropdown buttons with palettes that reflect current toggle state.
+ * accent = feature is ON, muted = feature is OFF.
+ */
+export function getViewMenuButtons(shell: ShellModeState): ButtonSpec[] {
+	const on: ButtonSpec["palette"] = "accent";
+	const off: ButtonSpec["palette"] = "muted";
+	return [
+		{ kind: "action", id: "view-editor-top", label: "  TOP  ", action: "toggleEditorPosition", palette: shell.proxyOnly ? on : off },
+		{ kind: "action", id: "view-rail",       label: "  RAIL ", action: "toggleBottomBar",       palette: shell.barVisible ? on : off },
+		{ kind: "action", id: "view-keys",       label: "  KEYS ", action: "toggleNavPad",          palette: shell.navPadVisible ? on : off },
+		{ kind: "action", id: "view-jump",       label: "  JUMP ", action: "toggleViewportJumpButtons", palette: shell.viewportJumpButtonsVisible ? on : off },
+	];
+}
 
 export const DEFAULT_LAYOUT: PhoneShellLayout = {
 	utilityButtons,

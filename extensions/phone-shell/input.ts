@@ -1,5 +1,5 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
-import { BAR_HEIGHT, HEADER_HEIGHT, VIEW_MENU_BUTTONS } from "./defaults.js";
+import { BAR_HEIGHT, getViewMenuButtons, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
 import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleViewportJumpButtons } from "./mode.js";
 import type {
@@ -250,11 +250,11 @@ import { renderContext } from "./state.js";
 type DropdownKind = "utility" | "view";
 
 function getDropdownButtons(kind: DropdownKind): ButtonSpec[] {
-	return kind === "utility" ? state.layout.utilityButtons : VIEW_MENU_BUTTONS;
+	return kind === "utility" ? state.layout.utilityButtons : getViewMenuButtons(state.shell);
 }
 
 function getDropdownAnchorButtonId(kind: DropdownKind): string {
-	return kind === "utility" ? "header-etc" : "header-view";
+	return kind === "utility" ? "header-file" : "header-view";
 }
 
 function getDropdownHandle(kind: DropdownKind) {
@@ -297,7 +297,7 @@ function showDropdown(kind: DropdownKind): void {
 
 	const overlay = state.session.tui.showOverlay(new ButtonDropdownOverlayComponent(
 		renderContext,
-		buttons,
+		() => getDropdownButtons(kind),
 		() => (kind === "utility" ? state.ui.overlays.utility.row : state.ui.overlays.view.row),
 		() => (kind === "utility" ? state.ui.overlays.utility.col : state.ui.overlays.view.col),
 		(hitRegions, actualHeight) => setDropdownLayoutState(kind, hitRegions, actualHeight),
