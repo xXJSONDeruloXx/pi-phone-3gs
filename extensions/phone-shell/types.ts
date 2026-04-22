@@ -3,6 +3,18 @@ import type { Component, OverlayHandle, TUI } from "@mariozechner/pi-tui";
 
 export type ButtonPalette = "accent" | "warning" | "muted";
 
+export type AgentPhase = "idle" | "thinking" | "streaming" | "tool_calling";
+
+export interface AgentStateInfo {
+	phase: AgentPhase;
+	model: string;
+	contextTokens: number | null;
+	contextLimit: number | null;
+	contextPercent: number | null;
+	backgroundJobs: number;
+	lastUpdate: number;
+}
+
 export type ShellAction =
 	| "toggleUtilities"
 	| "togglePromptMirror"
@@ -77,6 +89,13 @@ export interface PhoneShellLayout {
 }
 
 export interface PhoneShellConfig {
+	header: {
+		enabled: boolean;
+		showContext: boolean;
+		showJobs: boolean;
+		showTimestamp: boolean;
+		contextBarWidth: number;
+	};
 	viewport: {
 		pageOverlapLines: number;
 		minPageScrollLines: number;
@@ -161,6 +180,7 @@ export interface PhoneShellRenderState {
 	utilityActualHeight: number;
 	promptMirrorVisible: boolean;
 	originalChat?: Component;
+	agentState: AgentStateInfo;
 }
 
 export interface PhoneShellRenderContext {

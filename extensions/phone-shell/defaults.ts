@@ -1,4 +1,4 @@
-import type { ButtonSpec, CommandMode, PersistedShellState, PhoneShellConfig, PhoneShellLayout } from "./types.js";
+import type { AgentStateInfo, ButtonSpec, CommandMode, PersistedShellState, PhoneShellConfig, PhoneShellLayout } from "./types.js";
 
 export const PRIMARY_COMMAND = "phone-shell";
 export const TOGGLE_ALIAS_COMMAND = "touch";
@@ -31,7 +31,27 @@ export const COMMANDS: readonly CommandMode[] = [
 	"prompt-mirror",
 ] as const;
 
+export const HEADER_CHILD_INDEX = 0;
+export const HEADER_HEIGHT = 2;
+
+export const DEFAULT_AGENT_STATE: AgentStateInfo = {
+	phase: "idle",
+	model: "—",
+	contextTokens: null,
+	contextLimit: null,
+	contextPercent: null,
+	backgroundJobs: 0,
+	lastUpdate: 0,
+};
+
 export const DEFAULT_CONFIG: PhoneShellConfig = {
+	header: {
+		enabled: true,
+		showContext: true,
+		showJobs: true,
+		showTimestamp: true,
+		contextBarWidth: 10,
+	},
 	viewport: {
 		pageOverlapLines: 20,
 		minPageScrollLines: 3,

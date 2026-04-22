@@ -158,26 +158,15 @@ This repo is grounded in four concrete references:
 
 ## Current implementation status
 
-This repo now contains a first package-first implementation:
+This repo contains a working Pi package with a modular touch shell extension:
 
-- an installable Pi package via `package.json`
-- a modular `extensions/phone-shell/` extension
-- a port of the touch shell ideas from `pi-touch`, refactored around:
-  - clean component boundaries
-  - unified button specs
-  - safe persistence
-  - per-user config and layout overrides
-  - compatibility aliases for existing muscle memory
+- installable via `pi install /path/to/pi-phone-3gs`
+- per-user config/layout overrides in `~/.pi/agent/pi-phone-3gs/`
+- a sticky header bar with live agent state (phase, context usage, background jobs)
+- a scrollable viewport with page up/down controls
+- touch-optimized bottom bar and utility overlay
+- prompt mirror
 
-Current code entrypoint:
+Extension source lives in `extensions/phone-shell/` with one file per responsibility. See [AGENTS.md](AGENTS.md) for the full module map and conventions.
 
-- `extensions/phone-shell/index.ts`
-
-Supporting modules:
-
-- `extensions/phone-shell/types.ts`
-- `extensions/phone-shell/defaults.ts`
-- `extensions/phone-shell/config.ts`
-- `extensions/phone-shell/components.ts`
-
-The immediate goal is no longer just docs. It is to make the phone shell real enough to dogfood daily, then iterate from there.
+The immediate goal is to make the phone shell real enough to dogfood daily, then iterate from there.

@@ -7,6 +7,7 @@ import {
 	DEFAULT_PERSISTED_STATE,
 } from "./defaults.js";
 import type {
+	AgentStateInfo,
 	ButtonPalette,
 	ButtonSpec,
 	PersistedShellState,
@@ -187,6 +188,9 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 		return { config: DEFAULT_CONFIG, errors: ["config file must contain a JSON object"] };
 	}
 
+	const header = isRecord(value.header) ? value.header : {};
+	if (value.header !== undefined && !isRecord(value.header)) errors.push("header must be an object");
+
 	const viewport = isRecord(value.viewport) ? value.viewport : {};
 	if (value.viewport !== undefined && !isRecord(value.viewport)) errors.push("viewport must be an object");
 
@@ -206,6 +210,13 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 	if (value.logging !== undefined && !isRecord(value.logging)) errors.push("logging must be an object");
 
 	const config: PhoneShellConfig = {
+		header: {
+			enabled: readBoolean(header, "enabled", DEFAULT_CONFIG.header.enabled),
+			showContext: readBoolean(header, "showContext", DEFAULT_CONFIG.header.showContext),
+			showJobs: readBoolean(header, "showJobs", DEFAULT_CONFIG.header.showJobs),
+			showTimestamp: readBoolean(header, "showTimestamp", DEFAULT_CONFIG.header.showTimestamp),
+			contextBarWidth: Math.max(4, Math.floor(readNumber(header, "contextBarWidth", DEFAULT_CONFIG.header.contextBarWidth))),
+		},
 		viewport: {
 			pageOverlapLines: Math.max(0, Math.floor(readNumber(viewport, "pageOverlapLines", DEFAULT_CONFIG.viewport.pageOverlapLines))),
 			minPageScrollLines: Math.max(1, Math.floor(readNumber(viewport, "minPageScrollLines", DEFAULT_CONFIG.viewport.minPageScrollLines))),

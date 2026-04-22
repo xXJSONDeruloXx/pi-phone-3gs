@@ -1,4 +1,11 @@
 {
+  "header": {
+    "enabled": true,
+    "showContext": true,
+    "showJobs": true,
+    "showTimestamp": true,
+    "contextBarWidth": 10
+  },
   "viewport": {
     "pageOverlapLines": 20,
     "minPageScrollLines": 3
