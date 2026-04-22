@@ -57,10 +57,10 @@ export class HeaderBarComponent implements Component {
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
 		const specs = getHeaderButtonSpecs(this.ctx.state.ui.overlays.utility.visible, this.ctx.state.ui.overlays.view.visible);
 
-		const etcSpec = specs.find((s) => s.id === "header-etc")!;
+		const fileSpec = specs.find((s) => s.id === "header-file")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;
 		const viewSpec = specs.find((s) => s.id === "header-view")!;
-		const leftSpecs = [etcSpec, viewSpec];
+		const leftSpecs = [fileSpec, viewSpec];
 		const rightSpecs = [modelSpec];
 
 		const left = renderButtonRow(leftSpecs, config.render.buttonGap, theme);
