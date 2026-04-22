@@ -1,6 +1,6 @@
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@mariozechner/pi-coding-agent";
 import type { Component, TUI } from "@mariozechner/pi-tui";
-import { Key, matchesKey, truncateToWidth } from "@mariozechner/pi-tui";
+import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { TouchViewport, BottomBarComponent, UtilityOverlayComponent } from "./components.js";
@@ -8,6 +8,7 @@ import {
 	BAR_HEIGHT,
 	BAR_WIDGET_KEY,
 	BOOTSTRAP_WIDGET_KEY,
+	CHAT_CHILD_INDEX,
 	COMMANDS,
 	COMPAT_COMMAND,
 	CONFIG_TEMPLATE,
@@ -42,17 +43,6 @@ type InputResponse = { consume?: boolean; data?: string } | undefined;
 type NotifyType = "info" | "warning" | "error";
 type UiCarrier = { ui: ExtensionCommandContext["ui"] };
 
-type TopLevelSlots = {
-	header: Component;
-	chat: Component;
-	pending: Component;
-	status: Component;
-	widgetAbove: Component;
-	editor: Component;
-	widgetBelow: Component;
-	footer: Component;
-};
-
 type RuntimeState = PhoneShellRenderState & {
 	enabled: boolean;
 	config: PhoneShellConfig;
@@ -69,9 +59,6 @@ type RuntimeState = PhoneShellRenderState & {
 	setEditorText?: (text: string) => void;
 	getEditorText?: () => string;
 	setWidget?: (key: string, content: any, options?: any) => void;
-	setHeader?: (factory: any) => void;
-	topLevelSlots?: TopLevelSlots;
-	activeChatComponent?: Component;
 };
 
 const state: RuntimeState = {
@@ -136,7 +123,6 @@ function captureUiBindings(ctx: UiCarrier): void {
 	state.setEditorText = ctx.ui.setEditorText.bind(ctx.ui);
 	state.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);
 	state.setWidget = ctx.ui.setWidget.bind(ctx.ui);
-	state.setHeader = ctx.ui.setHeader.bind(ctx.ui);
 }
 
 async function reloadRuntimeSettings(ctx?: UiCarrier, notifyOnProblems = false): Promise<void> {
@@ -144,15 +130,13 @@ async function reloadRuntimeSettings(ctx?: UiCarrier, notifyOnProblems = false):
 	state.config = config;
 	state.layout = layout;
 	state.loadErrors = errors;
-	state.promptMirrorVisible = config.promptMirror.enabled && config.editor.position === "bottom";
+	state.promptMirrorVisible = config.promptMirror.enabled;
 	if (notifyOnProblems && errors.length > 0) {
 		ctx?.ui.notify(`phone-shell loaded with ${errors.length} config warning(s)`, "warning");
 	}
 	if (errors.length > 0) {
 		queueLog(`config warnings: ${errors.join(" | ")}`);
 	}
-	applyHeaderMode();
-	applyTopLevelLayout();
 	scheduleRender();
 }
 
@@ -192,87 +176,6 @@ function clearCapturedTui(): void {
 	state.setEditorText = undefined;
 	state.getEditorText = undefined;
 	state.setWidget = undefined;
-	state.setHeader = undefined;
-	state.topLevelSlots = undefined;
-	state.activeChatComponent = undefined;
-}
-
-function captureTopLevelSlots(): boolean {
-	if (!state.tui) return false;
-	if (state.topLevelSlots) return true;
-	const children = state.tui.children;
-	if (children.length < 8) return false;
-	state.topLevelSlots = {
-		header: children[0]!,
-		chat: children[1]!,
-		pending: children[2]!,
-		status: children[3]!,
-		widgetAbove: children[4]!,
-		editor: children[5]!,
-		widgetBelow: children[6]!,
-		footer: children[children.length - 1]!,
-	};
-	state.activeChatComponent = state.topLevelSlots.chat;
-	return true;
-}
-
-function desiredTopLevelChildren(): Component[] {
-	const slots = state.topLevelSlots;
-	if (!slots) return state.tui?.children ?? [];
-	const chat = state.activeChatComponent ?? slots.chat;
-	if (state.enabled && state.config.editor.position === "top") {
-		return [slots.header, slots.widgetAbove, slots.editor, slots.widgetBelow, chat, slots.pending, slots.status, slots.footer];
-	}
-	return [slots.header, chat, slots.pending, slots.status, slots.widgetAbove, slots.editor, slots.widgetBelow, slots.footer];
-}
-
-function applyTopLevelLayout(force = false): void {
-	if (!state.tui || !captureTopLevelSlots()) return;
-	const next = desiredTopLevelChildren();
-	const children = state.tui.children;
-	const unchanged = children.length === next.length && children.every((child, index) => child === next[index]);
-	if (!unchanged) {
-		children.splice(0, children.length, ...next);
-		queueLog(`editor layout ${state.config.editor.position}`);
-	}
-	state.tui.requestRender(force);
-}
-
-function renderCompactHeader(): any {
-	return (_tui: TUI, theme: Theme) => ({
-		render(width: number): string[] {
-			const title = theme.bold(theme.fg("accent", state.config.header.title));
-			const subtitle = state.config.header.subtitle ? theme.fg("dim", ` ${state.config.header.subtitle}`) : "";
-			const position = theme.fg("muted", `editor:${state.config.editor.position}`);
-			const hint = theme.fg("dim", ` /${PRIMARY_COMMAND} status • ${TOGGLE_SHORTCUT}`);
-			const lines = [
-				`${title}${subtitle}`,
-				`${position}${hint}`,
-			];
-			if (state.loadErrors.length > 0) {
-				lines.push(theme.fg("warning", `${state.loadErrors.length} config warning(s) • /${PRIMARY_COMMAND} status`));
-			}
-			return lines.map((line) => truncateToWidth(line, width, "", true));
-		},
-		invalidate() {},
-	});
-}
-
-function applyHeaderMode(): void {
-	if (!state.setHeader) return;
-	if (!state.enabled) {
-		state.setHeader(undefined);
-		return;
-	}
-	if (state.config.header.mode === "builtin") {
-		state.setHeader(undefined);
-		return;
-	}
-	if (state.config.header.mode === "hidden") {
-		state.setHeader(() => ({ render: () => [], invalidate() {} }));
-		return;
-	}
-	state.setHeader(renderCompactHeader());
 }
 
 function captureTui(ctx: UiCarrier): boolean {
@@ -287,30 +190,32 @@ function captureTui(ctx: UiCarrier): boolean {
 		{ placement: "belowEditor" },
 	);
 	ctx.ui.setWidget(BOOTSTRAP_WIDGET_KEY, undefined);
-	captureTopLevelSlots();
 	return Boolean(state.tui);
 }
 
 function installViewport(): void {
-	if (!state.tui || !captureTopLevelSlots() || !state.topLevelSlots) return;
-	const current = state.activeChatComponent ?? state.topLevelSlots.chat;
+	if (!state.tui) return;
+	const current = state.tui.children[CHAT_CHILD_INDEX];
+	if (!current) return;
 	if (current instanceof TouchViewport) {
 		state.viewport = current;
 		return;
 	}
-	state.originalChat = state.topLevelSlots.chat;
-	state.viewport = new TouchViewport(state.tui, state.topLevelSlots.chat, renderContext);
-	state.activeChatComponent = state.viewport;
+	state.originalChat = current;
+	state.viewport = new TouchViewport(state.tui, current, renderContext);
+	state.tui.children[CHAT_CHILD_INDEX] = state.viewport;
 	state.viewport.toBottom();
-	applyTopLevelLayout(true);
+	state.tui.requestRender(true);
 	queueLog("viewport installed");
 }
 
 function uninstallViewport(): void {
 	if (!state.tui || !state.originalChat) return;
-	state.activeChatComponent = state.originalChat;
-	applyTopLevelLayout(true);
-	queueLog("viewport uninstalled");
+	if (state.tui.children[CHAT_CHILD_INDEX] === state.viewport) {
+		state.tui.children[CHAT_CHILD_INDEX] = state.originalChat;
+		state.tui.requestRender(true);
+		queueLog("viewport uninstalled");
+	}
 	state.viewport = undefined;
 	state.originalChat = undefined;
 }
@@ -386,9 +291,6 @@ function performAction(action: ShellAction): InputResponse {
 			toggleUtilityOverlay();
 			return { consume: true };
 		case "togglePromptMirror":
-			if (state.config.editor.position === "top") {
-				return { consume: true };
-			}
 			state.promptMirrorVisible = !state.promptMirrorVisible;
 			scheduleRender();
 			return { consume: true };
@@ -542,7 +444,6 @@ async function disableTouchMode(ctx?: UiCarrier, permanent = false, persist = tr
 	hideUtilityOverlay();
 	hidePanel();
 	uninstallViewport();
-	applyHeaderMode();
 	state.statusSink?.(STATUS_KEY, undefined);
 	if (permanent) {
 		destroyPanel();
@@ -562,7 +463,6 @@ async function enableTouchMode(ctx: UiCarrier, persist = true): Promise<void> {
 		return;
 	}
 	state.enabled = true;
-	applyHeaderMode();
 	installViewport();
 	showPanel();
 	enableMouseTracking();
@@ -594,8 +494,6 @@ function getStatusReport(): string {
 		`- log file: ${state.paths.log}`,
 		state.tui ? `- terminal: ${state.tui.terminal.columns} cols × ${state.tui.terminal.rows} rows` : "- terminal: (not captured)",
 		state.barRow > 0 ? `- bar: row=${state.barRow} buttons=${state.barButtons.length}` : "- bar: (not rendered)",
-		`- editor position: ${state.config.editor.position}`,
-		`- header mode: ${state.config.header.mode}`,
 		`- utility overlay: ${state.utilityOverlayVisible}`,
 		`- prompt mirror: ${state.promptMirrorVisible}`,
 		`- config warnings: ${state.loadErrors.length === 0 ? "none" : state.loadErrors.join(" | ")}`,
@@ -730,10 +628,6 @@ async function handlePrimaryCommand(args: string, ctx: ExtensionCommandContext):
 			ctx.ui.notify("phone-shell: page down", "info");
 			return;
 		case "prompt-mirror":
-			if (state.config.editor.position === "top") {
-				ctx.ui.notify("phone-shell prompt mirror is unused while the real editor is on top", "info");
-				return;
-			}
 			state.promptMirrorVisible = !state.promptMirrorVisible;
 			scheduleRender();
 			ctx.ui.notify(`phone-shell prompt mirror ${state.promptMirrorVisible ? "shown" : "hidden"}`, "info");

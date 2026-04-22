@@ -287,8 +287,7 @@ export class UtilityOverlayComponent implements Component {
 		}
 
 		const buttonHeight = Math.max(BAR_HEIGHT, rows.length * BAR_HEIGHT);
-		const showPromptMirror = this.ctx.state.promptMirrorVisible && this.ctx.getConfig().editor.position === "bottom";
-		const promptMirrorLines = showPromptMirror ? renderPromptMirror(this.ctx, width) : [];
+		const promptMirrorLines = this.ctx.state.promptMirrorVisible ? renderPromptMirror(this.ctx, width) : [];
 		lines.push(...promptMirrorLines);
 
 		this.ctx.state.utilityButtons = hitRegions;
