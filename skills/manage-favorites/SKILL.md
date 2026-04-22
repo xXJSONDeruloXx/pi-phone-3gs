@@ -62,6 +62,7 @@ Examples:
 Anything that works as a slash command in Pi:
 
 - **Built-ins**: `/new`, `/compact`, `/reload`, `/resume`, `/tree`
+- **Model switching**: `/model <provider/id>` — e.g. `/model zai/glm-5.1`, `/model github-copilot/claude-sonnet-4.6`
 - **Skills**: `/skill:<name>` — use `pi.getCommands()` or look at installed packages
 - **Prompt templates**: `/<template-name>`
 - **Extension commands**: e.g. `/phone-shell`, `/touch`
