@@ -1,18 +1,15 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
+import type { Model } from "@mariozechner/pi-ai";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { DEFAULT_AGENT_STATE, DEFAULT_CONFIG } from "./defaults.js";
+import { DEFAULT_CONFIG } from "./defaults.js";
 import { getPhoneShellPaths, loadPhoneShellSettings } from "./config.js";
-import type { Model } from "@mariozechner/pi-ai";
-import type { Component, OverlayHandle } from "@mariozechner/pi-tui";
 import type {
-	ButtonHitRegion,
 	MouseInput,
 	PhoneShellConfig,
 	PhoneShellLayout,
 	PhoneShellRenderContext,
 	PhoneShellRenderState,
-	ViewportController,
 } from "./types.js";
 import type { AgentStateTracker } from "./header.js";
 
@@ -73,20 +70,10 @@ export const state: RuntimeState = {
 	viewOverlayWidth: 0,
 	viewButtons: [],
 	viewActualHeight: 3,
-	modelMenuVisible: false,
-	modelMenuRow: 0,
-	modelMenuCol: 0,
-	modelMenuWidth: 0,
-	modelMenuHeight: 0,
-	modelMenuScope: "scoped",
-	modelMenuScopeButtons: [],
-	modelMenuProviderButtons: [],
-	modelMenuModelButtons: [],
 	promptProxyInstalled: false,
 	proxyOnly: false,
 	viewportRow: 0,
 	viewportHeight: 0,
-	agentState: { ...DEFAULT_AGENT_STATE },
 	logQueue: Promise.resolve(),
 	renderQueued: false,
 	headerInstalled: false,

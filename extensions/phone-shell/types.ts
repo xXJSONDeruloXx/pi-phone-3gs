@@ -1,5 +1,4 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
-import type { Model } from "@mariozechner/pi-ai";
 import type { Component, OverlayHandle, TUI } from "@mariozechner/pi-tui";
 
 export type ButtonPalette = "accent" | "warning" | "muted";
@@ -20,9 +19,6 @@ export type ShellAction =
 	| "toggleUtilities"
 	| "toggleViewMenu"
 	| "toggleBottomBar"
-	| "toggleModelMenu"
-	| "setModelScopeScoped"
-	| "setModelScopeAll"
 	| "togglePromptProxy"
 	| "scrollTop"
 	| "pageUp"
@@ -96,10 +92,6 @@ export interface PhoneShellLayout {
 export interface PhoneShellConfig {
 	header: {
 		enabled: boolean;
-		showContext: boolean;
-		showJobs: boolean;
-		showTimestamp: boolean;
-		contextBarWidth: number;
 	};
 	viewport: {
 		pageOverlapLines: number;
@@ -169,22 +161,6 @@ export interface ButtonHitRegion {
 	rowOffset: number;
 }
 
-export type ModelMenuScope = "scoped" | "all";
-
-export interface ProviderHitRegion {
-	provider: string;
-	colStart: number;
-	colEnd: number;
-	rowOffset: number;
-}
-
-export interface ModelHitRegion {
-	model: Model<any>;
-	colStart: number;
-	colEnd: number;
-	rowOffset: number;
-}
-
 export interface PhoneShellRenderState {
 	tui?: TUI;
 	theme?: Theme;
@@ -209,23 +185,11 @@ export interface PhoneShellRenderState {
 	viewOverlayWidth: number;
 	viewButtons: ButtonHitRegion[];
 	viewActualHeight: number;
-	modelMenuOverlay?: OverlayHandle;
-	modelMenuVisible: boolean;
-	modelMenuRow: number;
-	modelMenuCol: number;
-	modelMenuWidth: number;
-	modelMenuHeight: number;
-	modelMenuScope: ModelMenuScope;
-	modelMenuScopeButtons: ButtonHitRegion[];
-	modelMenuProviderButtons: ProviderHitRegion[];
-	modelMenuModelButtons: ModelHitRegion[];
-	modelMenuSelectedProvider?: string;
 	originalChat?: Component;
 	promptProxyInstalled: boolean;
 	proxyOnly: boolean;
 	viewportRow: number;
 	viewportHeight: number;
-	agentState: AgentStateInfo;
 }
 
 export interface PhoneShellRenderContext {

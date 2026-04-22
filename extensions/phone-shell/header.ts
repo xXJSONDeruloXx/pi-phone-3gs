@@ -2,7 +2,7 @@ import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
 import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
-import type { AgentPhase, AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
+import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 function getHeaderButtonSpecs(utilityOverlayVisible: boolean, viewOverlayVisible: boolean): ButtonSpec[] {
 	const etcColor = utilityOverlayVisible ? "accent" : "muted";

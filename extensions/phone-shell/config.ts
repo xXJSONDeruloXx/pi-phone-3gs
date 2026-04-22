@@ -7,7 +7,6 @@ import {
 	DEFAULT_PERSISTED_STATE,
 } from "./defaults.js";
 import type {
-	AgentStateInfo,
 	ButtonPalette,
 	ButtonSpec,
 	PersistedShellState,
@@ -22,9 +21,6 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleUtilities",
 	"toggleViewMenu",
 	"toggleBottomBar",
-	"toggleModelMenu",
-	"setModelScopeScoped",
-	"setModelScopeAll",
 	"scrollTop",
 	"pageUp",
 	"cycleModel",
@@ -213,10 +209,6 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 	const config: PhoneShellConfig = {
 		header: {
 			enabled: readBoolean(header, "enabled", DEFAULT_CONFIG.header.enabled),
-			showContext: readBoolean(header, "showContext", DEFAULT_CONFIG.header.showContext),
-			showJobs: readBoolean(header, "showJobs", DEFAULT_CONFIG.header.showJobs),
-			showTimestamp: readBoolean(header, "showTimestamp", DEFAULT_CONFIG.header.showTimestamp),
-			contextBarWidth: Math.max(4, Math.floor(readNumber(header, "contextBarWidth", DEFAULT_CONFIG.header.contextBarWidth))),
 		},
 		viewport: {
 			pageOverlapLines: Math.max(0, Math.floor(readNumber(viewport, "pageOverlapLines", DEFAULT_CONFIG.viewport.pageOverlapLines))),

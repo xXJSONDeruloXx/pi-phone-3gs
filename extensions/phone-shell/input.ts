@@ -247,7 +247,6 @@ function showDropdown(kind: DropdownKind): void {
 	setDropdownPlacement(kind, overlayRow, overlayCol, overlayWidth);
 
 	const overlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
-		state.tui,
 		renderContext,
 		buttons,
 		() => (kind === "utility" ? state.utilityOverlayRow : state.viewOverlayRow),
@@ -325,19 +324,8 @@ function handleDropdownMouse(kind: DropdownKind, mouse: MouseInput): InputRespon
 	return { consume: true };
 }
 
-function hideModelMenu(): void {
-	state.modelMenuVisible = false;
-	state.modelMenuRow = 0;
-	state.modelMenuCol = 0;
-	state.modelMenuWidth = 0;
-	state.modelMenuHeight = 0;
-	state.modelMenuScopeButtons = [];
-	state.modelMenuProviderButtons = [];
-	state.modelMenuModelButtons = [];
-}
-
 // Exported for mode.ts to call during enableTouchMode
-export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewOverlay, hideViewOverlay, toggleViewOverlay, hideModelMenu };
+export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewOverlay, hideViewOverlay, toggleViewOverlay };
 
 // ---------------------------------------------------------------------------
 // Input handler registration

@@ -1,5 +1,5 @@
 import { visibleWidth } from "@mariozechner/pi-tui";
-import type { ButtonSpec, ButtonPalette } from "./types.js";
+import type { ButtonSpec } from "./types.js";
 
 export function buttonPalette(button: ButtonSpec): "accent" | "warning" | "muted" {
 	return button.palette ?? "accent";
@@ -30,10 +30,3 @@ export function splitIntoRows(buttons: ButtonSpec[], usableWidth: number, gap: n
 	return rows;
 }
 
-export function tailToWidth(text: string, width: number): string {
-	if (width <= 0) return "";
-	if (visibleWidth(text) <= width) return text;
-	let out = text;
-	while (out.length > 0 && visibleWidth(`…${out}`) > width) out = out.slice(1);
-	return `…${out}`;
-}

@@ -1,8 +1,8 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { DEFAULT_AGENT_STATE, COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMMAND, TOGGLE_SHORTCUT } from "./defaults.js";
+import { COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMMAND, TOGGLE_SHORTCUT } from "./defaults.js";
 import { loadPersistedShellState } from "./config.js";
 import { AgentStateTracker } from "./header.js";
-import { captureUiBindings, queueLog, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
+import { captureUiBindings, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
 import { disableTouchMode, enableTouchMode, togglePromptProxyMode } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 
@@ -12,7 +12,6 @@ import { commandItems, handlePrimaryCommand } from "./commands.js";
 
 function wireAgentEvents(pi: ExtensionAPI): AgentStateTracker {
 	const tracker = new AgentStateTracker(() => {
-		state.agentState = { ...tracker.state };
 		scheduleRender();
 	});
 
@@ -105,7 +104,6 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		state.currentModel = undefined;
 		state.setModel = undefined;
 		state.agentTracker?.reset();
-		state.agentState = { ...DEFAULT_AGENT_STATE };
 	});
 
 	pi.registerShortcut(TOGGLE_SHORTCUT, {

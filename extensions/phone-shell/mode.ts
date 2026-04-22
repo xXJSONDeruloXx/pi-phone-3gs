@@ -13,7 +13,7 @@ import {
 } from "./defaults.js";
 import { PhoneShellEditor, PromptProxyComponent } from "./editor.js";
 import { HeaderBarComponent } from "./header.js";
-import { hideModelMenu, hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
+import { hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, state } from "./state.js";
 import type { PersistedShellState } from "./types.js";
 import { TouchViewport } from "./viewport.js";
@@ -280,7 +280,6 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	state.enabled = false;
 	disableMouseTracking();
 	unregisterInputHandler();
-	hideModelMenu();
 	hideUtilityOverlay();
 	hideViewOverlay();
 	hidePanel();

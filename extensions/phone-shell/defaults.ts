@@ -46,10 +46,6 @@ export const DEFAULT_AGENT_STATE: AgentStateInfo = {
 export const DEFAULT_CONFIG: PhoneShellConfig = {
 	header: {
 		enabled: true,
-		showContext: true,
-		showJobs: true,
-		showTimestamp: true,
-		contextBarWidth: 10,
 	},
 	viewport: {
 		pageOverlapLines: 20,

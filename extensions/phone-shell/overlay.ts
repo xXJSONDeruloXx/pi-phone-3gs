@@ -1,4 +1,4 @@
-import type { Component, TUI } from "@mariozechner/pi-tui";
+import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
@@ -24,7 +24,6 @@ function addFullWidthHitRows(hitRegions: ButtonHitRegion[], button: ButtonSpec, 
 
 export class ButtonDropdownOverlayComponent implements Component {
 	constructor(
-		private readonly tui: TUI,
 		private readonly ctx: PhoneShellRenderContext,
 		private readonly buttons: ButtonSpec[],
 		private readonly getOverlayRow: () => number,
