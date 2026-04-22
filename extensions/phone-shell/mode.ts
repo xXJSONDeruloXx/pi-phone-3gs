@@ -16,7 +16,7 @@ import {
 } from "./defaults.js";
 import { savePersistedShellState } from "./config.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, scheduleRender, state } from "./state.js";
-import { hideUtilityOverlay, registerInputHandler, showUtilityOverlay, toggleUtilityOverlay, unregisterInputHandler } from "./input.js";
+import { hideModelMenu, hideUtilityOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
 import type { Component, TUI } from "@mariozechner/pi-tui";
 
 const EMPTY_COMPONENT: Component = {
@@ -187,6 +187,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	state.enabled = false;
 	disableMouseTracking();
 	unregisterInputHandler();
+	hideModelMenu();
 	hideUtilityOverlay();
 	hidePanel();
 	uninstallHeader();

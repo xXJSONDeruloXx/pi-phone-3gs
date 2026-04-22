@@ -11,7 +11,7 @@
     "minPageScrollLines": 3
   },
   "utilityOverlay": {
-    "autoOpenOnEnable": true,
+    "autoOpenOnEnable": false,
     "keepOpenAfterButtonActivation": true
   },
   "promptMirror": {

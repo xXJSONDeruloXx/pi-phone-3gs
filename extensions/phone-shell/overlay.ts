@@ -1,27 +1,22 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { BAR_HEIGHT } from "./defaults.js";
-import { buttonPalette, makeButtonWidth, splitIntoRows, tailToWidth } from "./button-helpers.js";
-import type { ButtonHitRegion, PhoneShellRenderContext } from "./types.js";
+import type { PhoneShellConfig, PhoneShellLayout, ButtonHitRegion, PhoneShellRenderContext } from "./types.js";
+import { tailToWidth } from "./button-helpers.js";
 
-function renderPromptMirror(ctx: PhoneShellRenderContext, width: number): string[] {
-	const theme = ctx.getTheme();
+export function getUtilityDropdownInnerWidth(config: PhoneShellConfig, layout: PhoneShellLayout): number {
+	const maxButtonLabelWidth = layout.utilityButtons.reduce((max, button) => Math.max(max, visibleWidth(button.label.trim())), 0);
+	const buttonVisualWidth = maxButtonLabelWidth + 6;
+	const promptMinWidth = visibleWidth(config.promptMirror.prefix) + 12;
+	return Math.max(18, buttonVisualWidth, promptMinWidth);
+}
+
+function promptMirrorLine(ctx: PhoneShellRenderContext, innerWidth: number): string {
 	const config = ctx.getConfig();
-	const lead = " ".repeat(config.render.leadingColumns);
-	const innerWidth = Math.max(1, width - 2 - config.render.leadingColumns);
-	const border = (s: string) => theme.fg("accent", s);
 	const rawText = ctx.getPromptMirrorText();
 	const preview = rawText.length > 0
 		? tailToWidth(rawText.replace(/\n/g, " ↵ "), Math.max(1, innerWidth - visibleWidth(config.promptMirror.prefix)))
-		: theme.fg("dim", config.promptMirror.placeholder);
-	const body = truncateToWidth(`${config.promptMirror.prefix}${preview}`, innerWidth, "", true);
-	const pad = Math.max(0, innerWidth - visibleWidth(body));
-
-	return [
-		lead + border(`╭${"─".repeat(innerWidth)}╮`),
-		lead + border("│") + body + " ".repeat(pad) + border("│"),
-		lead + border(`╰${"─".repeat(innerWidth)}╯`),
-	];
+		: ctx.getTheme().fg("dim", config.promptMirror.placeholder);
+	return truncateToWidth(`${config.promptMirror.prefix}${preview}`, innerWidth, "", true);
 }
 
 export class UtilityOverlayComponent implements Component {
@@ -32,59 +27,52 @@ export class UtilityOverlayComponent implements Component {
 
 	render(width: number): string[] {
 		const theme = this.ctx.getTheme();
-		const config = this.ctx.getConfig();
 		const layout = this.ctx.getLayout();
-		const lead = " ".repeat(config.render.leadingColumns);
-		const usableWidth = Math.max(1, width - config.render.leadingColumns);
-
-		const rows = splitIntoRows(layout.utilityButtons, usableWidth, config.render.buttonGap);
+		const innerWidth = Math.max(1, width - 2);
 		const lines: string[] = [];
 		const hitRegions: ButtonHitRegion[] = [];
 
-		for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-			const row = rows[rowIndex]!;
-			const tops: string[] = [];
-			const mids: string[] = [];
-			const bots: string[] = [];
-			let col = config.render.leadingColumns + 1;
-
-			for (let buttonIndex = 0; buttonIndex < row.buttons.length; buttonIndex++) {
-				const button = row.buttons[buttonIndex]!;
-				const buttonWidth = makeButtonWidth(button);
-				const innerWidth = buttonWidth - 2;
-				const palette = buttonPalette(button);
-
-				tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-				mids.push(theme.fg(palette, "│") + theme.bold(button.label) + theme.fg(palette, "│"));
-				bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
-
-				hitRegions.push({
-					button,
-					colStart: col,
-					colEnd: col + buttonWidth - 1,
-					rowOffset: rowIndex,
-				});
-				col += buttonWidth + config.render.buttonGap;
-
-				if (buttonIndex < row.buttons.length - 1) {
-					tops.push(" ".repeat(config.render.buttonGap));
-					mids.push(" ".repeat(config.render.buttonGap));
-					bots.push(" ".repeat(config.render.buttonGap));
-				}
-			}
-
-			lines.push(truncateToWidth(lead + tops.join(""), width));
-			lines.push(truncateToWidth(lead + mids.join(""), width));
-			lines.push(truncateToWidth(lead + bots.join(""), width));
+		lines.push(theme.fg("accent", `╭${"─".repeat(innerWidth)}╮`));
+		for (const button of layout.utilityButtons) {
+			const absoluteRowOffset = this.ctx.state.utilityOverlayRow + lines.length;
+			const displayLabel = button.label.trim();
+			const buttonLabel = truncateToWidth(displayLabel, Math.max(1, innerWidth - 4), "", true);
+			const palette = button.palette ?? "accent";
+			const visual = `[${buttonLabel}]`;
+			const visualWidth = visibleWidth(visual);
+			const pad = Math.max(0, innerWidth - 1 - visualWidth);
+			lines.push(
+				theme.fg("accent", "│")
+				+ " "
+				+ theme.bold(theme.fg(palette, visual))
+				+ " ".repeat(pad)
+				+ theme.fg("accent", "│"),
+			);
+			hitRegions.push({
+				button,
+				colStart: this.ctx.state.utilityOverlayCol,
+				colEnd: this.ctx.state.utilityOverlayCol + width - 1,
+				rowOffset: absoluteRowOffset,
+			});
 		}
 
-		const buttonHeight = Math.max(BAR_HEIGHT, rows.length * BAR_HEIGHT);
-		const promptMirrorLines = this.ctx.state.promptMirrorVisible ? renderPromptMirror(this.ctx, width) : [];
-		lines.push(...promptMirrorLines);
+		if (this.ctx.state.promptMirrorVisible) {
+			lines.push(theme.fg("accent", `├${"─".repeat(innerWidth)}┤`));
+			const prompt = promptMirrorLine(this.ctx, innerWidth);
+			const promptPad = Math.max(0, innerWidth - visibleWidth(prompt));
+			lines.push(
+				theme.fg("accent", "│")
+				+ prompt
+				+ " ".repeat(promptPad)
+				+ theme.fg("accent", "│"),
+			);
+		}
+
+		lines.push(theme.fg("accent", `╰${"─".repeat(innerWidth)}╯`));
 
 		this.ctx.state.utilityButtons = hitRegions;
-		this.ctx.state.utilityButtonsHeight = buttonHeight;
-		this.ctx.state.utilityActualHeight = buttonHeight + promptMirrorLines.length;
+		this.ctx.state.utilityButtonsHeight = layout.utilityButtons.length;
+		this.ctx.state.utilityActualHeight = lines.length;
 		return lines;
 	}
 

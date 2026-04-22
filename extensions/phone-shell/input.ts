@@ -146,16 +146,27 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "bar" | "
 //  imports from this module — no circular dep since input.ts never imports mode)
 // ---------------------------------------------------------------------------
 
-import { UtilityOverlayComponent } from "./overlay.js";
+import { UtilityOverlayComponent, getUtilityDropdownInnerWidth } from "./overlay.js";
+import { getHeaderButtonRegions } from "./header.js";
 import { renderContext } from "./state.js";
 
 function showUtilityOverlay(): void {
 	if (!state.tui || state.utilityOverlay) return;
+	const innerWidth = getUtilityDropdownInnerWidth(state.config, state.layout);
+	const overlayWidth = innerWidth + 2;
+	const overlayRow = HEADER_HEIGHT;
+	const etcButton = getHeaderButtonRegions(state.config, state.agentState.phase, state.utilityOverlayVisible)
+		.find((button) => button.button.id === "header-etc");
+	const overlayCol = Math.max(1, etcButton?.colStart ?? (state.config.render.leadingColumns + 1));
+	const overlayColZero = overlayCol - 1;
+	state.utilityOverlayRow = overlayRow;
+	state.utilityOverlayCol = overlayCol;
+	state.utilityOverlayWidth = overlayWidth;
 	state.utilityOverlay = state.tui.showOverlay(new UtilityOverlayComponent(state.tui, renderContext), {
 		anchor: "top-left",
-		row: 0,
-		col: 0,
-		width: "100%",
+		row: overlayRow,
+		col: overlayColZero,
+		width: overlayWidth,
 		nonCapturing: true,
 	});
 	state.utilityOverlayVisible = true;
@@ -166,6 +177,9 @@ function hideUtilityOverlay(): void {
 	state.utilityOverlay?.hide();
 	state.utilityOverlay = undefined;
 	state.utilityOverlayVisible = false;
+	state.utilityOverlayRow = 0;
+	state.utilityOverlayCol = 0;
+	state.utilityOverlayWidth = 0;
 	state.utilityButtons = [];
 	state.utilityButtonsHeight = BAR_HEIGHT;
 	state.utilityActualHeight = BAR_HEIGHT;
@@ -177,8 +191,19 @@ function toggleUtilityOverlay(): void {
 	else showUtilityOverlay();
 }
 
+function hideModelMenu(): void {
+	state.modelMenuVisible = false;
+	state.modelMenuRow = 0;
+	state.modelMenuCol = 0;
+	state.modelMenuWidth = 0;
+	state.modelMenuHeight = 0;
+	state.modelMenuScopeButtons = [];
+	state.modelMenuProviderButtons = [];
+	state.modelMenuModelButtons = [];
+}
+
 // Exported for mode.ts to call during enableTouchMode
-export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay };
+export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, hideModelMenu };
 
 // ---------------------------------------------------------------------------
 // Input handler registration
@@ -195,18 +220,22 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
 			if (!state.enabled || !isPrimaryPointerPress(mouse)) return { consume: true };
 
-			if (state.utilityOverlayVisible && mouse.row >= 1 && mouse.row <= state.utilityActualHeight) {
-				if (mouse.row > state.utilityButtonsHeight) return { consume: true };
-				const clickedRow = Math.floor((mouse.row - 1) / BAR_HEIGHT);
-				const button = findHitRegion(state.utilityButtons, clickedRow, mouse.col);
-				return button ? activateButton(button, "utility") : { consume: true };
-			}
-
 			const inHeader = state.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
 			if (inHeader) {
 				const clickedRow = mouse.row - 1;
 				const button = findHitRegion(state.headerButtons, clickedRow, mouse.col);
 				return button ? activateButton(button, "header") : { consume: true };
+			}
+
+			if (state.utilityOverlayVisible) {
+				const inOverlayRows = mouse.row >= state.utilityOverlayRow + 1 && mouse.row <= state.utilityOverlayRow + state.utilityActualHeight;
+				const inOverlayCols = mouse.col >= state.utilityOverlayCol && mouse.col <= state.utilityOverlayCol + state.utilityOverlayWidth - 1;
+				if (inOverlayRows && inOverlayCols) {
+					const button = findHitRegion(state.utilityButtons, mouse.row - 1, mouse.col);
+					return button ? activateButton(button, "utility") : { consume: true };
+				}
+				hideUtilityOverlay();
+				return { consume: true };
 			}
 
 			const inBar = state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;

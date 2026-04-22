@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { DEFAULT_AGENT_STATE, DEFAULT_CONFIG } from "./defaults.js";
 import { getPhoneShellPaths, loadPhoneShellSettings } from "./config.js";
+import type { Model } from "@mariozechner/pi-ai";
 import type { Component, OverlayHandle } from "@mariozechner/pi-tui";
 import type {
 	ButtonHitRegion,
@@ -32,9 +33,13 @@ export type RuntimeState = PhoneShellRenderState & {
 	lastMouse?: MouseInput;
 	lastAction?: string;
 	statusSink?: (key: string, text: string | undefined) => void;
+	notify?: (text: string, type?: string) => void;
 	setEditorText?: (text: string) => void;
 	getEditorText?: () => string;
 	setWidget?: (key: string, content: any, options?: any) => void;
+	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
+	currentModel?: Model<any>;
+	setModel?: (model: Model<any>) => Promise<boolean>;
 	agentTracker?: AgentStateTracker;
 	headerInstalled?: boolean;
 };
@@ -50,9 +55,21 @@ export const state: RuntimeState = {
 	barButtons: [],
 	barActualHeight: 3,
 	utilityOverlayVisible: false,
+	utilityOverlayRow: 0,
+	utilityOverlayCol: 0,
+	utilityOverlayWidth: 0,
 	utilityButtons: [],
 	utilityButtonsHeight: 3,
 	utilityActualHeight: 3,
+	modelMenuVisible: false,
+	modelMenuRow: 0,
+	modelMenuCol: 0,
+	modelMenuWidth: 0,
+	modelMenuHeight: 0,
+	modelMenuScope: "scoped",
+	modelMenuScopeButtons: [],
+	modelMenuProviderButtons: [],
+	modelMenuModelButtons: [],
 	promptMirrorVisible: DEFAULT_CONFIG.promptMirror.enabled,
 	agentState: { ...DEFAULT_AGENT_STATE },
 	logQueue: Promise.resolve(),
@@ -112,6 +129,7 @@ export function setLastAction(label: string): void {
 
 export function captureUiBindings(ctx: { ui: any }): void {
 	state.statusSink = ctx.ui.setStatus.bind(ctx.ui);
+	state.notify = ctx.ui.notify.bind(ctx.ui);
 	state.theme = ctx.ui.theme;
 	state.setEditorText = ctx.ui.setEditorText.bind(ctx.ui);
 	state.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);

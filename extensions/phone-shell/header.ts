@@ -1,7 +1,7 @@
 import type { Component } from "@mariozechner/pi-tui";
 import { visibleWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
-import type { AgentPhase, AgentStateInfo, ButtonSpec, PhoneShellRenderContext } from "./types.js";
+import type { AgentPhase, AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellConfig, PhoneShellRenderContext } from "./types.js";
 
 function phaseAccent(phase: AgentPhase): "accent" | "warning" | "muted" {
 	switch (phase) {
@@ -12,6 +12,37 @@ function phaseAccent(phase: AgentPhase): "accent" | "warning" | "muted" {
 	}
 }
 
+function renderHeaderButton(label: string, color: "accent" | "warning" | "muted", theme: ReturnType<PhoneShellRenderContext["getTheme"]>): string {
+	return theme.bold(theme.fg(color, `[${label}]`));
+}
+
+function getHeaderButtonSpecs(_phase: AgentPhase, utilityOverlayVisible: boolean): ButtonSpec[] {
+	const etcColor = utilityOverlayVisible ? "accent" : "muted";
+	return [
+		{ kind: "action", id: "header-model", label: "MODEL", action: "cycleModel", palette: "warning" },
+		{ kind: "action", id: "header-etc", label: "ETC", action: "toggleUtilities", palette: etcColor },
+	];
+}
+
+export function getHeaderButtonRegions(config: PhoneShellConfig, phase: AgentPhase, utilityOverlayVisible: boolean): ButtonHitRegion[] {
+	const specs = getHeaderButtonSpecs(phase, utilityOverlayVisible);
+	let col = config.render.leadingColumns + 1;
+	const regions: ButtonHitRegion[] = [];
+	for (let i = 0; i < specs.length; i++) {
+		const spec = specs[i]!;
+		const buttonWidth = visibleWidth(`[${spec.label}]`);
+		regions.push({
+			button: spec,
+			colStart: col,
+			colEnd: col + buttonWidth - 1,
+			rowOffset: 0,
+		});
+		col += buttonWidth;
+		if (i < specs.length - 1) col += 1;
+	}
+	return regions;
+}
+
 export class HeaderBarComponent implements Component {
 	constructor(private readonly ctx: PhoneShellRenderContext) {}
 
@@ -20,28 +51,15 @@ export class HeaderBarComponent implements Component {
 		const config = this.ctx.getConfig();
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
-		const color = phaseAccent(this.ctx.state.agentState.phase);
+		const specs = getHeaderButtonSpecs(this.ctx.state.agentState.phase, this.ctx.state.utilityOverlayVisible);
+		const regions = getHeaderButtonRegions(config, this.ctx.state.agentState.phase, this.ctx.state.utilityOverlayVisible);
 
-		const button: ButtonSpec = {
-			kind: "action",
-			id: "header-model",
-			label: "MODEL",
-			action: "cycleModel",
-			palette: color,
-		};
-		const buttonColStart = config.render.leadingColumns + 1;
-		const buttonTextRaw = `[MODEL]`;
-		const buttonVisibleWidth = visibleWidth(buttonTextRaw);
-		this.ctx.state.headerButtons = [{
-			button,
-			colStart: buttonColStart,
-			colEnd: buttonColStart + buttonVisibleWidth - 1,
-			rowOffset: 0,
-		}];
+		const parts = specs.map((spec) => renderHeaderButton(spec.label, spec.palette ?? "accent", theme));
+		const line1Body = parts.join(" ");
+		const pad = Math.max(0, usableWidth - visibleWidth(line1Body));
+		this.ctx.state.headerButtons = regions;
 
-		const line1 = lead
-			+ theme.bold(theme.fg(color, buttonTextRaw))
-			+ " ".repeat(Math.max(0, usableWidth - buttonVisibleWidth));
+		const line1 = lead + line1Body + " ".repeat(pad);
 		const line2 = lead + theme.fg("dim", "─".repeat(usableWidth));
 
 		return [line1, line2];

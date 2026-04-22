@@ -57,7 +57,7 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 		minPageScrollLines: 3,
 	},
 	utilityOverlay: {
-		autoOpenOnEnable: true,
+		autoOpenOnEnable: false,
 		keepOpenAfterButtonActivation: true,
 	},
 	promptMirror: {
@@ -102,6 +102,7 @@ export const DEFAULT_LAYOUT: PhoneShellLayout = {
 		],
 		[
 			{ kind: "action", id: "escape", label: " ESC ", action: "sendEscape" },
+			{ kind: "command", id: "reload-bottom", label: "RLD", command: "/reload", palette: "warning" },
 			{ kind: "action", id: "slash", label: "  /  ", action: "openSlash" },
 			{ kind: "action", id: "up", label: " ↑ ", action: "arrowUp" },
 			{ kind: "action", id: "down", label: " ↓ ", action: "arrowDown" },

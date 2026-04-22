@@ -18,6 +18,7 @@ function wireAgentEvents(pi: ExtensionAPI): AgentStateTracker {
 
 	pi.on("model_select", async (event) => {
 		tracker.setModel(event.model.id);
+		state.currentModel = event.model;
 	});
 
 	pi.on("agent_start", async () => {
@@ -66,10 +67,13 @@ function wireAgentEvents(pi: ExtensionAPI): AgentStateTracker {
 
 export default function phoneShellExtension(pi: ExtensionAPI) {
 	state.agentTracker = wireAgentEvents(pi);
+	state.setModel = pi.setModel.bind(pi);
 
 	pi.on("session_start", async (_event, ctx) => {
 		if (!ctx.hasUI) return;
 		captureUiBindings(ctx);
+		state.modelRegistry = ctx.modelRegistry;
+		state.currentModel = ctx.model;
 		if (ctx.model) {
 			state.agentTracker?.setModel(ctx.model.id);
 		}
@@ -94,6 +98,10 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		state.theme = undefined;
 		state.getEditorText = undefined;
 		state.setWidget = undefined;
+		state.notify = undefined;
+		state.modelRegistry = undefined;
+		state.currentModel = undefined;
+		state.setModel = undefined;
 		state.agentTracker?.reset();
 		state.agentState = { ...DEFAULT_AGENT_STATE };
 	});
