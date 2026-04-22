@@ -28,6 +28,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		enabled: state.shell.enabled,
 		proxyOnly: state.shell.proxyOnly,
 		barVisible: state.shell.barVisible,
+		viewportJumpButtonsVisible: state.shell.viewportJumpButtonsVisible,
 		...patch,
 	});
 }
@@ -94,6 +95,7 @@ function uninstallViewport(): void {
 	state.session.originalChat = undefined;
 	state.ui.viewport.row = 0;
 	state.ui.viewport.height = 0;
+	state.ui.viewport.buttons = [];
 	state.ui.viewport.drag = undefined;
 }
 
@@ -197,6 +199,13 @@ export function toggleBottomBar(): void {
 		showPanel();
 		state.shell.barVisible = true;
 	}
+	void persistShellState().catch(() => undefined);
+	state.session.tui?.requestRender(true);
+}
+
+export function toggleViewportJumpButtons(): void {
+	if (!state.shell.enabled) return;
+	state.shell.viewportJumpButtonsVisible = !state.shell.viewportJumpButtonsVisible;
 	void persistShellState().catch(() => undefined);
 	state.session.tui?.requestRender(true);
 }

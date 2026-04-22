@@ -81,6 +81,7 @@ const utilityButtons: ButtonSpec[] = [
 export const VIEW_MENU_BUTTONS: ButtonSpec[] = [
 	{ kind: "action", id: "view-proxy", label: " PXY ", action: "togglePromptProxy", palette: "accent" },
 	{ kind: "action", id: "view-bar", label: " BAR ", action: "toggleBottomBar", palette: "warning" },
+	{ kind: "action", id: "view-jump-buttons", label: " JUMP ", action: "toggleViewportJumpButtons", palette: "accent" },
 ];
 
 export const DEFAULT_LAYOUT: PhoneShellLayout = {
@@ -112,6 +113,7 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	autoEnable: true,
 	proxyOnly: false,
 	barVisible: true,
+	viewportJumpButtonsVisible: true,
 };
 
 export const CONFIG_TEMPLATE = JSON.stringify(DEFAULT_CONFIG, null, 2);

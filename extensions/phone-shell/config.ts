@@ -21,6 +21,8 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleUtilities",
 	"toggleViewMenu",
 	"toggleBottomBar",
+	"togglePromptProxy",
+	"toggleViewportJumpButtons",
 	"scrollTop",
 	"pageUp",
 	"cycleModel",
@@ -266,6 +268,7 @@ function normalizePersistedShellState(value: unknown, fallback = DEFAULT_PERSIST
 		autoEnable: value.autoEnable !== false,
 		proxyOnly: value.proxyOnly === true,
 		barVisible: value.barVisible !== false,
+		viewportJumpButtonsVisible: value.viewportJumpButtonsVisible !== false,
 	};
 }
 
@@ -285,6 +288,7 @@ export async function savePersistedShellState(paths: PhoneShellPaths, patch: Par
 		autoEnable: patch.autoEnable ?? current.autoEnable,
 		proxyOnly: patch.proxyOnly ?? current.proxyOnly,
 		barVisible: patch.barVisible ?? current.barVisible,
+		viewportJumpButtonsVisible: patch.viewportJumpButtonsVisible ?? current.viewportJumpButtonsVisible,
 	};
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
 	await fs.writeFile(paths.state, JSON.stringify(next, null, 2), "utf8");

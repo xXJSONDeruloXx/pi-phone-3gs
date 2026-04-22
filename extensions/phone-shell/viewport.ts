@@ -1,5 +1,55 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
-import type { PhoneShellRenderContext, ViewportDebugState } from "./types.js";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { buttonPalette, makeButtonWidth } from "./button-helpers.js";
+import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ViewportDebugState } from "./types.js";
+
+const VIEWPORT_TOP_BUTTON: ButtonSpec = {
+	kind: "action",
+	id: "viewport-top",
+	label: "TOP",
+	action: "scrollTop",
+	palette: "accent",
+};
+
+const VIEWPORT_BOTTOM_BUTTON: ButtonSpec = {
+	kind: "action",
+	id: "viewport-bottom",
+	label: "BTM",
+	action: "scrollBottom",
+	palette: "accent",
+};
+
+function renderViewportButton(spec: ButtonSpec, theme: ReturnType<PhoneShellRenderContext["getTheme"]>): { lines: string[]; width: number } {
+	const buttonWidth = makeButtonWidth(spec);
+	const innerWidth = Math.max(1, buttonWidth - 2);
+	const palette = buttonPalette(spec);
+	const raw = spec.label.trim();
+	const label = visibleWidth(raw) > innerWidth ? truncateToWidth(raw, innerWidth, "", true) : raw;
+	const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
+	const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
+	const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
+	return {
+		width: buttonWidth,
+		lines: [
+			theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`),
+			theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"),
+			theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`),
+		],
+	};
+}
+
+function padLineToWidth(line: string, width: number): string {
+	if (width <= 0) return "";
+	const truncated = truncateToWidth(line, width, "", true);
+	const pad = Math.max(0, width - visibleWidth(truncated));
+	return `${truncated}\x1b[0m${" ".repeat(pad)}`;
+}
+
+function placeButtonAtRight(line: string, width: number, buttonLine: string, buttonWidth: number): string {
+	if (buttonWidth >= width) return truncateToWidth(buttonLine, width);
+	const contentWidth = Math.max(0, width - buttonWidth - 1);
+	return `${padLineToWidth(line, contentWidth)} ${buttonLine}`;
+}
 
 export class TouchViewport implements Component {
 	readonly __piPhoneViewport = true;
@@ -41,6 +91,40 @@ export class TouchViewport implements Component {
 
 		const visible = lines.slice(this.scrollTop, this.scrollTop + visibleHeight);
 		while (visible.length < visibleHeight) visible.push("");
+
+		const viewportButtons: ButtonHitRegion[] = [];
+		const shouldRenderJumpButtons = this.ctx.state.shell.viewportJumpButtonsVisible && visibleHeight >= 6 && width >= 6;
+		if (shouldRenderJumpButtons) {
+			const theme = this.ctx.getTheme();
+			const topButton = renderViewportButton(VIEWPORT_TOP_BUTTON, theme);
+			const bottomButton = renderViewportButton(VIEWPORT_BOTTOM_BUTTON, theme);
+			const buttonWidth = Math.max(topButton.width, bottomButton.width);
+			const buttonColStart = Math.max(1, width - buttonWidth + 1);
+			const topStart = 0;
+			const bottomStart = visibleHeight - bottomButton.lines.length;
+
+			for (let index = 0; index < topButton.lines.length; index++) {
+				visible[topStart + index] = placeButtonAtRight(visible[topStart + index] ?? "", width, topButton.lines[index]!, buttonWidth);
+				viewportButtons.push({
+					button: VIEWPORT_TOP_BUTTON,
+					colStart: buttonColStart,
+					colEnd: width,
+					rowOffset: topStart + index,
+				});
+			}
+
+			for (let index = 0; index < bottomButton.lines.length; index++) {
+				visible[bottomStart + index] = placeButtonAtRight(visible[bottomStart + index] ?? "", width, bottomButton.lines[index]!, buttonWidth);
+				viewportButtons.push({
+					button: VIEWPORT_BOTTOM_BUTTON,
+					colStart: buttonColStart,
+					colEnd: width,
+					rowOffset: bottomStart + index,
+				});
+			}
+		}
+
+		this.ctx.state.ui.viewport.buttons = viewportButtons;
 		return visible;
 	}
 

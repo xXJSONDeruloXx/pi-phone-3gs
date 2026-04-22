@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, HEADER_HEIGHT, VIEW_MENU_BUTTONS } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, togglePromptProxyMode } from "./mode.js";
+import { toggleBottomBar, togglePromptProxyMode, toggleViewportJumpButtons } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -112,6 +112,9 @@ export function performAction(action: ShellAction): InputResponse {
 			return { consume: true };
 		case "togglePromptProxy":
 			togglePromptProxyMode();
+			return { consume: true };
+		case "toggleViewportJumpButtons":
+			toggleViewportJumpButtons();
 			return { consume: true };
 		case "scrollTop":
 			state.session.viewport?.toTop();
@@ -368,6 +371,8 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			}
 
 			if (isViewportRow(mouse.row)) {
+				const viewportButton = findHitRegion(state.ui.viewport.buttons, mouse.row - state.ui.viewport.row, mouse.col);
+				if (viewportButton) return activateButton(viewportButton, "bar");
 				return startViewportDrag(mouse);
 			}
 

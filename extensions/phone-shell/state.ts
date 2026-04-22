@@ -55,6 +55,7 @@ export const state: RuntimeState = {
 	shell: {
 		enabled: false,
 		barVisible: true,
+		viewportJumpButtonsVisible: true,
 		proxyOnly: false,
 		promptProxyInstalled: false,
 		headerInstalled: false,
@@ -89,6 +90,7 @@ export const state: RuntimeState = {
 		viewport: {
 			row: 0,
 			height: 0,
+			buttons: [],
 			drag: undefined,
 		},
 	},
@@ -210,6 +212,7 @@ export function getStatusReport(): string {
 		`- log file: ${state.paths.log}`,
 		state.session.tui ? `- terminal: ${state.session.tui.terminal.columns} cols × ${state.session.tui.terminal.rows} rows` : "- terminal: (not captured)",
 		state.ui.bar.row > 0 ? `- bar: row=${state.ui.bar.row} buttons=${state.ui.bar.buttons.length}` : "- bar: (not rendered)",
+		`- viewport jump buttons: ${state.shell.viewportJumpButtonsVisible} (${state.ui.viewport.buttons.length} hit regions)`,
 		`- utility overlay: ${state.ui.overlays.utility.visible}`,
 		`- view overlay: ${state.ui.overlays.view.visible}`,
 		`- config warnings: ${state.diagnostics.loadErrors.length === 0 ? "none" : state.diagnostics.loadErrors.join(" | ")}`,
