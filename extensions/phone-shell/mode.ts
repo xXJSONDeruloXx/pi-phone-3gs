@@ -161,17 +161,23 @@ export function togglePromptProxyMode(): void {
 	if (!state.tui) return;
 	if (!state.proxyOnly) {
 		// switch to proxy-only
+		installMirroredEditor();
 		if (!state.promptProxyInstalled) installPromptProxy();
 		state.proxyOnly = true;
 		queueLog("prompt proxy mode: proxy-only");
 		state.tui.requestRender(true);
+		// persist
+		void savePersistedShellState(state.paths, state.enabled, state.proxyOnly).catch(() => undefined);
 		return;
 	}
 	// switch to native-only
 	uninstallPromptProxy();
+	uninstallMirroredEditor();
 	state.proxyOnly = false;
 	queueLog("prompt proxy mode: native-only");
 	state.tui.requestRender(true);
+	// persist
+	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly).catch(() => undefined);
 }
 
 // ---------------------------------------------------------------------------

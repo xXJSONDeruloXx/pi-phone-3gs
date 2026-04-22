@@ -130,6 +130,7 @@ export interface PhoneShellConfig {
 export interface PersistedShellState {
 	enabled: boolean;
 	autoEnable: boolean;
+	proxyOnly?: boolean;
 }
 
 export interface PhoneShellPaths {

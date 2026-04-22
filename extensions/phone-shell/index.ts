@@ -3,7 +3,7 @@ import { DEFAULT_AGENT_STATE, COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMM
 import { loadPersistedShellState } from "./config.js";
 import { AgentStateTracker } from "./header.js";
 import { captureUiBindings, queueLog, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
-import { disableTouchMode, enableTouchMode } from "./mode.js";
+import { disableTouchMode, enableTouchMode, togglePromptProxyMode } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 
 // ---------------------------------------------------------------------------
@@ -81,8 +81,9 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		try {
 			const persisted = await loadPersistedShellState(state.paths);
 			if (!persisted.enabled || !persisted.autoEnable) return;
-			setTimeout(() => {
-				void enableTouchMode(ctx, false).catch(() => undefined);
+			setTimeout(async () => {
+				await enableTouchMode(ctx, false).catch(() => undefined);
+				if (persisted.proxyOnly) togglePromptProxyMode();
 			}, 200);
 		} catch {
 			// Never let startup failures break pi.

@@ -281,18 +281,20 @@ export async function loadPersistedShellState(paths: PhoneShellPaths): Promise<P
 		return {
 			enabled: value.enabled === true,
 			autoEnable: value.autoEnable !== false,
+			proxyOnly: value.proxyOnly === true,
 		};
 	} catch {
 		return DEFAULT_PERSISTED_STATE;
 	}
 }
 
-export async function savePersistedShellState(paths: PhoneShellPaths, enabled: boolean): Promise<void> {
+export async function savePersistedShellState(paths: PhoneShellPaths, enabled: boolean, proxyOnly?: boolean): Promise<void> {
 	const current = await loadPersistedShellState(paths);
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
+	const finalProxy = proxyOnly === undefined ? !!current.proxyOnly : !!proxyOnly;
 	await fs.writeFile(
 		paths.state,
-		JSON.stringify({ enabled, autoEnable: current.autoEnable }, null, 2),
+		JSON.stringify({ enabled, autoEnable: current.autoEnable, proxyOnly: finalProxy }, null, 2),
 		"utf8",
 	);
 }
