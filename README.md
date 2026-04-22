@@ -86,6 +86,8 @@ This package is intentionally built so the core shell can stay clean while per-u
 
 The goal is to make it easy to:
 
+- move the real editor between top and bottom
+- switch between compact, builtin, or hidden shell headers
 - change paging behavior
 - change prompt-mirror behavior
 - reorder buttons
@@ -168,6 +170,12 @@ This repo now contains a first package-first implementation:
   - safe persistence
   - per-user config and layout overrides
   - compatibility aliases for existing muscle memory
+
+Current behavior emphasis:
+
+- the real Pi editor can now be placed at the **top** of the screen for phone use
+- the old prompt mirror is no longer the primary answer for top-side input
+- a compact shell header can replace the bulky default header while phone-shell is active
 
 Current code entrypoint:
 

@@ -81,6 +81,14 @@ export interface PhoneShellConfig {
 		pageOverlapLines: number;
 		minPageScrollLines: number;
 	};
+	editor: {
+		position: "top" | "bottom";
+	};
+	header: {
+		mode: "compact" | "builtin" | "hidden";
+		title: string;
+		subtitle: string;
+	};
 	utilityOverlay: {
 		autoOpenOnEnable: boolean;
 		keepOpenAfterButtonActivation: boolean;

@@ -190,6 +190,12 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 	const viewport = isRecord(value.viewport) ? value.viewport : {};
 	if (value.viewport !== undefined && !isRecord(value.viewport)) errors.push("viewport must be an object");
 
+	const editor = isRecord(value.editor) ? value.editor : {};
+	if (value.editor !== undefined && !isRecord(value.editor)) errors.push("editor must be an object");
+
+	const header = isRecord(value.header) ? value.header : {};
+	if (value.header !== undefined && !isRecord(value.header)) errors.push("header must be an object");
+
 	const utilityOverlay = isRecord(value.utilityOverlay) ? value.utilityOverlay : {};
 	if (value.utilityOverlay !== undefined && !isRecord(value.utilityOverlay)) errors.push("utilityOverlay must be an object");
 
@@ -205,10 +211,19 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 	const logging = isRecord(value.logging) ? value.logging : {};
 	if (value.logging !== undefined && !isRecord(value.logging)) errors.push("logging must be an object");
 
+	const headerMode = readString(header, "mode", DEFAULT_CONFIG.header.mode);
 	const config: PhoneShellConfig = {
 		viewport: {
 			pageOverlapLines: Math.max(0, Math.floor(readNumber(viewport, "pageOverlapLines", DEFAULT_CONFIG.viewport.pageOverlapLines))),
 			minPageScrollLines: Math.max(1, Math.floor(readNumber(viewport, "minPageScrollLines", DEFAULT_CONFIG.viewport.minPageScrollLines))),
+		},
+		editor: {
+			position: readString(editor, "position", DEFAULT_CONFIG.editor.position) === "bottom" ? "bottom" : "top",
+		},
+		header: {
+			mode: headerMode === "builtin" || headerMode === "hidden" ? headerMode : "compact",
+			title: readString(header, "title", DEFAULT_CONFIG.header.title),
+			subtitle: readString(header, "subtitle", DEFAULT_CONFIG.header.subtitle),
 		},
 		utilityOverlay: {
 			autoOpenOnEnable: readBoolean(utilityOverlay, "autoOpenOnEnable", DEFAULT_CONFIG.utilityOverlay.autoOpenOnEnable),

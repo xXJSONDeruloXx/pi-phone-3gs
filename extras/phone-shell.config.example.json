@@ -3,12 +3,20 @@
     "pageOverlapLines": 20,
     "minPageScrollLines": 3
   },
+  "editor": {
+    "position": "top"
+  },
+  "header": {
+    "mode": "compact",
+    "title": "pi-phone-3gs",
+    "subtitle": "touch shell"
+  },
   "utilityOverlay": {
-    "autoOpenOnEnable": true,
+    "autoOpenOnEnable": false,
     "keepOpenAfterButtonActivation": true
   },
   "promptMirror": {
-    "enabled": true,
+    "enabled": false,
     "placeholder": "(prompt empty)",
     "prefix": " > "
   },

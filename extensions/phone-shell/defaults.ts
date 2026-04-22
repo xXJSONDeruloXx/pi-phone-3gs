@@ -7,7 +7,6 @@ export const TOGGLE_SHORTCUT = "ctrl+1";
 export const STATUS_KEY = "phone-shell";
 export const BOOTSTRAP_WIDGET_KEY = "phone-shell-bootstrap";
 export const BAR_WIDGET_KEY = "phone-shell-bar";
-export const CHAT_CHILD_INDEX = 1;
 export const BAR_HEIGHT = 3;
 export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1006h";
 export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1006l";
@@ -36,12 +35,20 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 		pageOverlapLines: 20,
 		minPageScrollLines: 3,
 	},
+	editor: {
+		position: "top",
+	},
+	header: {
+		mode: "compact",
+		title: "pi-phone-3gs",
+		subtitle: "touch shell",
+	},
 	utilityOverlay: {
-		autoOpenOnEnable: true,
+		autoOpenOnEnable: false,
 		keepOpenAfterButtonActivation: true,
 	},
 	promptMirror: {
-		enabled: true,
+		enabled: false,
 		placeholder: "(prompt empty)",
 		prefix: " > ",
 	},
@@ -65,8 +72,7 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "resume", label: "/resume", command: "/resume", palette: "warning" },
 	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
 	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\x03", palette: "warning" },
-	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
-	{ kind: "action", id: "prompt-mirror", label: " MIR ", action: "togglePromptMirror", palette: "warning" },
+	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" }
 ];
 
 export const DEFAULT_LAYOUT: PhoneShellLayout = {
