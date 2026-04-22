@@ -82,6 +82,11 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
 ];
 
+export const VIEW_MENU_BUTTONS: ButtonSpec[] = [
+	{ kind: "action", id: "view-proxy", label: " PXY ", action: "togglePromptProxy", palette: "accent" },
+	{ kind: "action", id: "view-bar", label: " BAR ", action: "toggleBottomBar", palette: "warning" },
+];
+
 export const DEFAULT_LAYOUT: PhoneShellLayout = {
 	utilityButtons,
 	bottomGroups: [

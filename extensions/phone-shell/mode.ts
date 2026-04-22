@@ -17,7 +17,7 @@ import {
 } from "./defaults.js";
 import { savePersistedShellState } from "./config.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, scheduleRender, state } from "./state.js";
-import { hideModelMenu, hideUtilityOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
+import { hideModelMenu, hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
 import type { Component, TUI } from "@mariozechner/pi-tui";
 
 const EMPTY_COMPONENT: Component = {
@@ -38,6 +38,7 @@ export function clearCapturedTui(): void {
 	state.setEditorComponent = undefined;
 	state.mirroredEditor = undefined;
 	state.promptProxyInstalled = false;
+	state.viewOverlayVisible = false;
 }
 
 export function captureTui(ctx: { ui: any }): boolean {
@@ -180,6 +181,18 @@ export function togglePromptProxyMode(): void {
 	void savePersistedShellState(state.paths, state.enabled, state.proxyOnly).catch(() => undefined);
 }
 
+export function toggleBottomBar(): void {
+	if (!state.enabled) return;
+	if (state.barVisible) {
+		hidePanel();
+		state.barVisible = false;
+	} else {
+		showPanel();
+		state.barVisible = true;
+	}
+	state.tui?.requestRender(true);
+}
+
 // ---------------------------------------------------------------------------
 // Bottom bar widget
 // ---------------------------------------------------------------------------
@@ -240,7 +253,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	state.enabled = true;
 	installViewport();
 	installHeader();
-	showPanel();
+	if (state.barVisible !== false) showPanel();
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
@@ -261,6 +274,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	unregisterInputHandler();
 	hideModelMenu();
 	hideUtilityOverlay();
+	hideViewOverlay();
 	hidePanel();
 	uninstallPromptProxy();
 	uninstallHeader();

@@ -20,6 +20,8 @@ import type {
 const PALETTES: readonly ButtonPalette[] = ["accent", "warning", "muted"] as const;
 const ACTIONS: readonly ShellAction[] = [
 	"toggleUtilities",
+	"toggleViewMenu",
+	"toggleBottomBar",
 	"toggleModelMenu",
 	"setModelScopeScoped",
 	"setModelScopeAll",

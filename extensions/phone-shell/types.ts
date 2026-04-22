@@ -18,6 +18,8 @@ export interface AgentStateInfo {
 
 export type ShellAction =
 	| "toggleUtilities"
+	| "toggleViewMenu"
+	| "toggleBottomBar"
 	| "toggleModelMenu"
 	| "setModelScopeScoped"
 	| "setModelScopeAll"
@@ -191,6 +193,7 @@ export interface PhoneShellRenderState {
 	barRow: number;
 	barButtons: ButtonHitRegion[];
 	barActualHeight: number;
+	barVisible?: boolean;
 	utilityOverlay?: OverlayHandle;
 	utilityOverlayVisible: boolean;
 	utilityOverlayRow: number;
@@ -199,6 +202,14 @@ export interface PhoneShellRenderState {
 	utilityButtons: ButtonHitRegion[];
 	utilityButtonsHeight: number;
 	utilityActualHeight: number;
+	viewOverlay?: OverlayHandle;
+	viewOverlayVisible: boolean;
+	viewOverlayRow: number;
+	viewOverlayCol: number;
+	viewOverlayWidth: number;
+	viewButtons: ButtonHitRegion[];
+	viewButtonsHeight: number;
+	viewActualHeight: number;
 	modelMenuOverlay?: OverlayHandle;
 	modelMenuVisible: boolean;
 	modelMenuRow: number;

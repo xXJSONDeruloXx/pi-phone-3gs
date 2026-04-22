@@ -2,25 +2,49 @@ import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
 import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
-import type { AgentPhase, AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellConfig, PhoneShellRenderContext } from "./types.js";
+import type { AgentPhase, AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
-function getHeaderButtonSpecs(_phase: AgentPhase, utilityOverlayVisible: boolean): ButtonSpec[] {
+function getHeaderButtonSpecs(utilityOverlayVisible: boolean, viewOverlayVisible: boolean): ButtonSpec[] {
 	const etcColor = utilityOverlayVisible ? "accent" : "muted";
+	const viewColor = viewOverlayVisible ? "accent" : "muted";
 	return [
 		{ kind: "action", id: "header-model", label: "MODEL", action: "cycleModel", palette: "warning" },
-		{ kind: "action", id: "header-proxy", label: "PXY", action: "togglePromptProxy", palette: "accent" },
+		{ kind: "action", id: "header-view", label: "VIEW", action: "toggleViewMenu", palette: viewColor },
 		{ kind: "action", id: "header-etc", label: "ETC", action: "toggleUtilities", palette: etcColor },
 	];
 }
 
-export function getHeaderButtonRegions(config: PhoneShellConfig, phase: AgentPhase, utilityOverlayVisible: boolean): ButtonHitRegion[] {
-	// For the overlay anchor we only need the left-side ETC position.
-	const specs = getHeaderButtonSpecs(phase, utilityOverlayVisible);
-	const etc = specs.find((s) => s.id === "header-etc");
-	if (!etc) return [];
-	const col = config.render.leadingColumns + 1;
-	const width = makeButtonWidth(etc);
-	return [{ button: etc, colStart: col, colEnd: col + width - 1, rowOffset: 0 }];
+function renderButtonRow(specs: ButtonSpec[], gap: number, theme: ReturnType<PhoneShellRenderContext["getTheme"]>): { top: string; mid: string; bot: string; width: number } {
+	const tops: string[] = [];
+	const mids: string[] = [];
+	const bots: string[] = [];
+	let totalWidth = 0;
+
+	for (let i = 0; i < specs.length; i++) {
+		const spec = specs[i]!;
+		const buttonWidth = makeButtonWidth(spec);
+		const innerWidth = Math.max(1, buttonWidth - 2);
+		const palette = buttonPalette(spec);
+		const raw = spec.label.trim();
+		const rawWidth = Math.max(0, visibleWidth(raw));
+		let label = raw;
+		if (rawWidth > innerWidth) label = truncateToWidth(raw, innerWidth, "", true);
+		const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
+		const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
+		const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
+		tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
+		mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"));
+		bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
+		totalWidth += buttonWidth;
+		if (i < specs.length - 1) {
+			tops.push(" ".repeat(gap));
+			mids.push(" ".repeat(gap));
+			bots.push(" ".repeat(gap));
+			totalWidth += gap;
+		}
+	}
+
+	return { top: tops.join(""), mid: mids.join(""), bot: bots.join(""), width: totalWidth };
 }
 
 export class HeaderBarComponent implements Component {
@@ -31,101 +55,40 @@ export class HeaderBarComponent implements Component {
 		const config = this.ctx.getConfig();
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
-		const specs = getHeaderButtonSpecs(this.ctx.state.agentState.phase, this.ctx.state.utilityOverlayVisible);
+		const specs = getHeaderButtonSpecs(this.ctx.state.utilityOverlayVisible, this.ctx.state.viewOverlayVisible);
 
-		// split specs into left (ETC) and right (MODEL, PXY)
 		const etcSpec = specs.find((s) => s.id === "header-etc")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;
-		const proxySpec = specs.find((s) => s.id === "header-proxy")!;
+		const viewSpec = specs.find((s) => s.id === "header-view")!;
 		const leftSpecs = [etcSpec];
-		const rightSpecs = [modelSpec, proxySpec];
+		const rightSpecs = [modelSpec, viewSpec];
 
-		// compute block widths
-		const leftBlockWidth = leftSpecs.reduce((sum, b, i) => sum + makeButtonWidth(b) + (i < leftSpecs.length - 1 ? config.render.buttonGap : 0), 0);
-		const rightBlockWidth = rightSpecs.reduce((sum, b, i) => sum + makeButtonWidth(b) + (i < rightSpecs.length - 1 ? config.render.buttonGap : 0), 0);
-		const fill = Math.max(0, usableWidth - leftBlockWidth - rightBlockWidth);
+		const left = renderButtonRow(leftSpecs, config.render.buttonGap, theme);
+		const right = renderButtonRow(rightSpecs, config.render.buttonGap, theme);
+		const fill = Math.max(0, usableWidth - left.width - right.width);
 
-		const topsLeft: string[] = [];
-		const midsLeft: string[] = [];
-		const botsLeft: string[] = [];
-		const topsRight: string[] = [];
-		const midsRight: string[] = [];
-		const botsRight: string[] = [];
 		const hitRegions: ButtonHitRegion[] = [];
-
-		// build left block (starts at lead + 1)
 		let leftCol = config.render.leadingColumns + 1;
-		for (let i = 0; i < leftSpecs.length; i++) {
-			const spec = leftSpecs[i]!;
+		for (const spec of leftSpecs) {
 			const buttonWidth = makeButtonWidth(spec);
-			const innerWidth = Math.max(1, buttonWidth - 2);
-			const palette = buttonPalette(spec);
-			topsLeft.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-			const raw = spec.label.trim();
-			const rawWidth = Math.max(0, visibleWidth(raw));
-			let label = raw;
-			if (rawWidth > innerWidth) label = truncateToWidth(raw, innerWidth, "", true);
-			const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
-			const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
-			const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
-			midsLeft.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"));
-			botsLeft.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
 			for (let r = 0; r < 3; r++) hitRegions.push({ button: spec, colStart: leftCol, colEnd: leftCol + buttonWidth - 1, rowOffset: r });
-			leftCol += buttonWidth;
-			if (i < leftSpecs.length - 1) {
-				topsLeft.push(" ".repeat(config.render.buttonGap));
-				midsLeft.push(" ".repeat(config.render.buttonGap));
-				botsLeft.push(" ".repeat(config.render.buttonGap));
-				leftCol += config.render.buttonGap;
-			}
+			leftCol += buttonWidth + config.render.buttonGap;
 		}
-
-		// build right block (right-anchored)
-		let rightStartZero = usableWidth - rightBlockWidth; // 0-based within usable area
-		let rightCol = config.render.leadingColumns + 1 + rightStartZero;
+		let rightCol = config.render.leadingColumns + 1 + usableWidth - right.width;
 		for (let i = 0; i < rightSpecs.length; i++) {
 			const spec = rightSpecs[i]!;
 			const buttonWidth = makeButtonWidth(spec);
-			const innerWidth = Math.max(1, buttonWidth - 2);
-			const palette = buttonPalette(spec);
-			topsRight.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-			const raw = spec.label.trim();
-			const rawWidth = Math.max(0, visibleWidth(raw));
-			let label = raw;
-			if (rawWidth > innerWidth) label = truncateToWidth(raw, innerWidth, "", true);
-			const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
-			const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
-			const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
-			midsRight.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"));
-			botsRight.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
 			for (let r = 0; r < 3; r++) hitRegions.push({ button: spec, colStart: rightCol, colEnd: rightCol + buttonWidth - 1, rowOffset: r });
-			rightCol += buttonWidth;
-			if (i < rightSpecs.length - 1) {
-				topsRight.push(" ".repeat(config.render.buttonGap));
-				midsRight.push(" ".repeat(config.render.buttonGap));
-				botsRight.push(" ".repeat(config.render.buttonGap));
-				rightCol += config.render.buttonGap;
-			}
+			rightCol += buttonWidth + (i < rightSpecs.length - 1 ? config.render.buttonGap : 0);
 		}
-
-		const leftTop = topsLeft.join("");
-		const leftMid = midsLeft.join("");
-		const leftBot = botsLeft.join("");
-		const rightTop = topsRight.join("");
-		const rightMid = midsRight.join("");
-		const rightBot = botsRight.join("");
-
-		const lineTop = lead + leftTop + " ".repeat(fill) + rightTop;
-		const lineMid = lead + leftMid + " ".repeat(fill) + rightMid;
-		const lineBot = lead + leftBot + " ".repeat(fill) + rightBot;
-
-		const paddedTop = truncateToWidth(lineTop, width);
-		const paddedMid = truncateToWidth(lineMid, width);
-		const paddedBot = truncateToWidth(lineBot, width);
 
 		this.ctx.state.headerButtons = hitRegions;
 
-		return [paddedTop, paddedMid, paddedBot];
+		return [
+			truncateToWidth(lead + left.top + " ".repeat(fill) + right.top, width),
+			truncateToWidth(lead + left.mid + " ".repeat(fill) + right.mid, width),
+			truncateToWidth(lead + left.bot + " ".repeat(fill) + right.bot, width),
+		];
 	}
 
 	invalidate(): void {}

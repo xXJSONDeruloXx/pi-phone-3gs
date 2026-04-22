@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
-import { BAR_HEIGHT, HEADER_HEIGHT } from "./defaults.js";
+import { BAR_HEIGHT, HEADER_HEIGHT, VIEW_MENU_BUTTONS } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { togglePromptProxyMode } from "./mode.js";
+import { toggleBottomBar, togglePromptProxyMode } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -104,6 +104,12 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleUtilities":
 			toggleUtilityOverlay();
 			return { consume: true };
+		case "toggleViewMenu":
+			toggleViewOverlay();
+			return { consume: true };
+		case "toggleBottomBar":
+			toggleBottomBar();
+			return { consume: true };
 		case "togglePromptProxy":
 			togglePromptProxyMode();
 			return { consume: true };
@@ -144,22 +150,25 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
-export function activateButton(button: ButtonSpec, origin: "utility" | "bar" | "header"): InputResponse {
+export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "bar" | "header"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
+
+	const shouldAutoHideOverlay = (origin === "utility" || origin === "view") && !state.config.utilityOverlay.keepOpenAfterButtonActivation;
+	const maybeHideOverlay = () => {
+		if (!shouldAutoHideOverlay) return;
+		if (origin === "utility") hideUtilityOverlay();
+		if (origin === "view") hideViewOverlay();
+	};
 
 	if (button.kind === "command") {
 		state.setEditorText?.(button.command);
-		if (origin === "utility" && !state.config.utilityOverlay.keepOpenAfterButtonActivation) {
-			hideUtilityOverlay();
-		}
+		maybeHideOverlay();
 		scheduleRender();
 		return { data: "\r" };
 	}
 
 	if (button.kind === "input") {
-		if (origin === "utility" && !state.config.utilityOverlay.keepOpenAfterButtonActivation) {
-			hideUtilityOverlay();
-		}
+		maybeHideOverlay();
 		return { data: button.data };
 	}
 
@@ -169,9 +178,7 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "bar" | "
 		} else if (button.setText !== undefined) {
 			state.setEditorText?.(button.setText);
 		}
-		if (origin === "utility" && !state.config.utilityOverlay.keepOpenAfterButtonActivation) {
-			hideUtilityOverlay();
-		}
+		maybeHideOverlay();
 		scheduleRender();
 		return { data: button.data };
 	}
@@ -185,23 +192,32 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "bar" | "
 //  imports from this module — no circular dep since input.ts never imports mode)
 // ---------------------------------------------------------------------------
 
-import { UtilityOverlayComponent, getUtilityDropdownInnerWidth } from "./overlay.js";
-import { getHeaderButtonRegions } from "./header.js";
+import { ButtonDropdownOverlayComponent, getDropdownInnerWidth } from "./overlay.js";
 import { renderContext } from "./state.js";
 
 function showUtilityOverlay(): void {
 	if (!state.tui || state.utilityOverlay) return;
-	const innerWidth = getUtilityDropdownInnerWidth(state.config, state.layout);
-	const overlayWidth = innerWidth + 2;
+	hideViewOverlay();
+	const overlayWidth = getDropdownInnerWidth(state.layout.utilityButtons) + 2;
 	const overlayRow = HEADER_HEIGHT;
-	const etcButton = getHeaderButtonRegions(state.config, state.agentState.phase, state.utilityOverlayVisible)
-		.find((button) => button.button.id === "header-etc");
+	const etcButton = state.headerButtons.find((button) => button.button.id === "header-etc" && button.rowOffset === 0);
 	const overlayCol = Math.max(1, etcButton?.colStart ?? (state.config.render.leadingColumns + 1));
 	const overlayColZero = overlayCol - 1;
 	state.utilityOverlayRow = overlayRow;
 	state.utilityOverlayCol = overlayCol;
 	state.utilityOverlayWidth = overlayWidth;
-	state.utilityOverlay = state.tui.showOverlay(new UtilityOverlayComponent(state.tui, renderContext), {
+	state.utilityOverlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
+		state.tui,
+		renderContext,
+		state.layout.utilityButtons,
+		() => state.utilityOverlayRow,
+		() => state.utilityOverlayCol,
+		(hitRegions, actualHeight) => {
+			state.utilityButtons = hitRegions;
+			state.utilityButtonsHeight = state.layout.utilityButtons.length * 3;
+			state.utilityActualHeight = actualHeight;
+		},
+	), {
 		anchor: "top-left",
 		row: overlayRow,
 		col: overlayColZero,
@@ -230,6 +246,57 @@ function toggleUtilityOverlay(): void {
 	else showUtilityOverlay();
 }
 
+function showViewOverlay(): void {
+	if (!state.tui || state.viewOverlay) return;
+	hideUtilityOverlay();
+	const overlayWidth = getDropdownInnerWidth(VIEW_MENU_BUTTONS) + 2;
+	const overlayRow = HEADER_HEIGHT;
+	const viewButton = state.headerButtons.find((button) => button.button.id === "header-view" && button.rowOffset === 0);
+	const overlayCol = Math.max(1, viewButton?.colStart ?? (state.config.render.leadingColumns + 1));
+	const overlayColZero = overlayCol - 1;
+	state.viewOverlayRow = overlayRow;
+	state.viewOverlayCol = overlayCol;
+	state.viewOverlayWidth = overlayWidth;
+	state.viewOverlay = state.tui.showOverlay(new ButtonDropdownOverlayComponent(
+		state.tui,
+		renderContext,
+		VIEW_MENU_BUTTONS,
+		() => state.viewOverlayRow,
+		() => state.viewOverlayCol,
+		(hitRegions, actualHeight) => {
+			state.viewButtons = hitRegions;
+			state.viewButtonsHeight = VIEW_MENU_BUTTONS.length * 3;
+			state.viewActualHeight = actualHeight;
+		},
+	), {
+		anchor: "top-left",
+		row: overlayRow,
+		col: overlayColZero,
+		width: overlayWidth,
+		nonCapturing: true,
+	});
+	state.viewOverlayVisible = true;
+	queueLog("view overlay shown");
+}
+
+function hideViewOverlay(): void {
+	state.viewOverlay?.hide();
+	state.viewOverlay = undefined;
+	state.viewOverlayVisible = false;
+	state.viewOverlayRow = 0;
+	state.viewOverlayCol = 0;
+	state.viewOverlayWidth = 0;
+	state.viewButtons = [];
+	state.viewButtonsHeight = BAR_HEIGHT;
+	state.viewActualHeight = BAR_HEIGHT;
+	queueLog("view overlay hidden");
+}
+
+function toggleViewOverlay(): void {
+	if (state.viewOverlayVisible) hideViewOverlay();
+	else showViewOverlay();
+}
+
 function hideModelMenu(): void {
 	state.modelMenuVisible = false;
 	state.modelMenuRow = 0;
@@ -242,7 +309,7 @@ function hideModelMenu(): void {
 }
 
 // Exported for mode.ts to call during enableTouchMode
-export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, hideModelMenu };
+export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewOverlay, hideViewOverlay, toggleViewOverlay, hideModelMenu };
 
 // ---------------------------------------------------------------------------
 // Input handler registration
@@ -282,7 +349,18 @@ export function registerInputHandler(ctx: { ui: any }): void {
 				return { consume: true };
 			}
 
-			const inBar = state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;
+			if (state.viewOverlayVisible) {
+				const inOverlayRows = mouse.row >= state.viewOverlayRow + 1 && mouse.row <= state.viewOverlayRow + state.viewActualHeight;
+				const inOverlayCols = mouse.col >= state.viewOverlayCol && mouse.col <= state.viewOverlayCol + state.viewOverlayWidth - 1;
+				if (inOverlayRows && inOverlayCols) {
+					const button = findHitRegion(state.viewButtons, mouse.row - 1, mouse.col);
+					return button ? activateButton(button, "view") : { consume: true };
+				}
+				hideViewOverlay();
+				return { consume: true };
+			}
+
+			const inBar = state.barVisible !== false && state.barRow > 0 && mouse.row >= state.barRow && mouse.row < state.barRow + state.barActualHeight;
 			if (inBar) {
 				const clickedRow = Math.floor((mouse.row - state.barRow) / BAR_HEIGHT);
 				const button = findHitRegion(state.barButtons, clickedRow, mouse.col);
