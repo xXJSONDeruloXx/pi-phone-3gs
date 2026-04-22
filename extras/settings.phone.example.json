@@ -1,0 +1,13 @@
+{
+  "quietStartup": true,
+  "editorPaddingX": 0,
+  "terminal": {
+    "clearOnShrink": false
+  },
+  "packages": [
+    "git:git@github.com:xXJSONDeruloXx/pi-phone-3gs"
+  ],
+  "extensions": [
+    "~/.pi/agent/extensions"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "viewport": {
+    "pageOverlapLines": 20,
+    "minPageScrollLines": 3
+  },
+  "utilityOverlay": {
+    "autoOpenOnEnable": true,
+    "keepOpenAfterButtonActivation": true
+  },
+  "promptMirror": {
+    "enabled": true,
+    "placeholder": "(prompt empty)",
+    "prefix": " > "
+  },
+  "render": {
+    "buttonGap": 1,
+    "leadingColumns": 1
+  },
+  "inputs": {
+    "modelCycle": "\u0010",
+    "followUp": "\u001b\r"
+  },
+  "logging": {
+    "tailLines": 80
+  }
+}

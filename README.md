@@ -28,6 +28,71 @@ That makes access easy, but it usually waters down the best parts of a serious c
 
 `pi-phone-3gs` takes the opposite approach. The product is the **remote terminal itself**, full-screened on a phone, with large touch targets and a layout tuned for narrow portrait displays.
 
+## Install right now
+
+From a local checkout:
+
+```bash
+pi install /absolute/path/to/pi-phone-3gs
+```
+
+From git:
+
+```bash
+pi install git:git@github.com:xXJSONDeruloXx/pi-phone-3gs
+```
+
+Then inside Pi:
+
+```text
+/reload
+/phone-shell on
+```
+
+Primary commands:
+
+- `/phone-shell on|off|toggle`
+- `/phone-shell status`
+- `/phone-shell reload-config`
+- `/phone-shell show-config`
+- `/phone-shell show-layout`
+- `/phone-shell config-template`
+- `/phone-shell layout-template`
+- `/phone-shell paths`
+- `/phone-shell prompt-mirror`
+- `/touch` — quick toggle alias
+- `/pi-touch ...` — compatibility alias
+- `Ctrl+1` — toggle shortcut
+
+Per-user override files:
+
+- `~/.pi/agent/pi-phone-3gs/phone-shell.config.json`
+- `~/.pi/agent/pi-phone-3gs/phone-shell.layout.json`
+- `~/.pi/agent/pi-phone-3gs/phone-shell.state.json`
+
+Templates live in:
+
+- `extras/phone-shell.config.example.json`
+- `extras/phone-shell.layout.example.json`
+- `extras/settings.phone.example.json`
+
+## Customization model
+
+This package is intentionally built so the core shell can stay clean while per-user tweaks stay outside the code:
+
+- **behavior** lives in `phone-shell.config.json`
+- **button layout** lives in `phone-shell.layout.json`
+- **session persistence / kill-switch state** lives in `phone-shell.state.json`
+
+The goal is to make it easy to:
+
+- change paging behavior
+- change prompt-mirror behavior
+- reorder buttons
+- swap buttons between top utility rail and bottom groups
+- add custom command buttons
+- keep local experimentation out of the shared package code
+
 ## What this project is aiming to be
 
 A dedicated harness, built off Pi in the same spirit that **GSD-2** builds a custom workflow system on top of the Pi SDK, but focused on a different problem:
@@ -91,16 +156,28 @@ This repo is grounded in four concrete references:
 - [docs/assets.md](docs/assets.md) — current assets, references, and reusable building blocks
 - [docs/roadmap.md](docs/roadmap.md) — phased build order for turning the vision into a real harness
 
-## Current status
+## Current implementation status
 
-This initial commit is intentionally **docs-first**.
+This repo now contains a first package-first implementation:
 
-The goal is to pin down:
+- an installable Pi package via `package.json`
+- a modular `extensions/phone-shell/` extension
+- a port of the touch shell ideas from `pi-touch`, refactored around:
+  - clean component boundaries
+  - unified button specs
+  - safe persistence
+  - per-user config and layout overrides
+  - compatibility aliases for existing muscle memory
 
-- the vision
-- the constraints
-- the reusable assets already available
-- the architectural shape of the harness
-- the ways this should differ from adjacent projects
+Current code entrypoint:
 
-Once that is stable, the next logical step is to scaffold the actual harness code on top of Pi.
+- `extensions/phone-shell/index.ts`
+
+Supporting modules:
+
+- `extensions/phone-shell/types.ts`
+- `extensions/phone-shell/defaults.ts`
+- `extensions/phone-shell/config.ts`
+- `extensions/phone-shell/components.ts`
+
+The immediate goal is no longer just docs. It is to make the phone shell real enough to dogfood daily, then iterate from there.

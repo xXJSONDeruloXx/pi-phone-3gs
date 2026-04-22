@@ -1,0 +1,31 @@
+{
+  "utilityButtons": [
+    { "kind": "command", "id": "new", "label": " /new  ", "command": "/new", "palette": "warning" },
+    { "kind": "command", "id": "reload", "label": "/reload", "command": "/reload", "palette": "warning" },
+    { "kind": "command", "id": "compact", "label": "/compact", "command": "/compact", "palette": "warning" },
+    { "kind": "command", "id": "resume", "label": "/resume", "command": "/resume", "palette": "warning" },
+    { "kind": "command", "id": "tree", "label": " /tree ", "command": "/tree", "palette": "warning" },
+    { "kind": "input", "id": "interrupt", "label": "  ^C   ", "data": "\u0003", "palette": "warning" },
+    { "kind": "action", "id": "follow-up", "label": " ⌥ ↵ ", "action": "sendFollowUp", "palette": "warning" },
+    { "kind": "action", "id": "prompt-mirror", "label": " MIR ", "action": "togglePromptMirror", "palette": "warning" }
+  ],
+  "bottomGroups": [
+    [
+      { "kind": "action", "id": "utility-overlay", "label": " ETC ", "action": "toggleUtilities" },
+      { "kind": "action", "id": "top", "label": " TOP ", "action": "scrollTop" },
+      { "kind": "action", "id": "page-up", "label": " PG↑ ", "action": "pageUp" },
+      { "kind": "action", "id": "model", "label": "MODEL", "action": "cycleModel", "palette": "warning" },
+      { "kind": "action", "id": "page-down", "label": " PG↓ ", "action": "pageDown" },
+      { "kind": "action", "id": "bottom", "label": " BTM ", "action": "scrollBottom" }
+    ],
+    [
+      { "kind": "action", "id": "escape", "label": " ESC ", "action": "sendEscape" },
+      { "kind": "action", "id": "slash", "label": "  /  ", "action": "openSlash" },
+      { "kind": "action", "id": "up", "label": " ↑ ", "action": "arrowUp" },
+      { "kind": "action", "id": "down", "label": " ↓ ", "action": "arrowDown" },
+      { "kind": "action", "id": "left", "label": " ← ", "action": "arrowLeft" },
+      { "kind": "action", "id": "right", "label": " → ", "action": "arrowRight" },
+      { "kind": "action", "id": "enter", "label": " ↵ ", "action": "sendEnter" }
+    ]
+  ]
+}

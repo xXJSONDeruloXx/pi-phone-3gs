@@ -1,0 +1,40 @@
+{
+  "name": "pi-phone-3gs",
+  "version": "0.1.0",
+  "description": "Phone-first coding agent harness package built on Pi",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "coding-agent",
+    "tui",
+    "phone",
+    "touch"
+  ],
+  "files": [
+    "extensions/",
+    "extras/",
+    "docs/",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-ai": "^0.67.2",
+    "@mariozechner/pi-coding-agent": "^0.67.2",
+    "@mariozechner/pi-tui": "^0.67.2",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  },
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/phone-shell/index.ts"
+    ]
+  }
+}
