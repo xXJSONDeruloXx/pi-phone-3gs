@@ -55,6 +55,7 @@ export const state: RuntimeState = {
 	shell: {
 		enabled: false,
 		barVisible: true,
+		navPadVisible: false,
 		viewportJumpButtonsVisible: true,
 		proxyOnly: false,
 		promptProxyInstalled: false,
@@ -66,6 +67,12 @@ export const state: RuntimeState = {
 			row: 0,
 			buttons: [],
 			actualHeight: 3,
+		},
+		nav: {
+			row: 0,
+			buttons: [],
+			actualHeight: 3,
+			placement: "hidden",
 		},
 		overlays: {
 			utility: {
@@ -212,6 +219,7 @@ export function getStatusReport(): string {
 		`- log file: ${state.paths.log}`,
 		state.session.tui ? `- terminal: ${state.session.tui.terminal.columns} cols × ${state.session.tui.terminal.rows} rows` : "- terminal: (not captured)",
 		state.ui.bar.row > 0 ? `- bar: row=${state.ui.bar.row} buttons=${state.ui.bar.buttons.length}` : "- bar: (not rendered)",
+		state.ui.nav.row > 0 ? `- nav: row=${state.ui.nav.row} placement=${state.ui.nav.placement} buttons=${state.ui.nav.buttons.length}` : `- nav: ${state.shell.navPadVisible ? `${state.ui.nav.placement}` : "disabled"}`,
 		`- viewport jump buttons: ${state.shell.viewportJumpButtonsVisible} (${state.ui.viewport.buttons.length} hit regions)`,
 		`- utility overlay: ${state.ui.overlays.utility.visible}`,
 		`- view overlay: ${state.ui.overlays.view.visible}`,

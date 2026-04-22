@@ -7,6 +7,7 @@ export const TOGGLE_SHORTCUT = "ctrl+1";
 export const STATUS_KEY = "phone-shell";
 export const BOOTSTRAP_WIDGET_KEY = "phone-shell-bootstrap";
 export const BAR_WIDGET_KEY = "phone-shell-bar";
+export const NAV_WIDGET_KEY = "phone-shell-nav";
 export const CHAT_CHILD_INDEX = 1;
 export const BAR_HEIGHT = 3;
 export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1002h\x1b[?1006h";
@@ -81,6 +82,7 @@ const utilityButtons: ButtonSpec[] = [
 export const VIEW_MENU_BUTTONS: ButtonSpec[] = [
 	{ kind: "action", id: "view-proxy", label: " PXY ", action: "togglePromptProxy", palette: "accent" },
 	{ kind: "action", id: "view-bar", label: " BAR ", action: "toggleBottomBar", palette: "warning" },
+	{ kind: "action", id: "view-nav", label: " NAV ", action: "toggleNavPad", palette: "accent" },
 	{ kind: "action", id: "view-jump-buttons", label: " JUMP ", action: "toggleViewportJumpButtons", palette: "accent" },
 ];
 
@@ -113,6 +115,7 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	autoEnable: true,
 	proxyOnly: false,
 	barVisible: true,
+	navPadVisible: false,
 	viewportJumpButtonsVisible: true,
 };
 

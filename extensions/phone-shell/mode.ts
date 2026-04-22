@@ -9,6 +9,7 @@ import {
 	DISABLE_MOUSE,
 	ENABLE_MOUSE,
 	HEADER_CHILD_INDEX,
+	NAV_WIDGET_KEY,
 	STATUS_KEY,
 } from "./defaults.js";
 import { PhoneShellEditor, PromptProxyComponent } from "./editor.js";
@@ -16,6 +17,7 @@ import { HeaderBarComponent } from "./header.js";
 import { hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, state } from "./state.js";
 import type { PersistedShellState } from "./types.js";
+import { NavigationPadComponent } from "./nav.js";
 import { TouchViewport } from "./viewport.js";
 
 const EMPTY_COMPONENT: Component = {
@@ -28,6 +30,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		enabled: state.shell.enabled,
 		proxyOnly: state.shell.proxyOnly,
 		barVisible: state.shell.barVisible,
+		navPadVisible: state.shell.navPadVisible,
 		viewportJumpButtonsVisible: state.shell.viewportJumpButtonsVisible,
 		...patch,
 	});
@@ -47,6 +50,10 @@ export function clearCapturedTui(): void {
 	state.session.mirroredEditor = undefined;
 	state.shell.promptProxyInstalled = false;
 	state.ui.overlays.view.visible = false;
+	state.ui.nav.row = 0;
+	state.ui.nav.buttons = [];
+	state.ui.nav.actualHeight = BAR_HEIGHT;
+	state.ui.nav.placement = "hidden";
 }
 
 export function captureTui(ctx: { ui: any }): boolean {
@@ -97,6 +104,13 @@ function uninstallViewport(): void {
 	state.ui.viewport.height = 0;
 	state.ui.viewport.buttons = [];
 	state.ui.viewport.drag = undefined;
+}
+
+function resetNavLayout(): void {
+	state.ui.nav.row = 0;
+	state.ui.nav.buttons = [];
+	state.ui.nav.actualHeight = BAR_HEIGHT;
+	state.ui.nav.placement = "hidden";
 }
 
 // ---------------------------------------------------------------------------
@@ -174,31 +188,35 @@ export function togglePromptProxyMode(): void {
 		installMirroredEditor();
 		if (!state.shell.promptProxyInstalled) installPromptProxy();
 		state.shell.proxyOnly = true;
+		syncNavPadPlacement();
 		queueLog("prompt proxy mode: proxy-only");
 		state.session.tui.requestRender(true);
-		// persist
 		void persistShellState().catch(() => undefined);
 		return;
 	}
 	// switch to native-only
+	uninstallTopNavPad();
 	uninstallPromptProxy();
 	uninstallMirroredEditor();
 	state.shell.proxyOnly = false;
+	syncNavPadPlacement();
 	queueLog("prompt proxy mode: native-only");
 	state.session.tui.requestRender(true);
-	// persist
 	void persistShellState().catch(() => undefined);
 }
 
 export function toggleBottomBar(): void {
 	if (!state.shell.enabled) return;
-	if (state.shell.barVisible) {
-		hidePanel();
-		state.shell.barVisible = false;
-	} else {
-		showPanel();
-		state.shell.barVisible = true;
-	}
+	state.shell.barVisible = !state.shell.barVisible;
+	syncBottomWidgets();
+	void persistShellState().catch(() => undefined);
+	state.session.tui?.requestRender(true);
+}
+
+export function toggleNavPad(): void {
+	if (!state.shell.enabled) return;
+	state.shell.navPadVisible = !state.shell.navPadVisible;
+	syncNavPadPlacement();
 	void persistShellState().catch(() => undefined);
 	state.session.tui?.requestRender(true);
 }
@@ -211,7 +229,7 @@ export function toggleViewportJumpButtons(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom bar widget
+// Bottom widgets + nav pad placement
 // ---------------------------------------------------------------------------
 
 function showPanel(): void {
@@ -228,12 +246,65 @@ function hidePanel(): void {
 	queueLog("bar hidden");
 }
 
+function showBottomNavPad(): void {
+	if (!state.bindings.setWidget) return;
+	state.bindings.setWidget(NAV_WIDGET_KEY, (tui: TUI) => new NavigationPadComponent(tui, renderContext, "bottom"), { placement: "belowEditor" });
+	queueLog("nav shown bottom");
+}
+
+function hideBottomNavPad(): void {
+	state.bindings.setWidget?.(NAV_WIDGET_KEY, undefined, { placement: "belowEditor" });
+	if (state.ui.nav.placement === "bottom") resetNavLayout();
+	queueLog("nav hidden bottom");
+}
+
+function installTopNavPad(): void {
+	if (!state.session.tui) return;
+	const existing = state.session.tui.children.find((child) => child instanceof NavigationPadComponent);
+	if (existing instanceof NavigationPadComponent) return;
+	const viewportIndex = state.session.viewport ? state.session.tui.children.indexOf(state.session.viewport) : -1;
+	if (viewportIndex < 0) return;
+	state.session.tui.children.splice(viewportIndex, 0, new NavigationPadComponent(state.session.tui, renderContext, "top"));
+	queueLog("nav shown top");
+}
+
+function uninstallTopNavPad(): void {
+	if (!state.session.tui) return;
+	const index = state.session.tui.children.findIndex((child) => child instanceof NavigationPadComponent);
+	if (index >= 0) {
+		state.session.tui.children.splice(index, 1);
+		queueLog("nav hidden top");
+	}
+	if (state.ui.nav.placement === "top") resetNavLayout();
+}
+
+function syncBottomWidgets(): void {
+	hideBottomNavPad();
+	hidePanel();
+	const shouldShowBottomNav = state.shell.enabled && state.shell.navPadVisible && !state.shell.proxyOnly;
+	if (shouldShowBottomNav) showBottomNavPad();
+	if (state.shell.enabled && state.shell.barVisible) showPanel();
+}
+
+function syncNavPadPlacement(): void {
+	if (!state.shell.enabled) {
+		uninstallTopNavPad();
+		hideBottomNavPad();
+		resetNavLayout();
+		return;
+	}
+	const shouldShowTopNav = state.shell.navPadVisible && state.shell.proxyOnly && state.shell.promptProxyInstalled;
+	if (shouldShowTopNav) installTopNavPad();
+	else uninstallTopNavPad();
+	syncBottomWidgets();
+	if (!shouldShowTopNav && !(state.shell.navPadVisible && !state.shell.proxyOnly)) resetNavLayout();
+}
+
 function destroyPanel(): void {
-	state.bindings.setWidget?.(BAR_WIDGET_KEY, undefined, { placement: "belowEditor" });
-	state.ui.bar.row = 0;
-	state.ui.bar.buttons = [];
-	state.ui.bar.actualHeight = BAR_HEIGHT;
-	queueLog("bar destroyed");
+	hideBottomNavPad();
+	hidePanel();
+	resetNavLayout();
+	queueLog("bottom widgets destroyed");
 }
 
 // ---------------------------------------------------------------------------
@@ -270,7 +341,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	state.shell.enabled = true;
 	installViewport();
 	installHeader();
-	if (state.shell.barVisible) showPanel();
+	syncNavPadPlacement();
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
@@ -291,7 +362,8 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	unregisterInputHandler();
 	hideUtilityOverlay();
 	hideViewOverlay();
-	hidePanel();
+	destroyPanel();
+	uninstallTopNavPad();
 	uninstallPromptProxy();
 	uninstallHeader();
 	uninstallViewport();

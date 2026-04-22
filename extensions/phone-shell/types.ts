@@ -20,6 +20,7 @@ export type ShellAction =
 	| "toggleViewMenu"
 	| "toggleBottomBar"
 	| "togglePromptProxy"
+	| "toggleNavPad"
 	| "toggleViewportJumpButtons"
 	| "scrollTop"
 	| "pageUp"
@@ -120,6 +121,7 @@ export interface PersistedShellState {
 	autoEnable: boolean;
 	proxyOnly: boolean;
 	barVisible: boolean;
+	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
 }
 
@@ -179,6 +181,13 @@ export interface BarLayoutState {
 	actualHeight: number;
 }
 
+export interface NavLayoutState {
+	row: number;
+	buttons: ButtonHitRegion[];
+	actualHeight: number;
+	placement: "hidden" | "top" | "bottom";
+}
+
 export interface ViewportLayoutState {
 	row: number;
 	height: number;
@@ -201,6 +210,7 @@ export interface SessionRenderState {
 export interface ShellModeState {
 	enabled: boolean;
 	barVisible: boolean;
+	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
 	proxyOnly: boolean;
 	promptProxyInstalled: boolean;
@@ -210,6 +220,7 @@ export interface ShellModeState {
 export interface PhoneShellUIState {
 	headerButtons: ButtonHitRegion[];
 	bar: BarLayoutState;
+	nav: NavLayoutState;
 	overlays: {
 		utility: DropdownOverlayState;
 		view: DropdownOverlayState;

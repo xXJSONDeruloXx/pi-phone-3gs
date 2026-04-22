@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, HEADER_HEIGHT, VIEW_MENU_BUTTONS } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, togglePromptProxyMode, toggleViewportJumpButtons } from "./mode.js";
+import { toggleBottomBar, toggleNavPad, togglePromptProxyMode, toggleViewportJumpButtons } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -113,6 +113,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "togglePromptProxy":
 			togglePromptProxyMode();
 			return { consume: true };
+		case "toggleNavPad":
+			toggleNavPad();
+			return { consume: true };
 		case "toggleViewportJumpButtons":
 			toggleViewportJumpButtons();
 			return { consume: true };
@@ -153,7 +156,7 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
-export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "bar" | "header"): InputResponse {
+export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "bar" | "nav" | "header"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
 	const shouldAutoHideOverlay = (origin === "utility" || origin === "view") && !state.config.utilityOverlay.keepOpenAfterButtonActivation;
@@ -362,6 +365,13 @@ export function registerInputHandler(ctx: { ui: any }): void {
 
 			const viewDropdownResponse = handleDropdownMouse("view", mouse);
 			if (viewDropdownResponse) return viewDropdownResponse;
+
+			const inNav = state.ui.nav.row > 0 && mouse.row >= state.ui.nav.row && mouse.row < state.ui.nav.row + state.ui.nav.actualHeight;
+			if (inNav) {
+				const clickedRow = Math.floor((mouse.row - state.ui.nav.row) / BAR_HEIGHT);
+				const button = findHitRegion(state.ui.nav.buttons, clickedRow, mouse.col);
+				return button ? activateButton(button, "nav") : { consume: true };
+			}
 
 			const inBar = state.shell.barVisible && state.ui.bar.row > 0 && mouse.row >= state.ui.bar.row && mouse.row < state.ui.bar.row + state.ui.bar.actualHeight;
 			if (inBar) {
