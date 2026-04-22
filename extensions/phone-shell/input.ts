@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, HEADER_HEIGHT, VIEW_MENU_BUTTONS } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, toggleNavPad, togglePromptProxyMode, toggleViewportJumpButtons } from "./mode.js";
+import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleViewportJumpButtons } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -110,8 +110,8 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleBottomBar":
 			toggleBottomBar();
 			return { consume: true };
-		case "togglePromptProxy":
-			togglePromptProxyMode();
+		case "toggleEditorPosition":
+			toggleEditorPosition();
 			return { consume: true };
 		case "toggleNavPad":
 			toggleNavPad();

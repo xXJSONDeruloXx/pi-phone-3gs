@@ -21,7 +21,7 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleUtilities",
 	"toggleViewMenu",
 	"toggleBottomBar",
-	"togglePromptProxy",
+	"toggleEditorPosition",
 	"toggleNavPad",
 	"toggleViewportJumpButtons",
 	"scrollTop",

@@ -3,7 +3,7 @@ import { COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMMAND, TOGGLE_SHORTCUT 
 import { loadPersistedShellState } from "./config.js";
 import { AgentStateTracker } from "./header.js";
 import { captureUiBindings, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
-import { disableTouchMode, enableTouchMode, togglePromptProxyMode } from "./mode.js";
+import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 
 // ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
 				await enableTouchMode(ctx, false).catch(() => undefined);
-				if (persisted.proxyOnly) togglePromptProxyMode();
+				if (persisted.proxyOnly) toggleEditorPosition();
 			}, 200);
 		} catch {
 			// Never let startup failures break pi.

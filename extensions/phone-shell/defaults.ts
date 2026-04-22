@@ -80,7 +80,7 @@ const utilityButtons: ButtonSpec[] = [
 ];
 
 export const VIEW_MENU_BUTTONS: ButtonSpec[] = [
-	{ kind: "action", id: "view-proxy", label: " PXY ", action: "togglePromptProxy", palette: "accent" },
+	{ kind: "action", id: "view-editor-top", label: " PXY ", action: "toggleEditorPosition", palette: "accent" },
 	{ kind: "action", id: "view-bar", label: " BAR ", action: "toggleBottomBar", palette: "warning" },
 	{ kind: "action", id: "view-nav", label: " NAV ", action: "toggleNavPad", palette: "accent" },
 	{ kind: "action", id: "view-jump-buttons", label: " JUMP ", action: "toggleViewportJumpButtons", palette: "accent" },

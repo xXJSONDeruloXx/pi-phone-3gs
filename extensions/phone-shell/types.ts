@@ -19,7 +19,7 @@ export type ShellAction =
 	| "toggleUtilities"
 	| "toggleViewMenu"
 	| "toggleBottomBar"
-	| "togglePromptProxy"
+	| "toggleEditorPosition"
 	| "toggleNavPad"
 	| "toggleViewportJumpButtons"
 	| "scrollTop"
@@ -203,8 +203,6 @@ export interface SessionRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
-	/** Temporary reference used during editorContainer discovery; cleared after capture. */
-	mirroredEditor?: object;
 	/** Pi's editorContainer Container instance — selectors and dialogs inject here. */
 	editorContainer?: object;
 	/** Original index of editorContainer in tui.children before proxy mode moves it. */
@@ -218,7 +216,8 @@ export interface ShellModeState {
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
 	proxyOnly: boolean;
-	promptProxyInstalled: boolean;
+	/** True while editorContainer has been moved to the top of the TUI children array. */
+	editorAtTop: boolean;
 	headerInstalled: boolean;
 }
 

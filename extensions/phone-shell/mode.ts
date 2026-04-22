@@ -47,10 +47,9 @@ export function clearCapturedTui(): void {
 	state.bindings.getEditorText = undefined;
 	state.bindings.setWidget = undefined;
 	state.bindings.setEditorComponent = undefined;
-	state.session.mirroredEditor = undefined;
 	state.session.editorContainer = undefined;
 	state.session.editorContainerOriginalIndex = undefined;
-	state.shell.promptProxyInstalled = false;
+	state.shell.editorAtTop = false;
 	state.ui.overlays.view.visible = false;
 	state.ui.nav.row = 0;
 	state.ui.nav.buttons = [];
@@ -158,7 +157,6 @@ function captureEditorContainer(): void {
 	let tempEditor: PhoneShellEditor | undefined;
 	state.bindings.setEditorComponent((tui: TUI, theme: any, keybindings: any) => {
 		tempEditor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender());
-		state.session.mirroredEditor = tempEditor;
 		return tempEditor;
 	});
 
@@ -177,13 +175,11 @@ function captureEditorContainer(): void {
 
 	if (!state.session.editorContainer) {
 		queueLog("editorContainer not found — proxy mode disabled");
-		state.session.mirroredEditor = undefined;
 		return;
 	}
 
 	// Restore default editor; we only needed the temp to find the container
 	state.bindings.setEditorComponent(undefined);
-	state.session.mirroredEditor = undefined;
 	queueLog("editorContainer captured, default editor restored");
 }
 
@@ -200,12 +196,12 @@ function moveEditorToTop(): void {
 	if (currentIndex === -1) return;
 	const targetIndex = state.shell.headerInstalled ? 1 : 0;
 	if (currentIndex === targetIndex) {
-		state.shell.promptProxyInstalled = true;
+		state.shell.editorAtTop = true;
 		return;
 	}
 	tui.children.splice(currentIndex, 1);
 	tui.children.splice(targetIndex, 0, ec);
-	state.shell.promptProxyInstalled = true;
+	state.shell.editorAtTop = true;
 	tui.requestRender(true);
 	queueLog(`editorContainer moved to top (was ${currentIndex}, now ${targetIndex})`);
 }
@@ -221,22 +217,22 @@ function moveEditorToOriginalPosition(): void {
 	const ec = state.session.editorContainer as any;
 	const currentIndex = tui.children.indexOf(ec);
 	if (currentIndex === -1) {
-		state.shell.promptProxyInstalled = false;
+		state.shell.editorAtTop = false;
 		return;
 	}
 	const originalIndex = state.session.editorContainerOriginalIndex;
 	if (originalIndex === undefined || currentIndex === originalIndex) {
-		state.shell.promptProxyInstalled = false;
+		state.shell.editorAtTop = false;
 		return;
 	}
 	tui.children.splice(currentIndex, 1);
 	tui.children.splice(originalIndex, 0, ec);
-	state.shell.promptProxyInstalled = false;
+	state.shell.editorAtTop = false;
 	tui.requestRender(true);
 	queueLog(`editorContainer restored to index ${originalIndex}`);
 }
 
-export function togglePromptProxyMode(): void {
+export function toggleEditorPosition(): void {
 	if (!state.session.tui || !state.session.editorContainer) return;
 	if (!state.shell.proxyOnly) {
 		// Switch to proxy mode: move editor to top
@@ -346,7 +342,7 @@ function syncNavPadPlacement(): void {
 		resetNavLayout();
 		return;
 	}
-	const shouldShowTopNav = state.shell.navPadVisible && state.shell.proxyOnly && state.shell.promptProxyInstalled;
+	const shouldShowTopNav = state.shell.navPadVisible && state.shell.proxyOnly && state.shell.editorAtTop;
 	if (shouldShowTopNav) installTopNavPad();
 	else uninstallTopNavPad();
 	syncBottomWidgets();

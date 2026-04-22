@@ -49,7 +49,6 @@ export const state: RuntimeState = {
 		tui: undefined,
 		theme: undefined,
 		viewport: undefined,
-		mirroredEditor: undefined,
 		editorContainer: undefined,
 		editorContainerOriginalIndex: undefined,
 		originalChat: undefined,
@@ -60,7 +59,7 @@ export const state: RuntimeState = {
 		navPadVisible: false,
 		viewportJumpButtonsVisible: true,
 		proxyOnly: false,
-		promptProxyInstalled: false,
+		editorAtTop: false,
 		headerInstalled: false,
 	},
 	ui: {
