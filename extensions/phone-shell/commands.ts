@@ -4,7 +4,7 @@ import {
 	CONFIG_TEMPLATE,
 	LAYOUT_TEMPLATE,
 } from "./defaults.js";
-import { getLogTail, getStatusReport, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
+import { getLogTail, getStatusReport, reloadRuntimeSettings, state } from "./state.js";
 import { disableTouchMode, enableTouchMode } from "./mode.js";
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import type { CommandMode } from "./types.js";
@@ -21,7 +21,6 @@ export function parseCommandMode(args: string): CommandMode | undefined {
 	if (token === "config") return "show-config";
 	if (token === "layout") return "show-layout";
 	if (token === "reload") return "reload-config";
-	if (token === "mirror") return "prompt-mirror";
 	return COMMANDS.find((command: CommandMode) => command === token);
 }
 
@@ -42,7 +41,6 @@ export function commandItems() {
 		{ value: "bottom", label: "bottom", description: "Scroll chat viewport to the bottom" },
 		{ value: "page-up", label: "page-up", description: "Page chat viewport upward" },
 		{ value: "page-down", label: "page-down", description: "Page chat viewport downward" },
-		{ value: "prompt-mirror", label: "prompt-mirror", description: "Toggle the prompt mirror in the utility overlay" },
 	];
 }
 
@@ -125,11 +123,6 @@ export async function handlePrimaryCommand(args: string, ctx: ExtensionCommandCo
 		case "page-down":
 			state.viewport?.pageDown();
 			ctx.ui.notify("phone-shell: page down", "info");
-			return;
-		case "prompt-mirror":
-			state.promptMirrorVisible = !state.promptMirrorVisible;
-			scheduleRender();
-			ctx.ui.notify(`phone-shell prompt mirror ${state.promptMirrorVisible ? "shown" : "hidden"}`, "info");
 			return;
 	}
 }

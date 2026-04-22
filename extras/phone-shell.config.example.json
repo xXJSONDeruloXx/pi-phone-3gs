@@ -14,11 +14,6 @@
     "autoOpenOnEnable": false,
     "keepOpenAfterButtonActivation": true
   },
-  "promptMirror": {
-    "enabled": true,
-    "placeholder": "(prompt empty)",
-    "prefix": " > "
-  },
   "render": {
     "buttonGap": 1,
     "leadingColumns": 1

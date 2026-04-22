@@ -41,7 +41,7 @@ config.ts              — config/layout JSON parsing & file persistence
 button-helpers.ts      — shared button rendering utilities
 viewport.ts            — TouchViewport component (scroll + page controls)
 bar.ts                 — BottomBarComponent (touch button bar)
-overlay.ts             — UtilityOverlayComponent (floating overlay + prompt mirror)
+overlay.ts             — UtilityOverlayComponent (floating utility-button overlay)
 header.ts              — HeaderBarComponent + AgentStateTracker
 state.ts               — mutable state singleton, render context, shared utils
 input.ts               — mouse/keyboard routing, action dispatch, overlay management
@@ -73,7 +73,7 @@ Each file has one job:
 | `header.ts` | Sticky 2-line header bar component + `AgentStateTracker` (listens to agent events, drives phase/context/jobs display) |
 | `viewport.ts` | `TouchViewport` — wraps the chat component, clips to available height, handles scroll/page/pgup/pgdn |
 | `bar.ts` | `BottomBarComponent` — renders the bottom button groups with hit regions |
-| `overlay.ts` | `UtilityOverlayComponent` — floating overlay with utility buttons + prompt mirror |
+| `overlay.ts` | `UtilityOverlayComponent` — floating overlay with utility buttons |
 | `button-helpers.ts` | Shared pure functions for button layout: `splitIntoRows`, `makeButtonWidth`, `buttonPalette`, `tailToWidth` |
 | `config.ts` | JSON config/layout parsing, validation, file persistence (`loadPhoneShellSettings`, `loadPersistedShellState`, `savePersistedShellState`) |
 | `defaults.ts` | All constants (`CHAT_CHILD_INDEX`, `BAR_HEIGHT`, sequences), default config/layout objects, templates |
@@ -93,7 +93,7 @@ The `BottomBarComponent` lives as a `belowEditor` widget. The `UtilityOverlayCom
 
 ## Key patterns
 
-- **Render context**: All components receive `PhoneShellRenderContext` — a `{ state, getConfig, getLayout, getTheme, getPromptMirrorText }` bag. No component imports the state singleton directly; they read through the context.
+- **Render context**: All components receive `PhoneShellRenderContext` — a `{ state, getConfig, getLayout, getTheme }` bag. No component imports the state singleton directly; they read through the context.
 - **State is centralized**: One mutable `state` object in `state.ts`. Components write to it during render (e.g. `BottomBarComponent` sets `barRow`, `barButtons`). Input handlers and mode functions mutate it directly.
 - **Schedule render**: `scheduleRender()` batches renders via `queueMicrotask`. Always use this instead of calling `tui.requestRender()` directly, unless forcing an immediate render.
 - **Logging**: `queueLog()` serializes log writes to `~/.pi/agent/logs/pi-phone-3gs-phone-shell.log`. Useful for debugging touch/input issues.
@@ -110,7 +110,7 @@ This is a Pi package, not a standalone build. There is no bundle step — Pi loa
 ## User config files
 
 Per-user files live at `~/.pi/agent/pi-phone-3gs/`:
-- `phone-shell.config.json` — behavior settings (viewport paging, overlay, prompt mirror, header toggles)
+- `phone-shell.config.json` — behavior settings (viewport paging, overlay, header toggles)
 - `phone-shell.layout.json` — button layout (utility buttons, bottom groups)
 - `phone-shell.state.json` — session persistence (enabled/autoEnable)
 

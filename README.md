@@ -59,7 +59,6 @@ Primary commands:
 - `/phone-shell config-template`
 - `/phone-shell layout-template`
 - `/phone-shell paths`
-- `/phone-shell prompt-mirror`
 - `/touch` — quick toggle alias
 - `/pi-touch ...` — compatibility alias
 - `Ctrl+1` — toggle shortcut
@@ -87,7 +86,6 @@ This package is intentionally built so the core shell can stay clean while per-u
 The goal is to make it easy to:
 
 - change paging behavior
-- change prompt-mirror behavior
 - reorder buttons
 - swap buttons between top utility rail and bottom groups
 - add custom command buttons
@@ -141,7 +139,7 @@ This repo is grounded in four concrete references:
 1. **Your `pi-personal-package`**
    - especially the experimental `pi-touch` extension and the curated package stack
 2. **The current screenshot / prototype direction**
-   - large command buttons, viewport controls, model tap target, visible provider usage, prompt mirror
+   - large command buttons, viewport controls, model tap target, visible provider usage
 3. **`badlogic/pi-mono` and Pi docs**
    - proves the base system is intentionally extensible: SDK, TUI components, skills, extensions, packages, themes
 4. **Prior-art harnesses like GSD-2 and OpenClaw**
@@ -165,7 +163,6 @@ This repo contains a working Pi package with a modular touch shell extension:
 - a sticky header bar with live agent state (phase, context usage, background jobs)
 - a scrollable viewport with page up/down controls
 - touch-optimized bottom bar and utility overlay
-- prompt mirror
 
 Extension source lives in `extensions/phone-shell/` with one file per responsibility. See [AGENTS.md](AGENTS.md) for the full module map and conventions.
 

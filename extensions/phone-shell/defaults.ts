@@ -28,7 +28,6 @@ export const COMMANDS: readonly CommandMode[] = [
 	"bottom",
 	"page-up",
 	"page-down",
-	"prompt-mirror",
 ] as const;
 
 export const HEADER_CHILD_INDEX = 0;
@@ -60,11 +59,6 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 		autoOpenOnEnable: false,
 		keepOpenAfterButtonActivation: true,
 	},
-	promptMirror: {
-		enabled: true,
-		placeholder: "(prompt empty)",
-		prefix: " > ",
-	},
 	render: {
 		buttonGap: 1,
 		leadingColumns: 1,
@@ -86,7 +80,6 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
 	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\x03", palette: "warning" },
 	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
-	{ kind: "action", id: "prompt-mirror", label: " MIR ", action: "togglePromptMirror", palette: "warning" },
 ];
 
 export const DEFAULT_LAYOUT: PhoneShellLayout = {

@@ -76,7 +76,6 @@ export const state: RuntimeState = {
 	modelMenuScopeButtons: [],
 	modelMenuProviderButtons: [],
 	modelMenuModelButtons: [],
-	promptMirrorVisible: DEFAULT_CONFIG.promptMirror.enabled,
 	promptProxyInstalled: false,
 	proxyOnly: false,
 	viewportRow: 0,
@@ -100,13 +99,6 @@ export const renderContext: PhoneShellRenderContext = {
 	getConfig: () => state.config,
 	getLayout: () => state.layout,
 	getTheme,
-	getPromptMirrorText: () => {
-		try {
-			return state.getEditorText?.() ?? "";
-		} catch {
-			return "";
-		}
-	},
 };
 
 // ---------------------------------------------------------------------------
@@ -156,7 +148,6 @@ export async function reloadRuntimeSettings(ctx?: { ui: any }, notifyOnProblems 
 	state.config = config;
 	state.layout = layout;
 	state.loadErrors = errors;
-	state.promptMirrorVisible = config.promptMirror.enabled;
 	if (notifyOnProblems && errors.length > 0) {
 		ctx?.ui.notify(`phone-shell loaded with ${errors.length} config warning(s)`, "warning");
 	}
@@ -187,7 +178,6 @@ export function getStatusReport(): string {
 		state.tui ? `- terminal: ${state.tui.terminal.columns} cols × ${state.tui.terminal.rows} rows` : "- terminal: (not captured)",
 		state.barRow > 0 ? `- bar: row=${state.barRow} buttons=${state.barButtons.length}` : "- bar: (not rendered)",
 		`- utility overlay: ${state.utilityOverlayVisible}`,
-		`- prompt mirror: ${state.promptMirrorVisible}`,
 		`- config warnings: ${state.loadErrors.length === 0 ? "none" : state.loadErrors.join(" | ")}`,
 		`- last action: ${state.lastAction ?? "(none)"}`,
 		`- last input: ${state.lastInput ?? "(none)"}`,

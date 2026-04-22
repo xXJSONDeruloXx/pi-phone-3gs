@@ -104,10 +104,6 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleUtilities":
 			toggleUtilityOverlay();
 			return { consume: true };
-		case "togglePromptMirror":
-			state.promptMirrorVisible = !state.promptMirrorVisible;
-			scheduleRender();
-			return { consume: true };
 		case "togglePromptProxy":
 			togglePromptProxyMode();
 			return { consume: true };

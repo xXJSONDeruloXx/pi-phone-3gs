@@ -1,22 +1,11 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import type { PhoneShellConfig, PhoneShellLayout, ButtonHitRegion, PhoneShellRenderContext } from "./types.js";
-import { tailToWidth } from "./button-helpers.js";
 
-export function getUtilityDropdownInnerWidth(config: PhoneShellConfig, layout: PhoneShellLayout): number {
+export function getUtilityDropdownInnerWidth(_config: PhoneShellConfig, layout: PhoneShellLayout): number {
 	const maxButtonLabelWidth = layout.utilityButtons.reduce((max, button) => Math.max(max, visibleWidth(button.label.trim())), 0);
 	const buttonVisualWidth = maxButtonLabelWidth + 6;
-	const promptMinWidth = visibleWidth(config.promptMirror.prefix) + 12;
-	return Math.max(18, buttonVisualWidth, promptMinWidth);
-}
-
-function promptMirrorLine(ctx: PhoneShellRenderContext, innerWidth: number): string {
-	const config = ctx.getConfig();
-	const rawText = ctx.getPromptMirrorText();
-	const preview = rawText.length > 0
-		? tailToWidth(rawText.replace(/\n/g, " ↵ "), Math.max(1, innerWidth - visibleWidth(config.promptMirror.prefix)))
-		: ctx.getTheme().fg("dim", config.promptMirror.placeholder);
-	return truncateToWidth(`${config.promptMirror.prefix}${preview}`, innerWidth, "", true);
+	return Math.max(18, buttonVisualWidth);
 }
 
 function centerToWidth(text: string, width: number): string {
@@ -60,18 +49,6 @@ export class UtilityOverlayComponent implements Component {
 			const bottom = theme.fg("accent", "│") + " " + theme.fg(palette, `╰${"─".repeat(buttonInnerWidth - 2)}╯`) + " " + theme.fg("accent", "│");
 			lines.push(top, middle, bottom);
 			addFullWidthHitRows(hitRegions, button, colStart, colEnd, rowStart, 3);
-		}
-
-		if (this.ctx.state.promptMirrorVisible) {
-			lines.push(theme.fg("accent", `├${"─".repeat(innerWidth)}┤`));
-			const prompt = promptMirrorLine(this.ctx, innerWidth);
-			const promptPad = Math.max(0, innerWidth - visibleWidth(prompt));
-			lines.push(
-				theme.fg("accent", "│")
-				+ prompt
-				+ " ".repeat(promptPad)
-				+ theme.fg("accent", "│"),
-			);
 		}
 
 		lines.push(theme.fg("accent", `╰${"─".repeat(innerWidth)}╯`));

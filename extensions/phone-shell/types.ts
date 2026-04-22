@@ -21,7 +21,6 @@ export type ShellAction =
 	| "toggleModelMenu"
 	| "setModelScopeScoped"
 	| "setModelScopeAll"
-	| "togglePromptMirror"
 	| "togglePromptProxy"
 	| "scrollTop"
 	| "pageUp"
@@ -53,8 +52,7 @@ export type CommandMode =
 	| "top"
 	| "bottom"
 	| "page-up"
-	| "page-down"
-	| "prompt-mirror";
+	| "page-down";
 
 export type ButtonSpec =
 	| {
@@ -108,11 +106,6 @@ export interface PhoneShellConfig {
 	utilityOverlay: {
 		autoOpenOnEnable: boolean;
 		keepOpenAfterButtonActivation: boolean;
-	};
-	promptMirror: {
-		enabled: boolean;
-		placeholder: string;
-		prefix: string;
 	};
 	render: {
 		buttonGap: number;
@@ -217,7 +210,6 @@ export interface PhoneShellRenderState {
 	modelMenuProviderButtons: ProviderHitRegion[];
 	modelMenuModelButtons: ModelHitRegion[];
 	modelMenuSelectedProvider?: string;
-	promptMirrorVisible: boolean;
 	originalChat?: Component;
 	promptProxyInstalled?: boolean;
 	proxyOnly?: boolean;
@@ -231,5 +223,4 @@ export interface PhoneShellRenderContext {
 	getConfig(): PhoneShellConfig;
 	getLayout(): PhoneShellLayout;
 	getTheme(): Theme;
-	getPromptMirrorText(): string;
 }

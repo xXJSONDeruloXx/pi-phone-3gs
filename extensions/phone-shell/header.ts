@@ -4,15 +4,6 @@ import { DEFAULT_AGENT_STATE } from "./defaults.js";
 import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
 import type { AgentPhase, AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellConfig, PhoneShellRenderContext } from "./types.js";
 
-function phaseAccent(phase: AgentPhase): "accent" | "warning" | "muted" {
-	switch (phase) {
-		case "idle": return "muted";
-		case "thinking": return "accent";
-		case "streaming": return "accent";
-		case "tool_calling": return "warning";
-	}
-}
-
 function getHeaderButtonSpecs(_phase: AgentPhase, utilityOverlayVisible: boolean): ButtonSpec[] {
 	const etcColor = utilityOverlayVisible ? "accent" : "muted";
 	return [

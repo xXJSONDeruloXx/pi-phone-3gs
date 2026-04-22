@@ -23,7 +23,6 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleModelMenu",
 	"setModelScopeScoped",
 	"setModelScopeAll",
-	"togglePromptMirror",
 	"scrollTop",
 	"pageUp",
 	"cycleModel",
@@ -200,9 +199,6 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 	const utilityOverlay = isRecord(value.utilityOverlay) ? value.utilityOverlay : {};
 	if (value.utilityOverlay !== undefined && !isRecord(value.utilityOverlay)) errors.push("utilityOverlay must be an object");
 
-	const promptMirror = isRecord(value.promptMirror) ? value.promptMirror : {};
-	if (value.promptMirror !== undefined && !isRecord(value.promptMirror)) errors.push("promptMirror must be an object");
-
 	const render = isRecord(value.render) ? value.render : {};
 	if (value.render !== undefined && !isRecord(value.render)) errors.push("render must be an object");
 
@@ -231,11 +227,6 @@ function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string
 				"keepOpenAfterButtonActivation",
 				DEFAULT_CONFIG.utilityOverlay.keepOpenAfterButtonActivation,
 			),
-		},
-		promptMirror: {
-			enabled: readBoolean(promptMirror, "enabled", DEFAULT_CONFIG.promptMirror.enabled),
-			placeholder: readString(promptMirror, "placeholder", DEFAULT_CONFIG.promptMirror.placeholder),
-			prefix: readString(promptMirror, "prefix", DEFAULT_CONFIG.promptMirror.prefix),
 		},
 		render: {
 			buttonGap: Math.max(0, Math.floor(readNumber(render, "buttonGap", DEFAULT_CONFIG.render.buttonGap))),
