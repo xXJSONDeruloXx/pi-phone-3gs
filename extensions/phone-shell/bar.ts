@@ -40,7 +40,10 @@ export class BottomBarComponent implements Component {
 		const theme = this.ctx.getTheme();
 		const config = this.ctx.getConfig();
 		const lead = " ".repeat(config.render.leadingColumns);
-		const usableWidth = Math.max(1, width - config.render.leadingColumns);
+		// prefix = lead (leadingColumns) + indicator char (1) = leadingColumns+1 visible cols
+		// Chips are rendered after that prefix, so the available chip area is smaller by the same amount.
+		const prefixCols = config.render.leadingColumns + 1;
+		const usableWidth = Math.max(1, width - prefixCols);
 
 		// ---------------------------------------------------------------------------
 		// Layout: compute virtual X position for each chip
@@ -107,7 +110,7 @@ export class BottomBarComponent implements Component {
 			mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, chip.label)) + theme.fg(palette, "│"));
 			bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
 
-			const colStart = config.render.leadingColumns + 1 + screenX;
+			const colStart = prefixCols + 1 + screenX; // 1-based terminal column
 			hitRegions.push({
 				button: spec,
 				colStart,
