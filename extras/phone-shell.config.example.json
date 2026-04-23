@@ -1,10 +1,6 @@
 {
   "header": {
-    "enabled": true,
-    "showContext": true,
-    "showJobs": true,
-    "showTimestamp": true,
-    "contextBarWidth": 10
+    "enabled": true
   },
   "viewport": {
     "pageOverlapLines": 20,
@@ -12,6 +8,9 @@
   },
   "utilityOverlay": {
     "autoOpenOnEnable": false,
+    "keepOpenAfterButtonActivation": true
+  },
+  "viewOverlay": {
     "keepOpenAfterButtonActivation": true
   },
   "render": {

@@ -1,0 +1,7 @@
+[
+  { "label": "NEW", "command": "/new", "palette": "warning" },
+  { "label": "CMPT", "command": "/compact", "palette": "warning" },
+  { "label": "RLD", "command": "/reload", "palette": "warning" },
+  { "label": "RSME", "command": "/resume" },
+  { "label": "TREE", "command": "/tree" }
+]

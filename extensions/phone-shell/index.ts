@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMMAND, TOGGLE_SHORTCUT } from "./defaults.js";
-import { loadPersistedShellState } from "./config.js";
+import { ensureStarterFiles, loadPersistedShellState } from "./config.js";
 import { AgentStateTracker } from "./header.js";
 import { captureUiBindings, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
 import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.js";
@@ -80,6 +80,14 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			state.agentTracker?.setModel(ctx.model.id);
 		}
 		state.thinkingLevel = pi.getThinkingLevel();
+		try {
+			const created = await ensureStarterFiles(state.paths);
+			if (created.length > 0) {
+				ctx.ui.notify(`phone-shell starter files created (${created.length})`, "info");
+			}
+		} catch {
+			// Never let bootstrap failures break pi.
+		}
 		await reloadRuntimeSettings(ctx, false);
 		try {
 			const persisted = await loadPersistedShellState(state.paths);

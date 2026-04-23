@@ -55,7 +55,7 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 	},
 	utilityOverlay: {
 		autoOpenOnEnable: false,
-		keepOpenAfterButtonActivation: false,
+		keepOpenAfterButtonActivation: true,
 	},
 	viewOverlay: {
 		keepOpenAfterButtonActivation: true,
@@ -79,6 +79,8 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "compact", label: "/compact", command: "/compact", palette: "warning" },
 	{ kind: "command", id: "resume", label: "/resume", command: "/resume", palette: "warning" },
 	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
+	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\u0003", palette: "warning" },
+	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
 ];
 
 /**
@@ -121,7 +123,7 @@ export const DEFAULT_LAYOUT: PhoneShellLayout = {
 };
 
 export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
-	enabled: false,
+	enabled: true,
 	autoEnable: true,
 	proxyOnly: false,
 	barVisible: true,
@@ -129,17 +131,15 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	viewportJumpButtonsVisible: true,
 };
 
-export const DEFAULT_FAVORITES: FavoriteEntry[] = [];
+export const DEFAULT_FAVORITES: FavoriteEntry[] = [
+	{ label: "NEW", command: "/new", palette: "warning" },
+	{ label: "CMPT", command: "/compact", palette: "warning" },
+	{ label: "RLD", command: "/reload", palette: "warning" },
+	{ label: "RSME", command: "/resume" },
+	{ label: "TREE", command: "/tree" },
+];
 
-export const FAVORITES_TEMPLATE = JSON.stringify(
-	[
-		{ label: "NEW", command: "/new", palette: "warning" },
-		{ label: "CMPT", command: "/compact", palette: "warning" },
-		{ label: "RLPH", command: "/skill:ralph-wiggum" },
-	],
-	null,
-	2,
-);
+export const FAVORITES_TEMPLATE = JSON.stringify(DEFAULT_FAVORITES, null, 2);
 
 export const CONFIG_TEMPLATE = JSON.stringify(DEFAULT_CONFIG, null, 2);
 export const LAYOUT_TEMPLATE = JSON.stringify(DEFAULT_LAYOUT, null, 2);

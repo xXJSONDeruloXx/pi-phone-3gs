@@ -2,9 +2,13 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	CONFIG_TEMPLATE,
 	DEFAULT_CONFIG,
+	DEFAULT_FAVORITES,
 	DEFAULT_LAYOUT,
 	DEFAULT_PERSISTED_STATE,
+	FAVORITES_TEMPLATE,
+	LAYOUT_TEMPLATE,
 } from "./defaults.js";
 import type {
 	ButtonPalette,
@@ -21,6 +25,7 @@ const PALETTES: readonly ButtonPalette[] = ["accent", "warning", "muted"] as con
 const ACTIONS: readonly ShellAction[] = [
 	"toggleUtilities",
 	"toggleViewMenu",
+	"toggleSkillsMenu",
 	"toggleBottomBar",
 	"toggleEditorPosition",
 	"toggleNavPad",
@@ -28,6 +33,7 @@ const ACTIONS: readonly ShellAction[] = [
 	"scrollTop",
 	"pageUp",
 	"cycleModel",
+	"cycleThinkingLevel",
 	"pageDown",
 	"scrollBottom",
 	"sendEscape",
@@ -343,11 +349,34 @@ export async function loadPhoneShellSettings(paths: PhoneShellPaths): Promise<{
 	return { config, layout, errors };
 }
 
+export async function ensureStarterFiles(paths: PhoneShellPaths): Promise<string[]> {
+	const created: string[] = [];
+	await fs.mkdir(path.dirname(paths.config), { recursive: true });
+
+	const files: Array<{ path: string; content: string }> = [
+		{ path: paths.config, content: `${CONFIG_TEMPLATE}\n` },
+		{ path: paths.layout, content: `${LAYOUT_TEMPLATE}\n` },
+		{ path: paths.favorites, content: `${FAVORITES_TEMPLATE}\n` },
+		{ path: paths.state, content: `${JSON.stringify(DEFAULT_PERSISTED_STATE, null, 2)}\n` },
+	];
+
+	for (const file of files) {
+		try {
+			await fs.writeFile(file.path, file.content, { encoding: "utf8", flag: "wx" });
+			created.push(file.path);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+		}
+	}
+
+	return created;
+}
+
 export async function loadFavorites(paths: PhoneShellPaths): Promise<{ favorites: FavoriteEntry[]; errors: string[] }> {
 	const errors: string[] = [];
 	try {
 		const raw = await readJsonIfExists(paths.favorites);
-		if (raw === undefined) return { favorites: [], errors: [] };
+		if (raw === undefined) return { favorites: DEFAULT_FAVORITES, errors: [] };
 		if (!Array.isArray(raw)) {
 			errors.push("favorites: file must contain a JSON array");
 			return { favorites: [], errors };

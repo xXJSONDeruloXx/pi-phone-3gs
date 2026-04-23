@@ -46,6 +46,13 @@ Then inside Pi:
 
 ```text
 /reload
+```
+
+On first load, the package now seeds a starter config/layout/favorites/state under `~/.pi/agent/pi-phone-3gs/` and auto-enables phone-shell mode. Existing user files are left alone on later updates.
+
+If you ever want to toggle it manually:
+
+```text
 /phone-shell on
 ```
 
@@ -67,12 +74,14 @@ Per-user override files:
 
 - `~/.pi/agent/pi-phone-3gs/phone-shell.config.json`
 - `~/.pi/agent/pi-phone-3gs/phone-shell.layout.json`
+- `~/.pi/agent/pi-phone-3gs/phone-shell.favorites.json`
 - `~/.pi/agent/pi-phone-3gs/phone-shell.state.json`
 
 Templates live in:
 
 - `extras/phone-shell.config.example.json`
 - `extras/phone-shell.layout.example.json`
+- `extras/phone-shell.favorites.example.json`
 - `extras/settings.phone.example.json`
 
 ## Customization model
@@ -159,10 +168,12 @@ This repo is grounded in four concrete references:
 This repo contains a working Pi package with a modular touch shell extension:
 
 - installable via `pi install /path/to/pi-phone-3gs`
-- per-user config/layout overrides in `~/.pi/agent/pi-phone-3gs/`
+- self-bootstrapping starter files on first load/update if user overrides are missing
+- auto-enabled touch mode by default via the seeded state file
+- per-user config/layout/favorites overrides in `~/.pi/agent/pi-phone-3gs/`
 - a sticky header bar with live agent state (phase, context usage, background jobs)
 - a scrollable viewport with page up/down controls
-- touch-optimized bottom bar and utility overlay
+- touch-optimized bottom bar, favorites rail, and utility overlay
 
 Extension source lives in `extensions/phone-shell/` with one file per responsibility. See [AGENTS.md](AGENTS.md) for the full module map and conventions.
 
