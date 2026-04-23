@@ -181,6 +181,7 @@ export function performAction(action: ShellAction): InputResponse {
 			});
 			return { data: "\x1b[Z" };
 		}
+		case "pageDown":
 			state.session.viewport?.pageDown();
 			return { consume: true };
 		case "scrollBottom":
