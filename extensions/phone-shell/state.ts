@@ -11,6 +11,7 @@ import type {
 	PhoneShellLayout,
 	PhoneShellRenderContext,
 	PhoneShellRenderState,
+	ThinkingLevel,
 } from "./types.js";
 import type { AgentStateTracker } from "./header.js";
 
@@ -23,6 +24,7 @@ export type RuntimeState = PhoneShellRenderState & {
 	layout: PhoneShellLayout;
 	favorites: FavoriteEntry[];
 	paths: ReturnType<typeof getPhoneShellPaths>;
+	pi?: { getCommands(): { name: string; description?: string; source: string }[] };
 	diagnostics: {
 		loadErrors: string[];
 		logQueue: Promise<void>;
@@ -45,6 +47,9 @@ export type RuntimeState = PhoneShellRenderState & {
 	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
+	thinkingLevel: ThinkingLevel;
+	getThinkingLevel?: () => ThinkingLevel;
+	setThinkingLevel?: (level: ThinkingLevel) => void;
 	agentTracker?: AgentStateTracker;
 };
 
@@ -101,6 +106,15 @@ export const state: RuntimeState = {
 				buttons: [],
 				actualHeight: 3,
 			},
+			skills: {
+				handle: undefined,
+				visible: false,
+				row: 0,
+				col: 0,
+				width: 0,
+				buttons: [],
+				actualHeight: 3,
+			},
 		},
 		viewport: {
 			row: 0,
@@ -135,7 +149,11 @@ export const state: RuntimeState = {
 	modelRegistry: undefined,
 	currentModel: undefined,
 	setModel: undefined,
+	thinkingLevel: "off",
+	getThinkingLevel: undefined,
+	setThinkingLevel: undefined,
 	agentTracker: undefined,
+	pi: undefined,
 };
 
 // ---------------------------------------------------------------------------
@@ -241,6 +259,8 @@ export function getStatusReport(): string {
 		`- viewport jump buttons: ${state.shell.viewportJumpButtonsVisible} (${state.ui.viewport.buttons.length} hit regions)`,
 		`- utility overlay: ${state.ui.overlays.utility.visible}`,
 		`- view overlay: ${state.ui.overlays.view.visible}`,
+		`- skills overlay: ${state.ui.overlays.skills.visible}`,
+		`- loaded skills: ${state.pi?.getCommands().filter(c => c.source === "skill").length ?? "?"}`,
 		`- config warnings: ${state.diagnostics.loadErrors.length === 0 ? "none" : state.diagnostics.loadErrors.join(" | ")}`,
 		`- last action: ${state.diagnostics.lastAction ?? "(none)"}`,
 		`- last input: ${state.diagnostics.lastInput ?? "(none)"}`,

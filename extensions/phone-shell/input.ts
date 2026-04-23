@@ -150,6 +150,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleViewMenu":
 			toggleViewOverlay();
 			return { consume: true };
+		case "toggleSkillsMenu":
+			toggleSkillsOverlay();
+			return { consume: true };
 		case "toggleBottomBar":
 			toggleBottomBar();
 			return { consume: true };
@@ -170,7 +173,14 @@ export function performAction(action: ShellAction): InputResponse {
 			return { consume: true };
 		case "cycleModel":
 			return { data: state.config.inputs.modelCycle };
-		case "pageDown":
+		case "cycleThinkingLevel": {
+			// Send Shift+Tab so pi handles the full cycle including UI
+			queueMicrotask(() => {
+				state.thinkingLevel = state.getThinkingLevel?.() ?? state.thinkingLevel;
+				scheduleRender();
+			});
+			return { data: "\x1b[Z" };
+		}
 			state.session.viewport?.pageDown();
 			return { consume: true };
 		case "scrollBottom":
@@ -203,17 +213,19 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
-export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "bar" | "nav" | "header"): InputResponse {
+export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
+	const isOverlay = origin === "utility" || origin === "view" || origin === "skills";
 	const keepOpen = origin === "view"
 		? state.config.viewOverlay.keepOpenAfterButtonActivation
 		: state.config.utilityOverlay.keepOpenAfterButtonActivation;
-	const shouldAutoHideOverlay = (origin === "utility" || origin === "view") && !keepOpen;
+	const shouldAutoHideOverlay = isOverlay && !keepOpen;
 	const maybeHideOverlay = () => {
 		if (!shouldAutoHideOverlay) return;
 		if (origin === "utility") hideUtilityOverlay();
 		if (origin === "view") hideViewOverlay();
+		if (origin === "skills") hideSkillsOverlay();
 	};
 
 	if (button.kind === "command") {
@@ -253,59 +265,77 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 import { ButtonDropdownOverlayComponent, getDropdownInnerWidth } from "./overlay.js";
 import { renderContext } from "./state.js";
 
-type DropdownKind = "utility" | "view";
+type DropdownKind = "utility" | "view" | "skills";
+
+function getSkillsMenuButtons(): ButtonSpec[] {
+	const commands = state.pi?.getCommands() ?? [];
+	return commands
+		.filter((c) => c.source === "skill")
+		.map((c) => ({
+			kind: "command" as const,
+			id: `skill-${c.name}`,
+			label: ` /${c.name} `,
+			command: `/${c.name}`,
+		}));
+}
+
+function getDropdownOverlayState(kind: DropdownKind) {
+	return state.ui.overlays[kind];
+}
 
 function getDropdownButtons(kind: DropdownKind): ButtonSpec[] {
-	return kind === "utility" ? state.layout.utilityButtons : getViewMenuButtons(state.shell);
+	if (kind === "utility") return state.layout.utilityButtons;
+	if (kind === "view") return getViewMenuButtons(state.shell);
+	return getSkillsMenuButtons();
 }
 
 function getDropdownAnchorButtonId(kind: DropdownKind): string {
-	return kind === "utility" ? "header-file" : "header-view";
+	if (kind === "utility") return "header-file";
+	if (kind === "skills") return "header-skills";
+	return "header-view";
 }
 
 function getDropdownHandle(kind: DropdownKind) {
-	return kind === "utility" ? state.ui.overlays.utility.handle : state.ui.overlays.view.handle;
+	return getDropdownOverlayState(kind).handle;
 }
 
 function setDropdownLayoutState(kind: DropdownKind, hitRegions: ButtonHitRegion[], actualHeight: number): void {
-	if (kind === "utility") {
-		state.ui.overlays.utility.buttons = hitRegions;
-		state.ui.overlays.utility.actualHeight = actualHeight;
-		return;
-	}
-	state.ui.overlays.view.buttons = hitRegions;
-	state.ui.overlays.view.actualHeight = actualHeight;
+	const overlay = getDropdownOverlayState(kind);
+	overlay.buttons = hitRegions;
+	overlay.actualHeight = actualHeight;
 }
 
 function setDropdownPlacement(kind: DropdownKind, row: number, col: number, width: number): void {
-	if (kind === "utility") {
-		state.ui.overlays.utility.row = row;
-		state.ui.overlays.utility.col = col;
-		state.ui.overlays.utility.width = width;
-		return;
+	const overlay = getDropdownOverlayState(kind);
+	overlay.row = row;
+	overlay.col = col;
+	overlay.width = width;
+}
+
+function hideOtherOverlays(except?: DropdownKind): void {
+	for (const k of ["utility", "view", "skills"] as DropdownKind[]) {
+		if (k !== except) hideDropdown(k);
 	}
-	state.ui.overlays.view.row = row;
-	state.ui.overlays.view.col = col;
-	state.ui.overlays.view.width = width;
 }
 
 function showDropdown(kind: DropdownKind): void {
 	if (!state.session.tui || getDropdownHandle(kind)) return;
-	if (kind === "utility") hideViewOverlay();
-	else hideUtilityOverlay();
+	hideOtherOverlays(kind);
 
 	const buttons = getDropdownButtons(kind);
+	if (buttons.length === 0) return;
 	const overlayWidth = getDropdownInnerWidth(buttons) + 2;
 	const overlayRow = HEADER_HEIGHT;
 	const anchorButton = state.ui.headerButtons.find((button) => button.button.id === getDropdownAnchorButtonId(kind) && button.rowOffset === 0);
 	const overlayCol = Math.max(1, anchorButton?.colStart ?? (state.config.render.leadingColumns + 1));
 	setDropdownPlacement(kind, overlayRow, overlayCol, overlayWidth);
 
+	const overlayState = getDropdownOverlayState(kind);
 	const overlay = state.session.tui.showOverlay(new ButtonDropdownOverlayComponent(
 		renderContext,
 		() => getDropdownButtons(kind),
-		() => (kind === "utility" ? state.ui.overlays.utility.row : state.ui.overlays.view.row),
-		() => (kind === "utility" ? state.ui.overlays.utility.col : state.ui.overlays.view.col),
+		() => overlayState.row,
+		() => overlayState.col,
 		(hitRegions, actualHeight) => setDropdownLayoutState(kind, hitRegions, actualHeight),
 	), {
 		anchor: "top-left",
@@ -315,41 +345,26 @@ function showDropdown(kind: DropdownKind): void {
 		nonCapturing: true,
 	});
 
-	if (kind === "utility") {
-		state.ui.overlays.utility.handle = overlay;
-		state.ui.overlays.utility.visible = true;
-	} else {
-		state.ui.overlays.view.handle = overlay;
-		state.ui.overlays.view.visible = true;
-	}
+	overlayState.handle = overlay;
+	overlayState.visible = true;
 	queueLog(`${kind} overlay shown`);
 }
 
 function hideDropdown(kind: DropdownKind): void {
-	if (kind === "utility") {
-		state.ui.overlays.utility.handle?.hide();
-		state.ui.overlays.utility.handle = undefined;
-		state.ui.overlays.utility.visible = false;
-		state.ui.overlays.utility.row = 0;
-		state.ui.overlays.utility.col = 0;
-		state.ui.overlays.utility.width = 0;
-		state.ui.overlays.utility.buttons = [];
-		state.ui.overlays.utility.actualHeight = BAR_HEIGHT;
-	} else {
-		state.ui.overlays.view.handle?.hide();
-		state.ui.overlays.view.handle = undefined;
-		state.ui.overlays.view.visible = false;
-		state.ui.overlays.view.row = 0;
-		state.ui.overlays.view.col = 0;
-		state.ui.overlays.view.width = 0;
-		state.ui.overlays.view.buttons = [];
-		state.ui.overlays.view.actualHeight = BAR_HEIGHT;
-	}
+	const overlay = getDropdownOverlayState(kind);
+	overlay.handle?.hide();
+	overlay.handle = undefined;
+	overlay.visible = false;
+	overlay.row = 0;
+	overlay.col = 0;
+	overlay.width = 0;
+	overlay.buttons = [];
+	overlay.actualHeight = BAR_HEIGHT;
 	queueLog(`${kind} overlay hidden`);
 }
 
 function toggleDropdown(kind: DropdownKind): void {
-	if (kind === "utility" ? state.ui.overlays.utility.visible : state.ui.overlays.view.visible) hideDropdown(kind);
+	if (getDropdownOverlayState(kind).visible) hideDropdown(kind);
 	else showDropdown(kind);
 }
 
@@ -359,28 +374,27 @@ const toggleUtilityOverlay = (): void => toggleDropdown("utility");
 const showViewOverlay = (): void => showDropdown("view");
 const hideViewOverlay = (): void => hideDropdown("view");
 const toggleViewOverlay = (): void => toggleDropdown("view");
+const showSkillsOverlay = (): void => showDropdown("skills");
+const hideSkillsOverlay = (): void => hideDropdown("skills");
+const toggleSkillsOverlay = (): void => toggleDropdown("skills");
 
 function handleDropdownMouse(kind: DropdownKind, mouse: MouseInput): InputResponse | undefined {
-	const visible = kind === "utility" ? state.ui.overlays.utility.visible : state.ui.overlays.view.visible;
-	if (!visible) return undefined;
+	const overlay = getDropdownOverlayState(kind);
+	if (!overlay.visible) return undefined;
 
-	const row = kind === "utility" ? state.ui.overlays.utility.row : state.ui.overlays.view.row;
-	const col = kind === "utility" ? state.ui.overlays.utility.col : state.ui.overlays.view.col;
-	const width = kind === "utility" ? state.ui.overlays.utility.width : state.ui.overlays.view.width;
-	const actualHeight = kind === "utility" ? state.ui.overlays.utility.actualHeight : state.ui.overlays.view.actualHeight;
-	const buttons = kind === "utility" ? state.ui.overlays.utility.buttons : state.ui.overlays.view.buttons;
+	const { row, col, width, actualHeight, buttons } = overlay;
 	const inOverlayRows = mouse.row >= row + 1 && mouse.row <= row + actualHeight;
 	const inOverlayCols = mouse.col >= col && mouse.col <= col + width - 1;
 	if (inOverlayRows && inOverlayCols) {
 		const button = findHitRegion(buttons, mouse.row - 1, mouse.col);
 		return button ? activateButton(button, kind) : { consume: true };
 	}
-	if (visible) hideDropdown(kind);
+	hideDropdown(kind);
 	return { consume: true };
 }
 
 // Exported for mode.ts to call during enableTouchMode
-export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewOverlay, hideViewOverlay, toggleViewOverlay };
+export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewOverlay, hideViewOverlay, toggleViewOverlay, showSkillsOverlay, hideSkillsOverlay, toggleSkillsOverlay };
 
 // ---------------------------------------------------------------------------
 // Input handler registration
@@ -416,6 +430,9 @@ export function registerInputHandler(ctx: { ui: any }): void {
 
 			const viewDropdownResponse = handleDropdownMouse("view", mouse);
 			if (viewDropdownResponse) return viewDropdownResponse;
+
+			const skillsDropdownResponse = handleDropdownMouse("skills", mouse);
+			if (skillsDropdownResponse) return skillsDropdownResponse;
 
 			const inNav = state.ui.nav.row > 0 && mouse.row >= state.ui.nav.row && mouse.row < state.ui.nav.row + state.ui.nav.actualHeight;
 			if (inNav) {

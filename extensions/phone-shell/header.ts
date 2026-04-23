@@ -2,13 +2,18 @@ import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
 import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
-import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
+import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ThinkingLevel } from "./types.js";
+import { thinkingLevelLabel } from "./types.js";
 
-function getHeaderButtonSpecs(utilityOverlayVisible: boolean, viewOverlayVisible: boolean): ButtonSpec[] {
+function getHeaderButtonSpecs(utilityOverlayVisible: boolean, viewOverlayVisible: boolean, skillsOverlayVisible: boolean, thinkingLevel: ThinkingLevel): ButtonSpec[] {
 	const fileColor = utilityOverlayVisible ? "accent" : "muted";
 	const viewColor = viewOverlayVisible ? "accent" : "muted";
+	const skillsColor = skillsOverlayVisible ? "accent" : "muted";
+	const thinkingColor: ButtonSpec["palette"] = thinkingLevel === "off" ? "muted" : "accent";
 	return [
+		{ kind: "action", id: "header-thinking", label: thinkingLevelLabel(thinkingLevel), action: "cycleThinkingLevel", palette: thinkingColor },
 		{ kind: "action", id: "header-model", label: "MODEL", action: "cycleModel", palette: "warning" },
+		{ kind: "action", id: "header-skills", label: "SKILLS", action: "toggleSkillsMenu", palette: skillsColor },
 		{ kind: "action", id: "header-view", label: "VIEW", action: "toggleViewMenu", palette: viewColor },
 		{ kind: "action", id: "header-file", label: "FILE", action: "toggleUtilities", palette: fileColor },
 	];
@@ -55,13 +60,15 @@ export class HeaderBarComponent implements Component {
 		const config = this.ctx.getConfig();
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
-		const specs = getHeaderButtonSpecs(this.ctx.state.ui.overlays.utility.visible, this.ctx.state.ui.overlays.view.visible);
+		const specs = getHeaderButtonSpecs(this.ctx.state.ui.overlays.utility.visible, this.ctx.state.ui.overlays.view.visible, this.ctx.state.ui.overlays.skills.visible, this.ctx.state.thinkingLevel);
 
 		const fileSpec = specs.find((s) => s.id === "header-file")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;
 		const viewSpec = specs.find((s) => s.id === "header-view")!;
-		const leftSpecs = [fileSpec, viewSpec];
-		const rightSpecs = [modelSpec];
+		const thinkingSpec = specs.find((s) => s.id === "header-thinking")!;
+		const skillsSpec = specs.find((s) => s.id === "header-skills")!;
+		const leftSpecs = [fileSpec, skillsSpec, viewSpec];
+		const rightSpecs = [thinkingSpec, modelSpec];
 
 		const left = renderButtonRow(leftSpecs, config.render.buttonGap, theme);
 		const right = renderButtonRow(rightSpecs, config.render.buttonGap, theme);

@@ -65,8 +65,11 @@ function wireAgentEvents(pi: ExtensionAPI): AgentStateTracker {
 // ---------------------------------------------------------------------------
 
 export default function phoneShellExtension(pi: ExtensionAPI) {
+	state.pi = pi;
 	state.agentTracker = wireAgentEvents(pi);
 	state.setModel = pi.setModel.bind(pi);
+	state.getThinkingLevel = pi.getThinkingLevel.bind(pi);
+	state.setThinkingLevel = pi.setThinkingLevel.bind(pi);
 
 	pi.on("session_start", async (_event, ctx) => {
 		if (!ctx.hasUI) return;
@@ -76,6 +79,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		if (ctx.model) {
 			state.agentTracker?.setModel(ctx.model.id);
 		}
+		state.thinkingLevel = pi.getThinkingLevel();
 		await reloadRuntimeSettings(ctx, false);
 		try {
 			const persisted = await loadPersistedShellState(state.paths);
@@ -107,6 +111,10 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		state.modelRegistry = undefined;
 		state.currentModel = undefined;
 		state.setModel = undefined;
+		state.getThinkingLevel = undefined;
+		state.setThinkingLevel = undefined;
+		state.thinkingLevel = "off";
+		state.pi = undefined;
 		state.agentTracker?.reset();
 	});
 

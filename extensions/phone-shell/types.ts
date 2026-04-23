@@ -5,6 +5,27 @@ export type ButtonPalette = "accent" | "warning" | "muted";
 
 export type AgentPhase = "idle" | "thinking" | "streaming" | "tool_calling";
 
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+export const THINKING_LEVEL_ORDER: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh"];
+
+export function thinkingLevelLabel(level: ThinkingLevel): string {
+	const map: Record<ThinkingLevel, string> = {
+		off: "OFF",
+		minimal: "MIN",
+		low: "LOW",
+		medium: "MED",
+		high: "HI",
+		xhigh: "XHI",
+	};
+	return map[level] ?? "???";
+}
+
+export function nextThinkingLevel(current: ThinkingLevel): ThinkingLevel {
+	const idx = THINKING_LEVEL_ORDER.indexOf(current);
+	return THINKING_LEVEL_ORDER[(idx + 1) % THINKING_LEVEL_ORDER.length]!;
+}
+
 export interface AgentStateInfo {
 	phase: AgentPhase;
 	model: string;
@@ -18,6 +39,7 @@ export interface AgentStateInfo {
 export type ShellAction =
 	| "toggleUtilities"
 	| "toggleViewMenu"
+	| "toggleSkillsMenu"
 	| "toggleBottomBar"
 	| "toggleEditorPosition"
 	| "toggleNavPad"
@@ -25,6 +47,7 @@ export type ShellAction =
 	| "scrollTop"
 	| "pageUp"
 	| "cycleModel"
+	| "cycleThinkingLevel"
 	| "pageDown"
 	| "scrollBottom"
 	| "sendEscape"
@@ -253,6 +276,7 @@ export interface PhoneShellUIState {
 	overlays: {
 		utility: DropdownOverlayState;
 		view: DropdownOverlayState;
+		skills: DropdownOverlayState;
 	};
 	viewport: ViewportLayoutState;
 }
@@ -261,6 +285,7 @@ export interface PhoneShellRenderState {
 	session: SessionRenderState;
 	shell: ShellModeState;
 	ui: PhoneShellUIState;
+	thinkingLevel: ThinkingLevel;
 }
 
 export interface PhoneShellRenderContext {
