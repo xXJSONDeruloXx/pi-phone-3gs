@@ -96,6 +96,9 @@ export const state: RuntimeState = {
 				width: 0,
 				buttons: [],
 				actualHeight: 3,
+				scrollOffset: 0,
+				maxVisibleItems: 0,
+				drag: undefined,
 			},
 			view: {
 				handle: undefined,
@@ -105,6 +108,9 @@ export const state: RuntimeState = {
 				width: 0,
 				buttons: [],
 				actualHeight: 3,
+				scrollOffset: 0,
+				maxVisibleItems: 0,
+				drag: undefined,
 			},
 			skills: {
 				handle: undefined,
@@ -114,6 +120,9 @@ export const state: RuntimeState = {
 				width: 0,
 				buttons: [],
 				actualHeight: 3,
+				scrollOffset: 0,
+				maxVisibleItems: 0,
+				drag: undefined,
 			},
 		},
 		viewport: {

@@ -22,6 +22,11 @@ function addFullWidthHitRows(hitRegions: ButtonHitRegion[], button: ButtonSpec, 
 	}
 }
 
+export interface DropdownScrollOptions {
+	getMaxVisibleItems: () => number;
+	getScrollOffset: () => number;
+}
+
 export class ButtonDropdownOverlayComponent implements Component {
 	constructor(
 		private readonly ctx: PhoneShellRenderContext,
@@ -29,6 +34,7 @@ export class ButtonDropdownOverlayComponent implements Component {
 		private readonly getOverlayRow: () => number,
 		private readonly getOverlayCol: () => number,
 		private readonly setLayoutState: (hitRegions: ButtonHitRegion[], actualHeight: number) => void,
+		private readonly scrollOptions?: DropdownScrollOptions,
 	) {}
 
 	render(width: number): string[] {
@@ -40,10 +46,26 @@ export class ButtonDropdownOverlayComponent implements Component {
 		const hitRegions: ButtonHitRegion[] = [];
 		const colStart = this.getOverlayCol();
 		const colEnd = colStart + width - 1;
-		const buttons = this.getButtons();
+		const allButtons = this.getButtons();
 
-		lines.push(theme.fg("accent", `╭${"─".repeat(innerWidth)}╮`));
-		for (const button of buttons) {
+		// Scroll windowing
+		const maxVisible = this.scrollOptions?.getMaxVisibleItems?.() ?? allButtons.length;
+		const rawOffset = this.scrollOptions?.getScrollOffset?.() ?? 0;
+		const maxOffset = Math.max(0, allButtons.length - maxVisible);
+		const scrollOffset = Math.min(rawOffset, maxOffset);
+		const visibleButtons = allButtons.slice(scrollOffset, scrollOffset + maxVisible);
+		const hasUp = scrollOffset > 0;
+		const hasDown = scrollOffset + visibleButtons.length < allButtons.length;
+
+		// Top border with optional ▲ scroll indicator
+		if (hasUp) {
+			const dashes = innerWidth - 3;
+			lines.push(theme.fg("accent", `╭`) + theme.fg("dim", `▲`) + theme.fg("accent", `${"─".repeat(dashes)}╮`));
+		} else {
+			lines.push(theme.fg("accent", `╭${"─".repeat(innerWidth)}╮`));
+		}
+
+		for (const button of visibleButtons) {
 			const rowStart = this.getOverlayRow() + lines.length;
 			const displayLabel = button.label.trim();
 			const buttonLabel = truncateToWidth(displayLabel, Math.max(1, buttonInnerWidth - 2), "", true);
@@ -55,7 +77,14 @@ export class ButtonDropdownOverlayComponent implements Component {
 			addFullWidthHitRows(hitRegions, button, colStart, colEnd, rowStart, 3);
 		}
 
-		lines.push(theme.fg("accent", `╰${"─".repeat(innerWidth)}╯`));
+		// Bottom border with optional ▼ scroll indicator
+		if (hasDown) {
+			const dashes = innerWidth - 3;
+			lines.push(theme.fg("accent", `╰`) + theme.fg("dim", `▼`) + theme.fg("accent", `${"─".repeat(dashes)}╯`));
+		} else {
+			lines.push(theme.fg("accent", `╰${"─".repeat(innerWidth)}╯`));
+		}
+
 		this.setLayoutState(hitRegions, lines.length);
 		return lines;
 	}

@@ -202,6 +202,15 @@ export interface ButtonHitRegion {
 	rowOffset: number;
 }
 
+export interface DropdownDragState {
+	anchorRow: number;
+	anchorScrollOffset: number;
+	phase: "potential-tap" | "dragging";
+	tapRow: number;
+	tapCol: number;
+	hitButton?: ButtonSpec;
+}
+
 export interface DropdownOverlayState {
 	handle?: OverlayHandle;
 	visible: boolean;
@@ -210,6 +219,9 @@ export interface DropdownOverlayState {
 	width: number;
 	buttons: ButtonHitRegion[];
 	actualHeight: number;
+	scrollOffset: number;
+	maxVisibleItems: number;
+	drag?: DropdownDragState;
 }
 
 export interface BarDragState {
