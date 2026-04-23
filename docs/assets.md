@@ -12,7 +12,7 @@ It shows:
 
 - a portrait-oriented terminal layout
 - large top-row utility buttons
-- a stable prompt / prompt mirror area
+- a stable editor / input area
 - big bottom controls for paging, movement, and input
 - explicit model-switch affordance
 - visible provider/quota widgets
@@ -130,10 +130,10 @@ The repo now has the core written vision, but several assets would make the conc
 
 ### Technical assets
 
-- scaffold for a package or wrapper CLI
 - architecture diagram for the runtime stack
-- settings schema for phone mode
-- shell state model for widgets, jobs, and overlays
+- richer settings schema docs for phone mode
+- shell state model for widgets, jobs, overlays, favorites, and nav state
+- narrow-screen inspection surfaces for files, diffs, and tool output
 
 ### Demo assets
 

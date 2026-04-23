@@ -4,6 +4,17 @@
 
 `pi-phone-3gs` is a **phone-first terminal coding harness**: a touch-optimized TUI for a fully capable agent running on your own always-on machine.
 
+## Current status note
+
+Today this vision already has a concrete package implementation:
+
+- a modular Pi extension under `extensions/phone-shell/`
+- starter config/layout/favorites/state files bootstrapped on first load
+- auto-enabled touch mode for fresh installs
+- a header + viewport + favorites rail + overlays + optional nav pad
+
+So this doc is no longer describing a blank concept; it describes the direction of an actively dogfoodable shell.
+
 ## Core idea
 
 If Pi is the engine, and `pi-personal-package` is the proving ground for custom ergonomics, then `pi-phone-3gs` is the dedicated vehicle:

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the likely architectural shape of `pi-phone-3gs` based on the current research.
+This document describes the current architectural shape of `pi-phone-3gs` as implemented today, plus the larger direction it is aiming toward.
 
 ## High-level model
 
@@ -36,7 +36,7 @@ There is no required web control plane between the phone and the harness.
 │    macOS, portrait display profile, terminal emulator        │
 ├──────────────────────────────────────────────────────────────┤
 │ 3. Phone-first shell                                         │
-│    touch rails, prompt mirror, viewport, status widgets      │
+│    touch rails, editor controls, viewport, status widgets    │
 ├──────────────────────────────────────────────────────────────┤
 │ 4. Pi substrate                                              │
 │    agent runtime, sessions, tools, extensions, skills, TUI   │
@@ -56,7 +56,7 @@ There is no required web control plane between the phone and the harness.
 | **Host machine** | Runs the actual harness, tools, files, credentials, browsers, and local automation | Keeps the experience sovereign and fully capable |
 | **Remote access transport** | Lets a phone attach to the host terminal | Transport only; should not redefine the product |
 | **Terminal emulator** | Presents the actual TUI session | The terminal is the product surface |
-| **Phone-first shell** | Adds touch controls, narrow layouts, prompt mirror, edge actions, paging, safe fallbacks | This is the project's most distinctive layer |
+| **Phone-first shell** | Adds touch controls, narrow layouts, editor-aware controls, edge actions, paging, safe fallbacks | This is the project's most distinctive layer |
 | **Pi runtime** | Provides tool-calling agent runtime, sessions, commands, model integration | Strong base instead of reinventing the harness |
 | **Pi TUI layer** | Enables custom widgets, overlays, components, hit-testing, alternate views | Necessary for a serious portrait terminal UX |
 | **Extensions** | Add commands, widgets, hooks, tools, layout behaviors, status surfaces | Fast path for product iteration |
@@ -74,6 +74,32 @@ There is no required web control plane between the phone and the harness.
 
 This is where `pi-phone-3gs` most clearly differentiates itself.
 
+### Current implementation snapshot
+
+Today the shell is a Pi package with a modular extension entrypoint at:
+
+- `extensions/phone-shell/index.ts`
+
+On `session_start`, the extension:
+
+- captures Pi UI bindings
+- bootstraps starter files under `~/.pi/agent/pi-phone-3gs/` if they do not exist yet
+- loads config, layout, favorites, and persisted shell state
+- auto-enables touch mode by default for fresh installs via the seeded state file
+
+The current user-owned files are:
+
+- `phone-shell.config.json`
+- `phone-shell.layout.json`
+- `phone-shell.favorites.json`
+- `phone-shell.state.json`
+
+That means the install/update story is now:
+
+- package code provides sane defaults
+- first run seeds editable user files
+- later updates preserve local customization
+
 ### Responsibilities
 
 - reserve space for large tap targets
@@ -84,17 +110,19 @@ This is where `pi-phone-3gs` most clearly differentiates itself.
 - keep recovery controls near-at-hand
 - fail safely back to plain Pi behavior
 
-### Likely shell features
+### Current shell features
 
-Based on the current screenshot and `pi-touch` prototype:
+Implemented today:
 
-- top utility buttons (`/new`, `/reload`, `/compact`, `/resume`, `/tree`)
-- bottom navigation rail (`top`, `page up`, `model`, `page down`, `bottom`)
-- tap-friendly raw-key controls (`esc`, arrows, enter, slash, ctrl-c)
-- prompt mirror or stable editor strip
-- compact but always-visible provider/model/usage status
-- wrapping button groups for narrow widths
-- persisted touch-mode state with explicit kill-switches
+- a sticky 3-line header with tap targets for **FILE**, **SKILLS**, **VIEW**, **thinking level**, and **MODEL**
+- a scrollable chat viewport with top / page-up / page-down / bottom controls
+- a scrollable favorites rail at the bottom driven by `phone-shell.favorites.json`
+- dropdown overlays for utility commands, view toggles, and skills
+- an optional nav pad for arrows, enter, slash, backspace, tab, escape, follow-up, and `^C`
+- persisted shell state including whether touch mode is enabled and which panels are visible
+- safe teardown back to normal Pi behavior if touch mode is disabled
+
+The starter layout intentionally gives new installs a usable baseline instead of an empty shell.
 
 ## Capability categories
 
@@ -196,17 +224,37 @@ Selective borrowing only:
 
 But not the core product abstraction of "the assistant lives in channels."
 
-## Proposed implementation shape
+## Current concrete module shape
 
-A pragmatic implementation path would likely have three stages.
+Within `extensions/phone-shell/`, the implementation is split into focused modules:
 
-## Stage 1: Package-first shell
+- `index.ts` — extension entrypoint and event wiring
+- `config.ts` / `defaults.ts` — bootstrap, persistence, defaults, templates
+- `state.ts` — mutable runtime singleton + shared render context
+- `mode.ts` — install/uninstall of touch mode
+- `input.ts` — mouse/keyboard routing and action dispatch
+- `header.ts` — top header + agent state tracker
+- `viewport.ts` — chat viewport wrapper
+- `bar.ts` — favorites rail
+- `nav.ts` — optional nav pad
+- `overlay.ts` — dropdown overlay renderer
+- `button-panel.ts` / `button-helpers.ts` — shared button layout primitives
+- `editor.ts` — custom editor wrapper for sync/invalidation
+- `commands.ts` — `/phone-shell` command surface
 
-Build the first serious version mostly as a Pi package / extension stack:
+That split is important: the package is no longer just a rough prototype, it already has an internal architecture worth preserving.
+
+## Proposed next implementation shape
+
+A pragmatic forward path still looks like three stages.
+
+## Stage 1: Harden the package-first shell
+
+Continue improving the current Pi package / extension stack:
 
 - refine touch shell behaviors
-- define a stable portrait layout
-- add compact widgets and narrow-screen viewers
+- improve narrow-screen readability and discovery
+- harden the starter defaults and customization flow
 - prove the interaction model in daily use
 
 ## Stage 2: Dedicated wrapper / harness
@@ -258,6 +306,7 @@ The architecture is on track if it enables all of the following without heroic h
 - recovery actions reachable in one or two taps
 - background job visibility
 - access to subagents, loops, browser use, and GUI tools
+- starter installs that feel usable before any manual JSON editing
 - packageable customization instead of source forks everywhere
 - safe fallback to plain terminal behavior when the shell layer fails
 

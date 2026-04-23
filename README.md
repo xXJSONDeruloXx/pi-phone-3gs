@@ -65,6 +65,7 @@ Primary commands:
 - `/phone-shell show-layout`
 - `/phone-shell config-template`
 - `/phone-shell layout-template`
+- `/phone-shell favorites-template`
 - `/phone-shell paths`
 - `/touch` — quick toggle alias
 - `/pi-touch ...` — compatibility alias
@@ -90,14 +91,15 @@ This package is intentionally built so the core shell can stay clean while per-u
 
 - **behavior** lives in `phone-shell.config.json`
 - **button layout** lives in `phone-shell.layout.json`
+- **favorites rail entries** live in `phone-shell.favorites.json`
 - **session persistence / kill-switch state** lives in `phone-shell.state.json`
 
 The goal is to make it easy to:
 
 - change paging behavior
 - reorder buttons
-- swap buttons between top utility rail and bottom groups
-- add custom command buttons
+- swap buttons between top utility rail and grouped panels
+- add custom command buttons and starter favorites
 - keep local experimentation out of the shared package code
 
 ## What this project is aiming to be
@@ -171,9 +173,10 @@ This repo contains a working Pi package with a modular touch shell extension:
 - self-bootstrapping starter files on first load/update if user overrides are missing
 - auto-enabled touch mode by default via the seeded state file
 - per-user config/layout/favorites overrides in `~/.pi/agent/pi-phone-3gs/`
-- a sticky header bar with live agent state (phase, context usage, background jobs)
-- a scrollable viewport with page up/down controls
-- touch-optimized bottom bar, favorites rail, and utility overlay
+- a sticky header bar with live agent state, model, and thinking-level controls
+- a scrollable viewport with top / page-up / page-down / bottom controls
+- touch-optimized dropdown overlays for utility, view, and skills menus
+- a favorites rail and optional nav pad for common touch interactions
 
 Extension source lives in `extensions/phone-shell/` with one file per responsibility. See [AGENTS.md](AGENTS.md) for the full module map and conventions.
 
