@@ -1,10 +1,11 @@
 import { CustomEditor } from "@mariozechner/pi-coding-agent";
-import type { EditorTheme, TUI } from "@mariozechner/pi-tui";
+import type { Component, EditorTheme, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
 import { HEADER_HEIGHT } from "./defaults.js";
 import { state } from "./state.js";
 import type { ButtonHitRegion, ButtonSpec } from "./types.js";
+import type { KeybindingsManager } from "./pi-types.js";
 
 const INLINE_STASH_BUTTON: ButtonSpec = {
 	kind: "action",
@@ -83,7 +84,7 @@ function getEditorRow(): number {
 	const editorContainer = state.session.editorContainer;
 	if (!tui || !editorContainer) return 0;
 
-	const editorIndex = tui.children.indexOf(editorContainer as any);
+	const editorIndex = tui.children.indexOf(editorContainer as unknown as Component);
 	if (editorIndex < 0) return 0;
 
 	let row = 1;
@@ -102,7 +103,7 @@ export class PhoneShellEditor extends CustomEditor {
 	constructor(
 		tui: TUI,
 		theme: EditorTheme,
-		keybindings: any,
+		keybindings: KeybindingsManager,
 		private readonly onUpdate: () => void,
 	) {
 		super(tui, theme, keybindings);

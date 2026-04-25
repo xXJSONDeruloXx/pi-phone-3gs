@@ -3,6 +3,7 @@ import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, getViewMenuButtons, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
 import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleViewportJumpButtons } from "./mode.js";
+import type { PiExtensionCtx } from "./pi-types.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -704,7 +705,7 @@ export {
 // Input handler registration
 // ---------------------------------------------------------------------------
 
-export function registerInputHandler(ctx: { ui: any }): void {
+export function registerInputHandler(ctx: PiExtensionCtx): void {
 	unregisterInputHandler();
 	state.inputUnsubscribe = ctx.ui.onTerminalInput((data: string) => {
 		state.diagnostics.lastInput = visualizeInput(data);
@@ -752,7 +753,7 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			const modelsDropdownResponse = handleModelsDropdownMouse(mouse);
 			if (modelsDropdownResponse) return modelsDropdownResponse;
 
-			const editorChildren = (state.session.editorContainer as { children?: unknown[] } | undefined)?.children;
+			const editorChildren = state.session.editorContainer?.children;
 			const editorVisible = Array.isArray(editorChildren) && !!state.session.phoneShellEditor && editorChildren.includes(state.session.phoneShellEditor);
 			const inEditor = editorVisible && state.ui.editor.row > 0 && mouse.row >= state.ui.editor.row && mouse.row < state.ui.editor.row + state.ui.editor.height;
 			if (inEditor) {
