@@ -81,7 +81,7 @@ function deriveButtonId(prefix: string, index: number, label: string): string {
 	return slug ? `${prefix}-${slug}` : `${prefix}-${index}`;
 }
 
-function parseButtonSpec(value: unknown, prefix: string, index: number, errors: string[]): ButtonSpec | undefined {
+export function parseButtonSpec(value: unknown, prefix: string, index: number, errors: string[]): ButtonSpec | undefined {
 	if (!isRecord(value)) {
 		errors.push(`${prefix}[${index}] must be an object`);
 		return undefined;
@@ -147,7 +147,7 @@ function parseButtonSpec(value: unknown, prefix: string, index: number, errors: 
 	return undefined;
 }
 
-function parseLayout(value: unknown): { layout: PhoneShellLayout; errors: string[] } {
+export function parseLayout(value: unknown): { layout: PhoneShellLayout; errors: string[] } {
 	const errors: string[] = [];
 	if (!isRecord(value)) {
 		return { layout: DEFAULT_LAYOUT, errors: ["layout file must contain a JSON object"] };
@@ -195,7 +195,7 @@ function parseLayout(value: unknown): { layout: PhoneShellLayout; errors: string
 	};
 }
 
-function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string[] } {
+export function parseConfig(value: unknown): { config: PhoneShellConfig; errors: string[] } {
 	const errors: string[] = [];
 	if (!isRecord(value)) {
 		return { config: DEFAULT_CONFIG, errors: ["config file must contain a JSON object"] };
