@@ -14,7 +14,8 @@ import {
 } from "./defaults.js";
 import { PhoneShellEditor } from "./editor.js";
 import { HeaderBarComponent } from "./header.js";
-import { hideModelsOverlay, hideSkillsOverlay, hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
+import { hideModelsOverlay, hideSkillsOverlay, hideUtilityOverlay, hideViewOverlay, showUtilityOverlay } from "./dropdowns.js";
+import { registerInputHandler, unregisterInputHandler } from "./input.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, state } from "./state.js";
 import type { PersistedShellState } from "./types.js";
 import { NavigationPadComponent } from "./nav.js";
