@@ -2,6 +2,7 @@ import type { Component, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { makeButtonWidth, padLineToWidth, renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ViewportDebugState } from "./types.js";
+import { queueLog, scheduleRender, state } from "./state.js";
 
 const VIEWPORT_TOP_BUTTON: ButtonSpec = {
 	kind: "action",
@@ -35,6 +36,8 @@ export class TouchViewport implements Component {
 	readonly __piPhoneViewport = true;
 
 	private scrollTop = 0;
+	/** Fractional scrollTop for smooth sub-row momentum animation. */
+	private scrollTopFractional = 0;
 	private followBottom = true;
 	private lastVisibleHeight = 1;
 	private lastTotalLines = 0;
@@ -61,8 +64,12 @@ export class TouchViewport implements Component {
 		const lines = this.content.render(width);
 		const maxTop = Math.max(0, lines.length - visibleHeight);
 
-		if (this.followBottom) this.scrollTop = maxTop;
+		if (this.followBottom) {
+			this.scrollTop = maxTop;
+			this.scrollTopFractional = maxTop;
+		}
 		this.scrollTop = Math.max(0, Math.min(maxTop, this.scrollTop));
+		this.scrollTopFractional = Math.max(0, Math.min(maxTop, this.scrollTopFractional));
 		this.lastVisibleHeight = visibleHeight;
 		this.lastTotalLines = lines.length;
 		this.lastMaxTop = maxTop;
@@ -116,6 +123,7 @@ export class TouchViewport implements Component {
 		if (delta === 0) return;
 		this.followBottom = false;
 		this.scrollTop = Math.max(0, Math.min(this.lastMaxTop, this.scrollTop + delta));
+		this.scrollTopFractional = this.scrollTop;
 		if (this.scrollTop >= this.lastMaxTop) this.followBottom = true;
 		this.tui.requestRender();
 	}
@@ -131,19 +139,39 @@ export class TouchViewport implements Component {
 	toTop(): void {
 		this.followBottom = false;
 		this.scrollTop = 0;
+		this.scrollTopFractional = 0;
+		this.cancelMomentum();
 		this.tui.requestRender();
 	}
 
 	toBottom(): void {
 		this.followBottom = true;
 		this.scrollTop = this.lastMaxTop;
+		this.scrollTopFractional = this.lastMaxTop;
+		this.cancelMomentum();
 		this.tui.requestRender();
 	}
 
 	setScrollTop(scrollTop: number): void {
 		this.followBottom = false;
 		this.scrollTop = Math.max(0, Math.min(this.lastMaxTop, Math.round(scrollTop)));
+		this.scrollTopFractional = this.scrollTop;
 		if (this.scrollTop >= this.lastMaxTop) this.followBottom = true;
+		this.tui.requestRender();
+	}
+
+	/**
+	 * Set fractional scrollTop for smooth momentum animation.
+	 * Supports rubber-banding beyond content edges.
+	 */
+	setScrollTopSmooth(scrollTop: number): void {
+		this.followBottom = false;
+		this.scrollTopFractional = scrollTop;
+		// Clamp integer scrollTop to content bounds for rendering
+		this.scrollTop = Math.max(0, Math.min(this.lastMaxTop, Math.round(scrollTop)));
+		if (this.scrollTop >= this.lastMaxTop && scrollTop >= this.lastMaxTop) {
+			this.followBottom = true;
+		}
 		this.tui.requestRender();
 	}
 
@@ -157,6 +185,113 @@ export class TouchViewport implements Component {
 			followBottom: this.followBottom,
 			percent,
 		};
+	}
+
+	// ---------------------------------------------------------------------------
+	// Kinetic / momentum scrolling
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Start a momentum animation from the given initial velocity (rows/frame).
+	 * Handles rubber-banding at content edges and exponential deceleration.
+	 */
+	startMomentum(initialVelocity: number): void {
+		this.cancelMomentum();
+
+		const config = this.ctx.getConfig().kineticScroll;
+		if (!config.enabled) return;
+
+		if (Math.abs(initialVelocity) < config.stopThreshold) return;
+
+		const momentum = {
+			velocity: initialVelocity,
+			AnimationFrame: undefined as ReturnType<typeof setInterval> | undefined,
+		};
+		this.ctx.state.ui.viewport.momentum = momentum;
+
+		queueLog(`momentum: start velocity=${initialVelocity.toFixed(3)}`);
+
+		momentum.AnimationFrame = setInterval(() => {
+			// Check if momentum was cancelled externally (e.g. new drag started)
+			if (!this.ctx.state.ui.viewport.momentum || this.ctx.state.ui.viewport.momentum !== momentum) {
+				this.cancelMomentum();
+				return;
+			}
+
+			let velocity = momentum.velocity;
+			let pos = this.scrollTopFractional;
+
+			// Apply rubber-banding force when overscrolled
+			if (pos < 0) {
+				// Above top: pull back toward 0
+				const overscroll = Math.abs(pos);
+				const maxOverscroll = config.maxOverscrollRows;
+				const resistance = Math.max(0, 1 - overscroll / maxOverscroll);
+				velocity += overscroll * config.rubberBandStiffness;
+				velocity *= resistance;
+			} else if (pos > this.lastMaxTop) {
+				// Below bottom: pull back toward maxTop
+				const overscroll = pos - this.lastMaxTop;
+				const maxOverscroll = config.maxOverscrollRows;
+				const resistance = Math.max(0, 1 - overscroll / maxOverscroll);
+				velocity -= overscroll * config.rubberBandStiffness;
+				velocity *= resistance;
+			}
+
+			// Apply friction
+			velocity *= config.friction;
+			pos += velocity;
+
+			// Hard clamp to prevent runaway overscroll
+			const maxOverscroll = config.maxOverscrollRows;
+			pos = Math.max(-maxOverscroll, Math.min(this.lastMaxTop + maxOverscroll, pos));
+
+			// Stop if velocity is low enough and we're within bounds
+			const nearEdge = pos < 0 || pos > this.lastMaxTop;
+			if (Math.abs(velocity) < config.stopThreshold) {
+				if (nearEdge) {
+					// Snap back to boundary
+					pos = pos < 0 ? 0 : this.lastMaxTop;
+				} else {
+					// Natural stop within content
+					this.cancelMomentum();
+					this.setScrollTopSmooth(pos);
+					return;
+				}
+			}
+
+			// If rubber-banding and velocity changed direction (snap back), let it settle
+			if (nearEdge && pos < 0 && velocity > 0 && Math.abs(pos) < 0.5) {
+				pos = 0;
+				velocity = 0;
+			}
+			if (nearEdge && pos > this.lastMaxTop && velocity < 0 && Math.abs(pos - this.lastMaxTop) < 0.5) {
+				pos = this.lastMaxTop;
+				velocity = 0;
+			}
+
+			momentum.velocity = velocity;
+			this.setScrollTopSmooth(pos);
+
+			// If velocity died after snapping, end momentum
+			if (Math.abs(velocity) < config.stopThreshold) {
+				this.cancelMomentum();
+				this.setScrollTopSmooth(pos);
+			}
+		}, config.frameIntervalMs);
+	}
+
+	/**
+	 * Cancel any active momentum animation.
+	 */
+	cancelMomentum(): void {
+		const momentum = this.ctx.state.ui.viewport.momentum;
+		if (momentum?.AnimationFrame) {
+			clearInterval(momentum.AnimationFrame);
+		}
+		this.ctx.state.ui.viewport.momentum = undefined;
+		// Snap fractional position to integer
+		this.scrollTopFractional = this.scrollTop;
 	}
 
 	private getPageSize(): number {

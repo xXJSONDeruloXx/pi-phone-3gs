@@ -120,6 +120,8 @@ export const state: RuntimeState = {
 			height: 0,
 			buttons: [],
 			drag: undefined,
+			velocitySamples: [],
+			momentum: undefined,
 		},
 		editor: {
 			row: 0,

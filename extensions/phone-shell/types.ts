@@ -127,6 +127,21 @@ export interface PhoneShellConfig {
 		pageOverlapLines: number;
 		minPageScrollLines: number;
 	};
+	kineticScroll: {
+		enabled: boolean;
+		/** Number of recent drag samples to use for velocity estimation. */
+		velocitySampleCount: number;
+		/** Friction multiplier applied each frame (< 1). Higher = slower deceleration. */
+		friction: number;
+		/** Minimum velocity (rows/frame) below which momentum stops. */
+		stopThreshold: number;
+		/** Rubber-band stiffness: how strongly overscroll is pulled back (0–1). */
+		rubberBandStiffness: number;
+		/** Max overscroll distance in rows beyond content edges. */
+		maxOverscrollRows: number;
+		/** Animation frame interval in ms (~16 = 60fps). */
+		frameIntervalMs: number;
+	};
 	utilityOverlay: {
 		autoOpenOnEnable: boolean;
 		keepOpenAfterButtonActivation: boolean;
@@ -222,6 +237,9 @@ export interface ViewportController extends Component {
 	pageDown(): void;
 	toBottom(): void;
 	setScrollTop(scrollTop: number): void;
+	setScrollTopSmooth(scrollTop: number): void;
+	startMomentum(initialVelocity: number): void;
+	cancelMomentum(): void;
 	getDebugState(): ViewportDebugState;
 }
 
@@ -278,15 +296,29 @@ export interface NavLayoutState {
 	placement: "hidden" | "top" | "bottom";
 }
 
+export interface ViewportDragState {
+	anchorRow: number;
+	anchorScrollTop: number;
+	lastRow: number;
+}
+
+export interface VelocitySample {
+	row: number;
+	time: number;
+}
+
+export interface MomentumState {
+	velocity: number;
+	AnimationFrame: ReturnType<typeof setInterval> | undefined;
+}
+
 export interface ViewportLayoutState {
 	row: number;
 	height: number;
 	buttons: ButtonHitRegion[];
-	drag?: {
-		anchorRow: number;
-		anchorScrollTop: number;
-		lastRow: number;
-	};
+	drag?: ViewportDragState;
+	velocitySamples: VelocitySample[];
+	momentum?: MomentumState;
 }
 
 export interface EditorLayoutState {

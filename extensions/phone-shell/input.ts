@@ -54,6 +54,8 @@ function handleViewportWheel(mouse: MouseInput): InputResponse {
 	if (!direction) return { consume: true };
 	if (!isViewportRow(mouse.row)) return { consume: true };
 	if (direction === "left" || direction === "right") return { consume: true };
+	// Cancel any active momentum before wheel scrolling
+	state.session.viewport?.cancelMomentum();
 	const delta = direction === "up" ? -VIEWPORT_WHEEL_SCROLL_LINES : VIEWPORT_WHEEL_SCROLL_LINES;
 	state.session.viewport?.scrollLines(delta);
 	setLastAction(`mouse:viewport-wheel-${direction}`);
@@ -100,12 +102,50 @@ function finishBarDrag(mouse: MouseInput): InputResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Viewport drag
+// Viewport drag + kinetic scroll helpers
 // ---------------------------------------------------------------------------
+
+const MAX_VELOCITY_SAMPLES = 8;
+
+function recordVelocitySample(row: number): void {
+	const samples = state.ui.viewport.velocitySamples;
+	const now = performance.now();
+	samples.push({ row, time: now });
+	// Keep only the most recent samples
+	while (samples.length > MAX_VELOCITY_SAMPLES) samples.shift();
+}
+
+function computeDragVelocity(): number {
+	const samples = state.ui.viewport.velocitySamples;
+	const config = state.config.kineticScroll;
+	if (!config.enabled || samples.length < 2) return 0;
+
+	// Use the last N samples (configured count) for velocity estimation
+	const recent = samples.slice(-config.velocitySampleCount);
+	if (recent.length < 2) return 0;
+
+	const first = recent[0]!;
+	const last = recent[recent.length - 1]!;
+	const dt = last.time - first.time;
+	if (dt <= 0) return 0;
+
+	// Row delta per millisecond, scaled to frames at configured frame rate
+	const rowDelta = last.row - first.row;
+	const velocityPerMs = rowDelta / dt;
+	// Convert to rows/frame at the configured frame interval
+	const velocityPerFrame = velocityPerMs * config.frameIntervalMs;
+
+	// Negate because dragging down (positive row delta) scrolls content up (negative scroll)
+	return -velocityPerFrame;
+}
 
 function startViewportDrag(mouse: MouseInput): InputResponse {
 	const debug = state.session.viewport?.getDebugState();
 	if (!debug) return { consume: true };
+	// Cancel any active momentum before starting a new drag
+	state.session.viewport?.cancelMomentum();
+	state.ui.viewport.velocitySamples = [];
+	recordVelocitySample(mouse.row);
 	state.ui.viewport.drag = {
 		anchorRow: mouse.row,
 		anchorScrollTop: debug.scrollTop,
@@ -119,7 +159,21 @@ function updateViewportDrag(mouse: MouseInput): InputResponse {
 	if (!state.ui.viewport.drag || !state.session.viewport) return { consume: true };
 	const deltaRows = mouse.row - state.ui.viewport.drag.anchorRow;
 	state.ui.viewport.drag.lastRow = mouse.row;
-	state.session.viewport.setScrollTop(state.ui.viewport.drag.anchorScrollTop - deltaRows);
+	recordVelocitySample(mouse.row);
+
+	const config = state.config.kineticScroll;
+	if (config.enabled) {
+		// During drag, allow rubber-banding beyond content edges
+		const rawTarget = state.ui.viewport.drag.anchorScrollTop - deltaRows;
+		const maxOverscroll = config.maxOverscrollRows;
+		const clamped = Math.max(-maxOverscroll, Math.min(
+			state.session.viewport.getDebugState().maxTop + maxOverscroll,
+			rawTarget,
+		));
+		state.session.viewport.setScrollTopSmooth(clamped);
+	} else {
+		state.session.viewport.setScrollTop(state.ui.viewport.drag.anchorScrollTop - deltaRows);
+	}
 	return { consume: true };
 }
 
@@ -127,7 +181,15 @@ function finishViewportDrag(mouse: MouseInput): InputResponse {
 	if (!state.ui.viewport.drag) return { consume: true };
 	const moved = Math.abs(mouse.row - state.ui.viewport.drag.anchorRow);
 	state.ui.viewport.drag = undefined;
-	if (moved > 0) setLastAction("mouse:viewport-drag-end");
+
+	// Compute velocity and start momentum if significant
+	if (moved > 0 && state.session.viewport) {
+		recordVelocitySample(mouse.row);
+		const velocity = computeDragVelocity();
+		state.ui.viewport.velocitySamples = [];
+		state.session.viewport.startMomentum(velocity);
+		setLastAction("mouse:viewport-drag-end");
+	}
 	return { consume: true };
 }
 
@@ -393,6 +455,8 @@ export function unregisterInputHandler(): void {
 	state.inputUnsubscribe?.();
 	state.inputUnsubscribe = undefined;
 	state.ui.viewport.drag = undefined;
+	state.ui.viewport.velocitySamples = [];
+	state.session.viewport?.cancelMomentum();
 	state.ui.bar.drag = undefined;
 	state.ui.overlays.skills.drag = undefined;
 	state.ui.overlays.models.drag = undefined;

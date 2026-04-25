@@ -222,6 +222,9 @@ export function parseConfig(value: unknown): { config: PhoneShellConfig; errors:
 	const logging = isRecord(value.logging) ? value.logging : {};
 	if (value.logging !== undefined && !isRecord(value.logging)) errors.push("logging must be an object");
 
+	const kineticScroll = isRecord(value.kineticScroll) ? value.kineticScroll : {};
+	if (value.kineticScroll !== undefined && !isRecord(value.kineticScroll)) errors.push("kineticScroll must be an object");
+
 	const config: PhoneShellConfig = {
 		header: {
 			enabled: readBoolean(header, "enabled", DEFAULT_CONFIG.header.enabled),
@@ -255,6 +258,15 @@ export function parseConfig(value: unknown): { config: PhoneShellConfig; errors:
 		},
 		logging: {
 			tailLines: Math.max(10, Math.floor(readNumber(logging, "tailLines", DEFAULT_CONFIG.logging.tailLines))),
+		},
+		kineticScroll: {
+			enabled: readBoolean(kineticScroll, "enabled", DEFAULT_CONFIG.kineticScroll.enabled),
+			velocitySampleCount: Math.max(2, Math.floor(readNumber(kineticScroll, "velocitySampleCount", DEFAULT_CONFIG.kineticScroll.velocitySampleCount))),
+			friction: Math.min(0.999, Math.max(0.8, readNumber(kineticScroll, "friction", DEFAULT_CONFIG.kineticScroll.friction))),
+			stopThreshold: Math.max(0.01, readNumber(kineticScroll, "stopThreshold", DEFAULT_CONFIG.kineticScroll.stopThreshold)),
+			rubberBandStiffness: Math.min(1, Math.max(0.01, readNumber(kineticScroll, "rubberBandStiffness", DEFAULT_CONFIG.kineticScroll.rubberBandStiffness))),
+			maxOverscrollRows: Math.max(1, Math.floor(readNumber(kineticScroll, "maxOverscrollRows", DEFAULT_CONFIG.kineticScroll.maxOverscrollRows))),
+			frameIntervalMs: Math.max(8, Math.floor(readNumber(kineticScroll, "frameIntervalMs", DEFAULT_CONFIG.kineticScroll.frameIntervalMs))),
 		},
 	};
 

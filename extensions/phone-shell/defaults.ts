@@ -53,6 +53,15 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 		pageOverlapLines: 20,
 		minPageScrollLines: 3,
 	},
+	kineticScroll: {
+		enabled: true,
+		velocitySampleCount: 5,
+		friction: 0.95,
+		stopThreshold: 0.15,
+		rubberBandStiffness: 0.12,
+		maxOverscrollRows: 8,
+		frameIntervalMs: 16,
+	},
 	utilityOverlay: {
 		autoOpenOnEnable: false,
 		keepOpenAfterButtonActivation: true,
