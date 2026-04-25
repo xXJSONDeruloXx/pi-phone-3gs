@@ -174,7 +174,8 @@ export interface MouseInput {
 	code: number;
 	col: number;
 	row: number;
-	phase: "press" | "release" | "move";
+	phase: "press" | "release" | "move" | "scroll";
+	scrollDirection?: "up" | "down" | "left" | "right";
 }
 
 export interface ViewportDebugState {
@@ -187,6 +188,7 @@ export interface ViewportDebugState {
 }
 
 export interface ViewportController extends Component {
+	scrollLines(delta: number): void;
 	toTop(): void;
 	pageUp(): void;
 	pageDown(): void;

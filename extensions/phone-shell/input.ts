@@ -13,16 +13,26 @@ import type {
 // Mouse helpers
 // ---------------------------------------------------------------------------
 
+const VIEWPORT_WHEEL_SCROLL_LINES = 3;
+
 export function parseMouseInput(data: string): MouseInput | undefined {
 	const match = data.match(/^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/);
 	if (!match) return undefined;
 	const code = Number.parseInt(match[1]!, 10);
+	const isWheel = match[4] !== "m" && (code & 64) !== 0;
+	const scrollDirection = isWheel
+		? ((code & 0b11) === 0 ? "up"
+			: (code & 0b11) === 1 ? "down"
+				: (code & 0b11) === 2 ? "left"
+					: "right")
+		: undefined;
 	return {
 		raw: data,
 		code,
 		col: Number.parseInt(match[2]!, 10),
 		row: Number.parseInt(match[3]!, 10),
-		phase: match[4] === "m" ? "release" : ((code & 32) !== 0 ? "move" : "press"),
+		phase: match[4] === "m" ? "release" : isWheel ? "scroll" : ((code & 32) !== 0 ? "move" : "press"),
+		scrollDirection,
 	};
 }
 
@@ -63,6 +73,15 @@ export function findHitRegion(buttons: ButtonHitRegion[], rowOffset: number, col
 
 function isViewportRow(row: number): boolean {
 	return state.ui.viewport.row > 0 && row >= state.ui.viewport.row && row < state.ui.viewport.row + state.ui.viewport.height;
+}
+
+function isDropdownRow(kind: DropdownKind, row: number, col: number): boolean {
+	const overlay = getDropdownOverlayState(kind);
+	return overlay.visible
+		&& row >= overlay.row + 1
+		&& row <= overlay.row + overlay.actualHeight
+		&& col >= overlay.col
+		&& col <= overlay.col + overlay.width - 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +152,35 @@ function finishViewportDrag(mouse: MouseInput): InputResponse {
 	const moved = Math.abs(mouse.row - state.ui.viewport.drag.anchorRow);
 	state.ui.viewport.drag = undefined;
 	if (moved > 0) setLastAction("mouse:viewport-drag-end");
+	return { consume: true };
+}
+
+function handleSkillsDropdownWheel(mouse: MouseInput): InputResponse {
+	const direction = mouse.scrollDirection;
+	if (!direction) return { consume: true };
+	if (!isDropdownRow("skills", mouse.row, mouse.col)) return undefined;
+	if (direction === "left" || direction === "right") return { consume: true };
+	const overlay = state.ui.overlays.skills;
+	const totalButtons = getSkillsMenuButtons().length;
+	const maxOffset = Math.max(0, totalButtons - overlay.maxVisibleItems);
+	const delta = direction === "up" ? -1 : 1;
+	const nextOffset = Math.max(0, Math.min(maxOffset, overlay.scrollOffset + delta));
+	if (nextOffset !== overlay.scrollOffset) {
+		overlay.scrollOffset = nextOffset;
+		setLastAction(`mouse:skills-wheel-${direction}`);
+		scheduleRender();
+	}
+	return { consume: true };
+}
+
+function handleViewportWheel(mouse: MouseInput): InputResponse {
+	const direction = mouse.scrollDirection;
+	if (!direction) return { consume: true };
+	if (!isViewportRow(mouse.row)) return { consume: true };
+	if (direction === "left" || direction === "right") return { consume: true };
+	const delta = direction === "up" ? -VIEWPORT_WHEEL_SCROLL_LINES : VIEWPORT_WHEEL_SCROLL_LINES;
+	state.session.viewport?.scrollLines(delta);
+	setLastAction(`mouse:viewport-wheel-${direction}`);
 	return { consume: true };
 }
 
@@ -494,6 +542,11 @@ export function registerInputHandler(ctx: { ui: any }): void {
 				queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
 			}
 			if (!state.shell.enabled) return { consume: true };
+			if (mouse.phase === "scroll") {
+				const skillsWheelResponse = state.ui.overlays.skills.visible ? handleSkillsDropdownWheel(mouse) : undefined;
+				if (skillsWheelResponse) return skillsWheelResponse;
+				return handleViewportWheel(mouse);
+			}
 			if (state.ui.bar.drag && mouse.phase === "release") return finishBarDrag(mouse);
 			if (state.ui.bar.drag && isPrimaryPointerDrag(mouse)) return updateBarDrag(mouse);
 			if (state.ui.viewport.drag && mouse.phase === "release") return finishViewportDrag(mouse);
