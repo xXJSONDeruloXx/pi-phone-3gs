@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMMAND, TOGGLE_SHORTCUT } from "./defaults.js";
 import { ensureStarterFiles, loadPersistedShellState } from "./config.js";
 import { AgentStateTracker } from "./header.js";
-import { captureUiBindings, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
+import { captureUiBindings, queueLog, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
 import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 
@@ -85,8 +85,9 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			if (created.length > 0) {
 				ctx.ui.notify(`phone-shell starter files created (${created.length})`, "info");
 			}
-		} catch {
+		} catch (e) {
 			// Never let bootstrap failures break pi.
+			queueLog(`ensureStarterFiles failed: ${e}`);
 		}
 		await reloadRuntimeSettings(ctx, false);
 		try {
@@ -98,11 +99,12 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			state.shell.topEditorStashButtonVisible = persisted.topEditorStashButtonVisible;
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
-				await enableTouchMode(ctx, false).catch(() => undefined);
+				await enableTouchMode(ctx, false).catch((e) => queueLog(`enableTouchMode failed: ${e}`));
 				if (persisted.proxyOnly) toggleEditorPosition();
 			}, 200);
-		} catch {
+		} catch (e) {
 			// Never let startup failures break pi.
+			queueLog(`session_start state restore failed: ${e}`);
 		}
 	});
 

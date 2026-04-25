@@ -271,7 +271,7 @@ export function toggleEditorPosition(): void {
 		syncNavPadPlacement();
 		queueLog("proxy mode: editor at top");
 		state.session.tui.requestRender(true);
-		void persistShellState().catch(() => undefined);
+		void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 		return;
 	}
 	// Switch to native mode: restore editor to bottom
@@ -281,14 +281,14 @@ export function toggleEditorPosition(): void {
 	syncNavPadPlacement();
 	queueLog("proxy mode: editor at bottom");
 	state.session.tui.requestRender(true);
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 }
 
 export function toggleBottomBar(): void {
 	if (!state.shell.enabled) return;
 	state.shell.barVisible = !state.shell.barVisible;
 	syncBottomWidgets();
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	state.session.tui?.requestRender(true);
 }
 
@@ -296,28 +296,28 @@ export function toggleNavPad(): void {
 	if (!state.shell.enabled) return;
 	state.shell.navPadVisible = !state.shell.navPadVisible;
 	syncNavPadPlacement();
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	state.session.tui?.requestRender(true);
 }
 
 export function toggleViewportJumpButtons(): void {
 	if (!state.shell.enabled) return;
 	state.shell.viewportJumpButtonsVisible = !state.shell.viewportJumpButtonsVisible;
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	state.session.tui?.requestRender(true);
 }
 
 export function toggleTopEditorSendButton(): void {
 	if (!state.shell.enabled) return;
 	state.shell.topEditorSendButtonVisible = !state.shell.topEditorSendButtonVisible;
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	state.session.tui?.requestRender(true);
 }
 
 export function toggleTopEditorStashButton(): void {
 	if (!state.shell.enabled) return;
 	state.shell.topEditorStashButtonVisible = !state.shell.topEditorStashButtonVisible;
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	state.session.tui?.requestRender(true);
 }
 
@@ -441,7 +441,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
-	if (persist) await persistShellState().catch(() => undefined);
+	if (persist) await persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	ctx.ui.setStatus(STATUS_KEY, touchStatusText());
 	if (state.diagnostics.loadErrors.length > 0) {
 		ctx.ui.notify(`phone-shell enabled • ${state.diagnostics.loadErrors.length} config warning(s)`, "warning");
@@ -474,7 +474,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 		destroyPanel();
 		clearCapturedTui();
 	}
-	if (persist) await persistShellState().catch(() => undefined);
+	if (persist) await persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	ctx?.ui.notify("phone-shell disabled", "info");
 	queueLog(`disabled permanent=${permanent}`);
 }

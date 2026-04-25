@@ -210,12 +210,12 @@ export const renderContext: PhoneShellRenderContext = {
 
 export function queueLog(message: string): void {
 	state.diagnostics.logQueue = state.diagnostics.logQueue
-		.catch(() => undefined)
+		.catch(() => undefined) // absorb any prior queue rejection — never let logger errors cascade
 		.then(async () => {
 			await fs.mkdir(path.dirname(state.paths.log), { recursive: true });
 			await fs.appendFile(state.paths.log, `${new Date().toISOString()} ${message}\n`, "utf8");
 		})
-		.catch(() => undefined);
+		.catch(() => undefined); // suppress write errors — can't log them without infinite recursion
 }
 
 export function scheduleRender(): void {
