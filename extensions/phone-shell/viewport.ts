@@ -64,7 +64,7 @@ export class TouchViewport implements Component {
 		const lines = this.content.render(width);
 		const maxTop = Math.max(0, lines.length - visibleHeight);
 
-		if (this.followBottom) {
+		if (this.followBottom && this.scrollTopFractional >= 0 && this.scrollTopFractional <= maxTop) {
 			this.scrollTop = maxTop;
 			this.scrollTopFractional = maxTop;
 		}
@@ -190,7 +190,7 @@ export class TouchViewport implements Component {
 		// Integer scrollTop for rendering is clamped to content bounds;
 		// the render() method handles showing overscroll from scrollTopFractional.
 		this.scrollTop = Math.max(0, Math.min(this.lastMaxTop, Math.round(scrollTop)));
-		if (this.scrollTop >= this.lastMaxTop && scrollTop >= this.lastMaxTop) {
+		if (this.scrollTop >= this.lastMaxTop && scrollTop <= this.lastMaxTop) {
 			this.followBottom = true;
 		}
 		this.tui.requestRender();
