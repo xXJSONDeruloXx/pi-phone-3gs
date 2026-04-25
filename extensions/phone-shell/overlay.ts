@@ -41,8 +41,11 @@ export class ButtonDropdownOverlayComponent implements Component {
 	render(width: number): string[] {
 		const theme = this.ctx.getTheme();
 		const innerWidth = Math.max(1, width - 2);
-		// Keep each button row flush with the outer frame: 1 border + 1 space pad on each side.
-		const buttonInnerWidth = Math.max(3, innerWidth - 2);
+		// Each button row is: │ space [╭─╮ content ╭─╮] space │
+		// = 1 + 1 + (buttonInnerWidth + 2) + 1 + 1 = buttonInnerWidth + 6
+		// For lines to fit in `width` = innerWidth + 2:
+		//   buttonInnerWidth + 6 = width  →  buttonInnerWidth = innerWidth - 4
+		const buttonInnerWidth = Math.max(3, innerWidth - 4);
 		const lines: string[] = [];
 		const hitRegions: ButtonHitRegion[] = [];
 		const colStart = this.getOverlayCol();
