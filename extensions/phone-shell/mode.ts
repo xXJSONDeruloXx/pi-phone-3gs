@@ -284,42 +284,27 @@ export function toggleEditorPosition(): void {
 	void persistShellState().catch(() => undefined);
 }
 
-export function toggleBottomBar(): void {
-	if (!state.shell.enabled) return;
-	state.shell.barVisible = !state.shell.barVisible;
-	syncBottomWidgets();
-	void persistShellState().catch(() => undefined);
-	state.session.tui?.requestRender(true);
+// ---------------------------------------------------------------------------
+// Toggle factory
+// ---------------------------------------------------------------------------
+
+type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible";
+
+function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): () => void {
+	return function toggle(): void {
+		if (!state.shell.enabled) return;
+		state.shell[key] = !state.shell[key];
+		syncFn();
+		void persistShellState().catch(() => undefined);
+		state.session.tui?.requestRender(true);
+	};
 }
 
-export function toggleNavPad(): void {
-	if (!state.shell.enabled) return;
-	state.shell.navPadVisible = !state.shell.navPadVisible;
-	syncNavPadPlacement();
-	void persistShellState().catch(() => undefined);
-	state.session.tui?.requestRender(true);
-}
-
-export function toggleViewportJumpButtons(): void {
-	if (!state.shell.enabled) return;
-	state.shell.viewportJumpButtonsVisible = !state.shell.viewportJumpButtonsVisible;
-	void persistShellState().catch(() => undefined);
-	state.session.tui?.requestRender(true);
-}
-
-export function toggleTopEditorSendButton(): void {
-	if (!state.shell.enabled) return;
-	state.shell.topEditorSendButtonVisible = !state.shell.topEditorSendButtonVisible;
-	void persistShellState().catch(() => undefined);
-	state.session.tui?.requestRender(true);
-}
-
-export function toggleTopEditorStashButton(): void {
-	if (!state.shell.enabled) return;
-	state.shell.topEditorStashButtonVisible = !state.shell.topEditorStashButtonVisible;
-	void persistShellState().catch(() => undefined);
-	state.session.tui?.requestRender(true);
-}
+export const toggleBottomBar = makeToggle("barVisible", syncBottomWidgets);
+export const toggleNavPad = makeToggle("navPadVisible", syncNavPadPlacement);
+export const toggleViewportJumpButtons = makeToggle("viewportJumpButtonsVisible");
+export const toggleTopEditorSendButton = makeToggle("topEditorSendButtonVisible");
+export const toggleTopEditorStashButton = makeToggle("topEditorStashButtonVisible");
 
 // ---------------------------------------------------------------------------
 // Bottom widgets + nav pad placement

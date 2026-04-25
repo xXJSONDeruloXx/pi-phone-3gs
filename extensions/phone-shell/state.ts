@@ -5,6 +5,7 @@ import path from "node:path";
 import { DEFAULT_CONFIG } from "./defaults.js";
 import { getPhoneShellPaths, loadFavorites, loadPhoneShellSettings } from "./config.js";
 import type {
+	DropdownOverlayState,
 	FavoriteEntry,
 	MouseInput,
 	PhoneShellConfig,
@@ -18,6 +19,22 @@ import type { AgentStateTracker } from "./header.js";
 // ---------------------------------------------------------------------------
 // Runtime state
 // ---------------------------------------------------------------------------
+
+/** Factory for the repeated zero-value overlay state shape. */
+function createDropdownOverlayState(): DropdownOverlayState {
+	return {
+		handle: undefined,
+		visible: false,
+		row: 0,
+		col: 0,
+		width: 0,
+		buttons: [],
+		actualHeight: 3,
+		scrollOffset: 0,
+		maxVisibleItems: 0,
+		drag: undefined,
+	};
+}
 
 export type RuntimeState = PhoneShellRenderState & {
 	config: PhoneShellConfig;
@@ -92,54 +109,10 @@ export const state: RuntimeState = {
 			placement: "hidden",
 		},
 		overlays: {
-			utility: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
-			view: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
-			skills: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
-			models: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
+			utility: createDropdownOverlayState(),
+			view: createDropdownOverlayState(),
+			skills: createDropdownOverlayState(),
+			models: createDropdownOverlayState(),
 		},
 		viewport: {
 			row: 0,
