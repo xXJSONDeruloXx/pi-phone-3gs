@@ -118,6 +118,13 @@ The favorites rail (`BottomBarComponent`) lives as a `belowEditor` widget. Dropd
 - **Bootstrap-first install UX**: the extension creates starter config/layout/favorites/state files on first load if they are missing, but never overwrites existing user files.
 - **Config hot-reload**: `/phone-shell reload-config` re-reads the user's config/layout/favorites JSON files without restarting the session.
 
+## Branching + merge workflow
+
+- For **new feature work** in this repo, always create a new branch from `main` before implementing.
+- Keep `main` as the last known-good fallback so the user can quickly switch back if a rendering/input experiment breaks the shell.
+- After implementing a feature, let the user reload and test it before merging.
+- Do **not** merge the feature branch back into `main` until the user explicitly gives the final go-ahead.
+
 ## Build & type checking
 
 ```bash
