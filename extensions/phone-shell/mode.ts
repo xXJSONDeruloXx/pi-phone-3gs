@@ -111,7 +111,7 @@ export function toggleEditorPosition(): void {
 		syncNavPadPlacement();
 		queueLog("proxy mode: editor at top");
 		state.session.tui.requestRender(true);
-		void persistShellState().catch(() => undefined);
+		void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 		return;
 	}
 	// Switch to native mode: restore editor to bottom
@@ -121,7 +121,7 @@ export function toggleEditorPosition(): void {
 	syncNavPadPlacement();
 	queueLog("proxy mode: editor at bottom");
 	state.session.tui.requestRender(true);
-	void persistShellState().catch(() => undefined);
+	void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): ()
 		if (!state.shell.enabled) return;
 		state.shell[key] = !state.shell[key];
 		syncFn();
-		void persistShellState().catch(() => undefined);
+		void persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 		state.session.tui?.requestRender(true);
 	};
 }
@@ -246,7 +246,7 @@ export async function enableTouchMode(ctx: PiExtensionCtx, persist = true): Prom
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
-	if (persist) await persistShellState().catch(() => undefined);
+	if (persist) await persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	ctx.ui.setStatus(STATUS_KEY, touchStatusText());
 	if (state.diagnostics.loadErrors.length > 0) {
 		ctx.ui.notify(`phone-shell enabled • ${state.diagnostics.loadErrors.length} config warning(s)`, "warning");
@@ -279,7 +279,7 @@ export async function disableTouchMode(ctx?: PiExtensionCtx, permanent = false, 
 		destroyPanel();
 		clearCapturedTui();
 	}
-	if (persist) await persistShellState().catch(() => undefined);
+	if (persist) await persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	ctx?.ui.notify("phone-shell disabled", "info");
 	queueLog(`disabled permanent=${permanent}`);
 }
