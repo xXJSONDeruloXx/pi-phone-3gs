@@ -95,6 +95,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			state.shell.navPadVisible = persisted.navPadVisible;
 			state.shell.viewportJumpButtonsVisible = persisted.viewportJumpButtonsVisible;
 			state.shell.topEditorSendButtonVisible = persisted.topEditorSendButtonVisible;
+			state.shell.topEditorStashButtonVisible = persisted.topEditorStashButtonVisible;
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
 				await enableTouchMode(ctx, false).catch(() => undefined);
@@ -123,6 +124,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 		state.getThinkingLevel = undefined;
 		state.setThinkingLevel = undefined;
 		state.thinkingLevel = "off";
+		state.editorStash = undefined;
 		state.pi = undefined;
 		state.agentTracker?.reset();
 	});

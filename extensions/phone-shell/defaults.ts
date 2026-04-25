@@ -92,6 +92,7 @@ export function getViewMenuButtons(shell: ShellModeState): ButtonSpec[] {
 	const off: ButtonSpec["palette"] = "muted";
 	return [
 		{ kind: "action", id: "view-editor-top", label: "  TOP  ", action: "toggleEditorPosition", palette: shell.proxyOnly ? on : off },
+		{ kind: "action", id: "view-stash",      label: " STSH ", action: "toggleTopEditorStashButton", palette: shell.topEditorStashButtonVisible ? on : off },
 		{ kind: "action", id: "view-send",       label: " SEND ", action: "toggleTopEditorSendButton", palette: shell.topEditorSendButtonVisible ? on : off },
 		{ kind: "action", id: "view-rail",       label: "  FAV  ", action: "toggleBottomBar",       palette: shell.barVisible ? on : off },
 		{ kind: "action", id: "view-keys",       label: "  KEYS ", action: "toggleNavPad",          palette: shell.navPadVisible ? on : off },
@@ -131,6 +132,7 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	navPadVisible: false,
 	viewportJumpButtonsVisible: true,
 	topEditorSendButtonVisible: true,
+	topEditorStashButtonVisible: true,
 };
 
 export const DEFAULT_FAVORITES: FavoriteEntry[] = [

@@ -33,6 +33,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		navPadVisible: state.shell.navPadVisible,
 		viewportJumpButtonsVisible: state.shell.viewportJumpButtonsVisible,
 		topEditorSendButtonVisible: state.shell.topEditorSendButtonVisible,
+		topEditorStashButtonVisible: state.shell.topEditorStashButtonVisible,
 		...patch,
 	});
 }
@@ -308,6 +309,13 @@ export function toggleViewportJumpButtons(): void {
 export function toggleTopEditorSendButton(): void {
 	if (!state.shell.enabled) return;
 	state.shell.topEditorSendButtonVisible = !state.shell.topEditorSendButtonVisible;
+	void persistShellState().catch(() => undefined);
+	state.session.tui?.requestRender(true);
+}
+
+export function toggleTopEditorStashButton(): void {
+	if (!state.shell.enabled) return;
+	state.shell.topEditorStashButtonVisible = !state.shell.topEditorStashButtonVisible;
 	void persistShellState().catch(() => undefined);
 	state.session.tui?.requestRender(true);
 }

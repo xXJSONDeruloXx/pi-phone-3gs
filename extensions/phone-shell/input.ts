@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, getViewMenuButtons, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleViewportJumpButtons } from "./mode.js";
+import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleViewportJumpButtons } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -190,6 +190,26 @@ function handleViewportWheel(mouse: MouseInput): InputResponse {
 
 type InputResponse = { consume?: boolean; data?: string } | undefined;
 
+function stashOrRestoreEditorText(): InputResponse {
+	const currentText = state.bindings.getEditorText?.() ?? "";
+	if (currentText.length > 0) {
+		state.editorStash = currentText;
+		state.bindings.setEditorText?.("");
+		state.bindings.notify?.("phone-shell: prompt stashed", "info");
+		scheduleRender();
+		return { consume: true };
+	}
+	if (state.editorStash) {
+		state.bindings.setEditorText?.(state.editorStash);
+		state.editorStash = undefined;
+		state.bindings.notify?.("phone-shell: prompt restored", "info");
+		scheduleRender();
+		return { consume: true };
+	}
+	state.bindings.notify?.("phone-shell: stash is empty", "info");
+	return { consume: true };
+}
+
 export function performAction(action: ShellAction): InputResponse {
 	switch (action) {
 		case "toggleUtilities":
@@ -216,6 +236,11 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleTopEditorSendButton":
 			toggleTopEditorSendButton();
 			return { consume: true };
+		case "toggleTopEditorStashButton":
+			toggleTopEditorStashButton();
+			return { consume: true };
+		case "stashEditor":
+			return stashOrRestoreEditorText();
 		case "scrollTop":
 			state.session.viewport?.toTop();
 			return { consume: true };

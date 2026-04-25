@@ -48,6 +48,7 @@ export type RuntimeState = PhoneShellRenderState & {
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
 	thinkingLevel: ThinkingLevel;
+	editorStash?: string;
 	getThinkingLevel?: () => ThinkingLevel;
 	setThinkingLevel?: (level: ThinkingLevel) => void;
 	agentTracker?: AgentStateTracker;
@@ -69,6 +70,7 @@ export const state: RuntimeState = {
 		navPadVisible: false,
 		viewportJumpButtonsVisible: true,
 		topEditorSendButtonVisible: true,
+		topEditorStashButtonVisible: true,
 		proxyOnly: false,
 		editorAtTop: false,
 		headerInstalled: false,
@@ -166,6 +168,7 @@ export const state: RuntimeState = {
 	currentModel: undefined,
 	setModel: undefined,
 	thinkingLevel: "off",
+	editorStash: undefined,
 	getThinkingLevel: undefined,
 	setThinkingLevel: undefined,
 	agentTracker: undefined,
@@ -274,6 +277,8 @@ export function getStatusReport(): string {
 		state.ui.nav.row > 0 ? `- nav: row=${state.ui.nav.row} placement=${state.ui.nav.placement} buttons=${state.ui.nav.buttons.length}` : `- nav: ${state.shell.navPadVisible ? `${state.ui.nav.placement}` : "disabled"}`,
 		`- viewport jump buttons: ${state.shell.viewportJumpButtonsVisible} (${state.ui.viewport.buttons.length} hit regions)`,
 		`- top editor send button: ${state.shell.topEditorSendButtonVisible} (${state.ui.editor.buttons.length} hit regions)`,
+		`- top editor stash button: ${state.shell.topEditorStashButtonVisible}`,
+		`- editor stash: ${state.editorStash ? `${state.editorStash.length} chars` : "empty"}`,
 		`- utility overlay: ${state.ui.overlays.utility.visible}`,
 		`- view overlay: ${state.ui.overlays.view.visible}`,
 		`- skills overlay: ${state.ui.overlays.skills.visible}`,

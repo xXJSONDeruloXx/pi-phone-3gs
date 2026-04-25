@@ -6,6 +6,14 @@ import { HEADER_HEIGHT } from "./defaults.js";
 import { state } from "./state.js";
 import type { ButtonHitRegion, ButtonSpec } from "./types.js";
 
+const INLINE_STASH_BUTTON: ButtonSpec = {
+	kind: "action",
+	id: "editor-stash",
+	label: "STSH",
+	action: "stashEditor",
+	palette: "warning",
+};
+
 const INLINE_SEND_BUTTON: ButtonSpec = {
 	kind: "action",
 	id: "editor-send",
@@ -14,8 +22,17 @@ const INLINE_SEND_BUTTON: ButtonSpec = {
 	palette: "accent",
 };
 
-const INLINE_SEND_BUTTON_GAP = 1;
+const INLINE_BUTTON_GAP = 1;
 const MIN_EDITOR_CONTENT_WIDTH = 12;
+
+type InlineButtonPlacement = {
+	spec: ButtonSpec;
+	lines: string[];
+	width: number;
+	top: number;
+	colStart: number;
+	colEnd: number;
+};
 
 function padLineToWidth(line: string, width: number): string {
 	if (width <= 0) return "";
@@ -50,12 +67,13 @@ function renderInlineButton(spec: ButtonSpec): { lines: string[]; width: number 
 	};
 }
 
-function shouldRenderInlineSendButton(width: number): boolean {
-	const buttonWidth = makeButtonWidth(INLINE_SEND_BUTTON);
+function shouldUseInlineButtons(width: number): boolean {
+	const leftWidth = state.shell.topEditorStashButtonVisible ? makeButtonWidth(INLINE_STASH_BUTTON) + INLINE_BUTTON_GAP : 0;
+	const rightWidth = state.shell.topEditorSendButtonVisible ? INLINE_BUTTON_GAP + makeButtonWidth(INLINE_SEND_BUTTON) : 0;
 	return state.shell.enabled
 		&& state.shell.editorAtTop
-		&& state.shell.topEditorSendButtonVisible
-		&& width >= MIN_EDITOR_CONTENT_WIDTH + INLINE_SEND_BUTTON_GAP + buttonWidth;
+		&& (leftWidth > 0 || rightWidth > 0)
+		&& width >= MIN_EDITOR_CONTENT_WIDTH + leftWidth + rightWidth;
 }
 
 function getTopEditorRow(): number {
@@ -76,7 +94,7 @@ export class PhoneShellEditor extends CustomEditor {
 
 	override render(width: number): string[] {
 		const editorRow = getTopEditorRow();
-		if (!shouldRenderInlineSendButton(width)) {
+		if (!shouldUseInlineButtons(width)) {
 			const lines = super.render(width);
 			state.ui.editor.row = editorRow;
 			state.ui.editor.height = state.shell.editorAtTop ? lines.length : 0;
@@ -84,25 +102,57 @@ export class PhoneShellEditor extends CustomEditor {
 			return lines;
 		}
 
-		const button = renderInlineButton(INLINE_SEND_BUTTON);
-		const editorWidth = Math.max(1, width - button.width - INLINE_SEND_BUTTON_GAP);
+		const leftButton = state.shell.topEditorStashButtonVisible ? renderInlineButton(INLINE_STASH_BUTTON) : undefined;
+		const rightButton = state.shell.topEditorSendButtonVisible ? renderInlineButton(INLINE_SEND_BUTTON) : undefined;
+		const leftReserve = leftButton ? leftButton.width + INLINE_BUTTON_GAP : 0;
+		const rightReserve = rightButton ? INLINE_BUTTON_GAP + rightButton.width : 0;
+		const editorWidth = Math.max(1, width - leftReserve - rightReserve);
 		const lines = super.render(editorWidth);
-		const buttonTop = Math.max(0, Math.floor((lines.length - button.lines.length) / 2));
-		const buttonColStart = width - button.width + 1;
+		const left: InlineButtonPlacement | undefined = leftButton ? {
+			spec: INLINE_STASH_BUTTON,
+			lines: leftButton.lines,
+			width: leftButton.width,
+			top: Math.max(0, Math.floor((lines.length - leftButton.lines.length) / 2)),
+			colStart: 1,
+			colEnd: leftButton.width,
+		} : undefined;
+		const right: InlineButtonPlacement | undefined = rightButton ? {
+			spec: INLINE_SEND_BUTTON,
+			lines: rightButton.lines,
+			width: rightButton.width,
+			top: Math.max(0, Math.floor((lines.length - rightButton.lines.length) / 2)),
+			colStart: width - rightButton.width + 1,
+			colEnd: width,
+		} : undefined;
 		const hitRegions: ButtonHitRegion[] = [];
 
 		const rendered = lines.map((line, index) => {
-			const base = padLineToWidth(line, editorWidth);
-			if (index >= buttonTop && index < buttonTop + button.lines.length) {
-				hitRegions.push({
-					button: INLINE_SEND_BUTTON,
-					colStart: buttonColStart,
-					colEnd: width,
-					rowOffset: index,
-				});
-				return padLineToWidth(`${base}${" ".repeat(INLINE_SEND_BUTTON_GAP)}${button.lines[index - buttonTop]!}`, width);
+			let result = "";
+			if (left) {
+				const row = index - left.top;
+				if (row >= 0 && row < left.lines.length) {
+					hitRegions.push({ button: left.spec, colStart: left.colStart, colEnd: left.colEnd, rowOffset: index });
+					result += left.lines[row]!;
+				} else {
+					result += " ".repeat(left.width);
+				}
+				result += " ".repeat(INLINE_BUTTON_GAP);
 			}
-			return padLineToWidth(base, width);
+
+			result += padLineToWidth(line, editorWidth);
+
+			if (right) {
+				result += " ".repeat(INLINE_BUTTON_GAP);
+				const row = index - right.top;
+				if (row >= 0 && row < right.lines.length) {
+					hitRegions.push({ button: right.spec, colStart: right.colStart, colEnd: right.colEnd, rowOffset: index });
+					result += right.lines[row]!;
+				} else {
+					result += " ".repeat(right.width);
+				}
+			}
+
+			return padLineToWidth(result, width);
 		});
 
 		state.ui.editor.row = editorRow;

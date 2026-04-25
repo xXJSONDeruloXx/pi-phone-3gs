@@ -45,6 +45,8 @@ export type ShellAction =
 	| "toggleNavPad"
 	| "toggleViewportJumpButtons"
 	| "toggleTopEditorSendButton"
+	| "toggleTopEditorStashButton"
+	| "stashEditor"
 	| "scrollTop"
 	| "pageUp"
 	| "cycleModel"
@@ -152,6 +154,7 @@ export interface PersistedShellState {
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
 	topEditorSendButtonVisible: boolean;
+	topEditorStashButtonVisible: boolean;
 }
 
 export interface FavoriteEntry {
@@ -288,6 +291,7 @@ export interface ShellModeState {
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
 	topEditorSendButtonVisible: boolean;
+	topEditorStashButtonVisible: boolean;
 	proxyOnly: boolean;
 	/** True while editorContainer has been moved to the top of the TUI children array. */
 	editorAtTop: boolean;
