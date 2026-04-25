@@ -71,14 +71,31 @@ function shouldUseInlineButtons(width: number): boolean {
 	const leftWidth = state.shell.topEditorStashButtonVisible ? makeButtonWidth(INLINE_STASH_BUTTON) + INLINE_BUTTON_GAP : 0;
 	const rightWidth = state.shell.topEditorSendButtonVisible ? INLINE_BUTTON_GAP + makeButtonWidth(INLINE_SEND_BUTTON) : 0;
 	return state.shell.enabled
-		&& state.shell.editorAtTop
 		&& (leftWidth > 0 || rightWidth > 0)
 		&& width >= MIN_EDITOR_CONTENT_WIDTH + leftWidth + rightWidth;
 }
 
-function getTopEditorRow(): number {
-	if (!state.shell.editorAtTop) return 0;
-	return state.shell.headerInstalled ? HEADER_HEIGHT + 1 : 1;
+function getEditorRow(): number {
+	if (!state.shell.enabled) return 0;
+	if (state.shell.editorAtTop) return state.shell.headerInstalled ? HEADER_HEIGHT + 1 : 1;
+
+	const tui = state.session.tui;
+	const editorContainer = state.session.editorContainer;
+	if (!tui || !editorContainer) return 0;
+
+	const editorIndex = tui.children.indexOf(editorContainer as any);
+	if (editorIndex < 0) return 0;
+
+	let row = 1;
+	for (let index = 0; index < editorIndex; index++) {
+		const child = tui.children[index]!;
+		if (child === state.session.viewport) {
+			row += state.ui.viewport.height;
+			continue;
+		}
+		row += child.render(tui.terminal.columns).length;
+	}
+	return row;
 }
 
 export class PhoneShellEditor extends CustomEditor {
@@ -93,7 +110,7 @@ export class PhoneShellEditor extends CustomEditor {
 	}
 
 	override render(width: number): string[] {
-		const editorRow = getTopEditorRow();
+		const editorRow = getEditorRow();
 		if (!shouldUseInlineButtons(width)) {
 			const lines = super.render(width);
 			state.ui.editor.row = editorRow;
