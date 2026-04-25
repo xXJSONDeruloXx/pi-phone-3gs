@@ -35,7 +35,7 @@ const ACTIONS: readonly ShellAction[] = [
 	"stashEditor",
 	"scrollTop",
 	"pageUp",
-	"cycleModel",
+	"selectModel",
 	"cycleThinkingLevel",
 	"pageDown",
 	"scrollBottom",

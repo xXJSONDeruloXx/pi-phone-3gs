@@ -49,7 +49,7 @@ export type ShellAction =
 	| "stashEditor"
 	| "scrollTop"
 	| "pageUp"
-	| "cycleModel"
+	| "selectModel"
 	| "cycleThinkingLevel"
 	| "pageDown"
 	| "scrollBottom"
@@ -306,6 +306,7 @@ export interface PhoneShellUIState {
 		utility: DropdownOverlayState;
 		view: DropdownOverlayState;
 		skills: DropdownOverlayState;
+		models: DropdownOverlayState;
 	};
 	viewport: ViewportLayoutState;
 	editor: EditorLayoutState;

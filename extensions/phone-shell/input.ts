@@ -1,3 +1,4 @@
+import { modelsAreEqual, type Model } from "@mariozechner/pi-ai";
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, getViewMenuButtons, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
@@ -155,20 +156,35 @@ function finishViewportDrag(mouse: MouseInput): InputResponse {
 	return { consume: true };
 }
 
+function adjustScrollableDropdownOffset(kind: "skills" | "models", delta: number): boolean {
+	const overlay = state.ui.overlays[kind];
+	const totalButtons = getDropdownButtons(kind).length;
+	const maxOffset = Math.max(0, totalButtons - overlay.maxVisibleItems);
+	const nextOffset = Math.max(0, Math.min(maxOffset, overlay.scrollOffset + delta));
+	if (nextOffset === overlay.scrollOffset) return false;
+	overlay.scrollOffset = nextOffset;
+	scheduleRender();
+	return true;
+}
+
 function handleSkillsDropdownWheel(mouse: MouseInput): InputResponse {
 	const direction = mouse.scrollDirection;
 	if (!direction) return { consume: true };
 	if (!isDropdownRow("skills", mouse.row, mouse.col)) return undefined;
 	if (direction === "left" || direction === "right") return { consume: true };
-	const overlay = state.ui.overlays.skills;
-	const totalButtons = getSkillsMenuButtons().length;
-	const maxOffset = Math.max(0, totalButtons - overlay.maxVisibleItems);
-	const delta = direction === "up" ? -1 : 1;
-	const nextOffset = Math.max(0, Math.min(maxOffset, overlay.scrollOffset + delta));
-	if (nextOffset !== overlay.scrollOffset) {
-		overlay.scrollOffset = nextOffset;
+	if (adjustScrollableDropdownOffset("skills", direction === "up" ? -1 : 1)) {
 		setLastAction(`mouse:skills-wheel-${direction}`);
-		scheduleRender();
+	}
+	return { consume: true };
+}
+
+function handleModelsDropdownWheel(mouse: MouseInput): InputResponse {
+	const direction = mouse.scrollDirection;
+	if (!direction) return { consume: true };
+	if (!isDropdownRow("models", mouse.row, mouse.col)) return undefined;
+	if (direction === "left" || direction === "right") return { consume: true };
+	if (adjustScrollableDropdownOffset("models", direction === "up" ? -1 : 1)) {
+		setLastAction(`mouse:models-wheel-${direction}`);
 	}
 	return { consume: true };
 }
@@ -247,8 +263,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "pageUp":
 			state.session.viewport?.pageUp();
 			return { consume: true };
-		case "cycleModel":
-			return { data: state.config.inputs.modelCycle };
+		case "selectModel":
+			toggleModelsOverlay();
+			return { consume: true };
 		case "cycleThinkingLevel": {
 			// Send Shift+Tab so pi handles the full cycle including UI
 			queueMicrotask(() => {
@@ -342,7 +359,9 @@ export function activateButton(button: ButtonSpec, origin: "utility" | "view" | 
 import { ButtonDropdownOverlayComponent, getDropdownInnerWidth } from "./overlay.js";
 import { renderContext } from "./state.js";
 
-type DropdownKind = "utility" | "view" | "skills";
+type DropdownKind = "utility" | "view" | "skills" | "models";
+
+type AvailableModel = Model<any>;
 
 function getSkillsMenuButtons(): ButtonSpec[] {
 	const commands = state.pi?.getCommands() ?? [];
@@ -356,6 +375,57 @@ function getSkillsMenuButtons(): ButtonSpec[] {
 		}));
 }
 
+function getAvailableModels(): AvailableModel[] {
+	return state.modelRegistry?.getAvailable() ?? [];
+}
+
+function isCurrentModel(model: AvailableModel): boolean {
+	return modelsAreEqual(state.currentModel, model);
+}
+
+function getModelButtonId(model: AvailableModel): string {
+	return `model-${model.provider}-${model.id}`;
+}
+
+function getModelMenuButtons(): ButtonSpec[] {
+	return getAvailableModels().map((model) => ({
+		kind: "action" as const,
+		id: getModelButtonId(model),
+		label: ` ${model.provider} · ${model.id} `,
+		action: "selectModel",
+		palette: isCurrentModel(model) ? "warning" : "accent",
+	}));
+}
+
+function findAvailableModelByButton(button: ButtonSpec): AvailableModel | undefined {
+	return getAvailableModels().find((model) => getModelButtonId(model) === button.id);
+}
+
+function activateModelButton(button: ButtonSpec): InputResponse {
+	setLastAction(`models:${button.id}`);
+	const model = findAvailableModelByButton(button);
+	hideModelsOverlay();
+	if (!model) {
+		state.bindings.notify?.("phone-shell: model no longer available", "warning");
+		scheduleRender();
+		return { consume: true };
+	}
+	const switchPromise = state.setModel?.(model);
+	if (!switchPromise) {
+		state.bindings.notify?.("phone-shell: model switching unavailable", "warning");
+		scheduleRender();
+		return { consume: true };
+	}
+	void switchPromise.then((changed) => {
+		if (!changed) state.bindings.notify?.(`phone-shell: failed to switch to ${model.name}`, "warning");
+		scheduleRender();
+	}).catch(() => {
+		state.bindings.notify?.(`phone-shell: failed to switch to ${model.name}`, "warning");
+		scheduleRender();
+	});
+	return { consume: true };
+}
+
 function getDropdownOverlayState(kind: DropdownKind) {
 	return state.ui.overlays[kind];
 }
@@ -363,12 +433,14 @@ function getDropdownOverlayState(kind: DropdownKind) {
 function getDropdownButtons(kind: DropdownKind): ButtonSpec[] {
 	if (kind === "utility") return state.layout.utilityButtons;
 	if (kind === "view") return getViewMenuButtons(state.shell);
-	return getSkillsMenuButtons();
+	if (kind === "skills") return getSkillsMenuButtons();
+	return getModelMenuButtons();
 }
 
 function getDropdownAnchorButtonId(kind: DropdownKind): string {
 	if (kind === "utility") return "header-file";
 	if (kind === "skills") return "header-skills";
+	if (kind === "models") return "header-model";
 	return "header-view";
 }
 
@@ -390,12 +462,12 @@ function setDropdownPlacement(kind: DropdownKind, row: number, col: number, widt
 }
 
 function hideOtherOverlays(except?: DropdownKind): void {
-	for (const k of ["utility", "view", "skills"] as DropdownKind[]) {
+	for (const k of ["utility", "view", "skills", "models"] as DropdownKind[]) {
 		if (k !== except) hideDropdown(k);
 	}
 }
 
-function computeSkillsMaxVisibleItems(): number {
+function computeScrollableDropdownMaxVisibleItems(): number {
 	const terminalRows = state.session.tui?.terminal.rows ?? 24;
 	const availableRows = terminalRows - HEADER_HEIGHT - 3; // 3-row bottom margin
 	return Math.max(1, Math.floor((availableRows - 2) / 3)); // -2 for borders, 3 rows per button
@@ -410,18 +482,20 @@ function showDropdown(kind: DropdownKind): void {
 	const overlayWidth = getDropdownInnerWidth(buttons) + 2;
 	const overlayRow = HEADER_HEIGHT;
 	const anchorButton = state.ui.headerButtons.find((button) => button.button.id === getDropdownAnchorButtonId(kind) && button.rowOffset === 0);
-	const overlayCol = Math.max(1, anchorButton?.colStart ?? (state.config.render.leadingColumns + 1));
+	const desiredCol = Math.max(1, (anchorButton?.colStart ?? (state.config.render.leadingColumns + 1)) - 1);
+	const terminalCols = state.session.tui.terminal.columns;
+	const overlayCol = Math.max(1, Math.min(desiredCol, terminalCols - overlayWidth + 1));
 	setDropdownPlacement(kind, overlayRow, overlayCol, overlayWidth);
 
 	const overlayState = getDropdownOverlayState(kind);
 
 	// Compute max visible items for scrollable dropdowns
-	if (kind === "skills") {
-		overlayState.maxVisibleItems = computeSkillsMaxVisibleItems();
+	if (kind === "skills" || kind === "models") {
+		overlayState.maxVisibleItems = computeScrollableDropdownMaxVisibleItems();
 		overlayState.scrollOffset = 0;
 	}
 
-	const scrollOpts = kind === "skills" ? {
+	const scrollOpts = kind === "skills" || kind === "models" ? {
 		getMaxVisibleItems: () => overlayState.maxVisibleItems,
 		getScrollOffset: () => overlayState.scrollOffset,
 	} : undefined;
@@ -436,7 +510,7 @@ function showDropdown(kind: DropdownKind): void {
 	), {
 		anchor: "top-left",
 		row: overlayRow,
-		col: overlayCol - 1,
+		col: overlayCol,
 		width: overlayWidth,
 		nonCapturing: true,
 	});
@@ -475,6 +549,9 @@ const toggleViewOverlay = (): void => toggleDropdown("view");
 const showSkillsOverlay = (): void => showDropdown("skills");
 const hideSkillsOverlay = (): void => hideDropdown("skills");
 const toggleSkillsOverlay = (): void => toggleDropdown("skills");
+const showModelsOverlay = (): void => showDropdown("models");
+const hideModelsOverlay = (): void => hideDropdown("models");
+const toggleModelsOverlay = (): void => toggleDropdown("models");
 
 // ---------------------------------------------------------------------------
 // Skills dropdown scroll drag
@@ -536,7 +613,63 @@ function handleSkillsDropdownMouse(mouse: MouseInput): InputResponse | undefined
 	return { consume: true };
 }
 
-function handleDropdownMouse(kind: DropdownKind, mouse: MouseInput): InputResponse | undefined {
+function startModelsDrag(mouse: MouseInput): InputResponse {
+	const overlay = state.ui.overlays.models;
+	const button = findHitRegion(overlay.buttons, mouse.row - 1, mouse.col);
+	overlay.drag = {
+		anchorRow: mouse.row,
+		anchorScrollOffset: overlay.scrollOffset,
+		phase: "potential-tap",
+		tapRow: mouse.row,
+		tapCol: mouse.col,
+		hitButton: button,
+	};
+	setLastAction("mouse:models-drag-start");
+	return { consume: true };
+}
+
+function updateModelsDrag(mouse: MouseInput): InputResponse {
+	const drag = state.ui.overlays.models.drag;
+	if (!drag) return { consume: true };
+	const delta = mouse.row - drag.anchorRow;
+	if (Math.abs(delta) > 2) drag.phase = "dragging";
+	if (drag.phase === "dragging") {
+		const overlay = state.ui.overlays.models;
+		const totalButtons = getModelMenuButtons().length;
+		const maxOffset = Math.max(0, totalButtons - overlay.maxVisibleItems);
+		const deltaButtons = Math.round(delta / 3);
+		overlay.scrollOffset = Math.max(0, Math.min(maxOffset, drag.anchorScrollOffset - deltaButtons));
+		scheduleRender();
+	}
+	return { consume: true };
+}
+
+function finishModelsDrag(mouse: MouseInput): InputResponse {
+	const drag = state.ui.overlays.models.drag;
+	if (!drag) return { consume: true };
+	state.ui.overlays.models.drag = undefined;
+	if (drag.phase === "potential-tap" && drag.hitButton) {
+		return activateModelButton(drag.hitButton);
+	}
+	setLastAction("mouse:models-drag-end");
+	return { consume: true };
+}
+
+function handleModelsDropdownMouse(mouse: MouseInput): InputResponse | undefined {
+	const overlay = state.ui.overlays.models;
+	if (!overlay.visible) return undefined;
+
+	const { row, col, width, actualHeight } = overlay;
+	const inOverlayRows = mouse.row >= row + 1 && mouse.row <= row + actualHeight;
+	const inOverlayCols = mouse.col >= col && mouse.col <= col + width - 1;
+	if (inOverlayRows && inOverlayCols) {
+		return startModelsDrag(mouse);
+	}
+	hideModelsOverlay();
+	return { consume: true };
+}
+
+function handleDropdownMouse(kind: "utility" | "view", mouse: MouseInput): InputResponse | undefined {
 	const overlay = getDropdownOverlayState(kind);
 	if (!overlay.visible) return undefined;
 
@@ -552,7 +685,20 @@ function handleDropdownMouse(kind: DropdownKind, mouse: MouseInput): InputRespon
 }
 
 // Exported for mode.ts to call during enableTouchMode
-export { showUtilityOverlay, hideUtilityOverlay, toggleUtilityOverlay, showViewOverlay, hideViewOverlay, toggleViewOverlay, showSkillsOverlay, hideSkillsOverlay, toggleSkillsOverlay };
+export {
+	showUtilityOverlay,
+	hideUtilityOverlay,
+	toggleUtilityOverlay,
+	showViewOverlay,
+	hideViewOverlay,
+	toggleViewOverlay,
+	showSkillsOverlay,
+	hideSkillsOverlay,
+	toggleSkillsOverlay,
+	showModelsOverlay,
+	hideModelsOverlay,
+	toggleModelsOverlay,
+};
 
 // ---------------------------------------------------------------------------
 // Input handler registration
@@ -573,6 +719,8 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			if (mouse.phase === "scroll") {
 				const skillsWheelResponse = state.ui.overlays.skills.visible ? handleSkillsDropdownWheel(mouse) : undefined;
 				if (skillsWheelResponse) return skillsWheelResponse;
+				const modelsWheelResponse = state.ui.overlays.models.visible ? handleModelsDropdownWheel(mouse) : undefined;
+				if (modelsWheelResponse) return modelsWheelResponse;
 				return handleViewportWheel(mouse);
 			}
 			if (state.ui.bar.drag && mouse.phase === "release") return finishBarDrag(mouse);
@@ -581,6 +729,8 @@ export function registerInputHandler(ctx: { ui: any }): void {
 			if (state.ui.viewport.drag && isPrimaryPointerDrag(mouse)) return updateViewportDrag(mouse);
 			if (state.ui.overlays.skills.drag && mouse.phase === "release") return finishSkillsDrag(mouse);
 			if (state.ui.overlays.skills.drag && isPrimaryPointerDrag(mouse)) return updateSkillsDrag(mouse);
+			if (state.ui.overlays.models.drag && mouse.phase === "release") return finishModelsDrag(mouse);
+			if (state.ui.overlays.models.drag && isPrimaryPointerDrag(mouse)) return updateModelsDrag(mouse);
 			if (!isPrimaryPointerPress(mouse)) return { consume: true };
 
 			const inHeader = state.shell.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
@@ -598,6 +748,9 @@ export function registerInputHandler(ctx: { ui: any }): void {
 
 			const skillsDropdownResponse = handleSkillsDropdownMouse(mouse);
 			if (skillsDropdownResponse) return skillsDropdownResponse;
+
+			const modelsDropdownResponse = handleModelsDropdownMouse(mouse);
+			if (modelsDropdownResponse) return modelsDropdownResponse;
 
 			const editorChildren = (state.session.editorContainer as { children?: unknown[] } | undefined)?.children;
 			const editorVisible = Array.isArray(editorChildren) && !!state.session.phoneShellEditor && editorChildren.includes(state.session.phoneShellEditor);
@@ -660,4 +813,5 @@ export function unregisterInputHandler(): void {
 	state.ui.viewport.drag = undefined;
 	state.ui.bar.drag = undefined;
 	state.ui.overlays.skills.drag = undefined;
+	state.ui.overlays.models.drag = undefined;
 }

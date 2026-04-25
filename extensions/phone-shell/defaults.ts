@@ -107,7 +107,7 @@ export const DEFAULT_LAYOUT: PhoneShellLayout = {
 			{ kind: "action", id: "utility-overlay", label: " ETC ", action: "toggleUtilities" },
 			{ kind: "action", id: "top", label: " TOP ", action: "scrollTop" },
 			{ kind: "action", id: "page-up", label: " PG↑ ", action: "pageUp" },
-			{ kind: "action", id: "model", label: "MODEL", action: "cycleModel", palette: "warning" },
+			{ kind: "action", id: "model", label: "MODEL", action: "selectModel", palette: "warning" },
 			{ kind: "action", id: "page-down", label: " PG↓ ", action: "pageDown" },
 			{ kind: "action", id: "bottom", label: " BTM ", action: "scrollBottom" },
 		],

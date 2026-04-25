@@ -5,14 +5,21 @@ import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
 import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ThinkingLevel } from "./types.js";
 import { thinkingLevelLabel } from "./types.js";
 
-function getHeaderButtonSpecs(utilityOverlayVisible: boolean, viewOverlayVisible: boolean, skillsOverlayVisible: boolean, thinkingLevel: ThinkingLevel): ButtonSpec[] {
+function getHeaderButtonSpecs(
+	utilityOverlayVisible: boolean,
+	viewOverlayVisible: boolean,
+	skillsOverlayVisible: boolean,
+	modelsOverlayVisible: boolean,
+	thinkingLevel: ThinkingLevel,
+): ButtonSpec[] {
 	const fileColor = utilityOverlayVisible ? "accent" : "muted";
 	const viewColor = viewOverlayVisible ? "accent" : "muted";
 	const skillsColor = skillsOverlayVisible ? "accent" : "muted";
+	const modelColor: ButtonSpec["palette"] = modelsOverlayVisible ? "accent" : "warning";
 	const thinkingColor: ButtonSpec["palette"] = thinkingLevel === "off" ? "muted" : "accent";
 	return [
 		{ kind: "action", id: "header-thinking", label: thinkingLevelLabel(thinkingLevel), action: "cycleThinkingLevel", palette: thinkingColor },
-		{ kind: "action", id: "header-model", label: "MODEL", action: "cycleModel", palette: "warning" },
+		{ kind: "action", id: "header-model", label: "MODEL", action: "selectModel", palette: modelColor },
 		{ kind: "action", id: "header-skills", label: "SKILLS", action: "toggleSkillsMenu", palette: skillsColor },
 		{ kind: "action", id: "header-view", label: "VIEW", action: "toggleViewMenu", palette: viewColor },
 		{ kind: "action", id: "header-file", label: "FILE", action: "toggleUtilities", palette: fileColor },
@@ -60,7 +67,13 @@ export class HeaderBarComponent implements Component {
 		const config = this.ctx.getConfig();
 		const lead = " ".repeat(config.render.leadingColumns);
 		const usableWidth = Math.max(1, width - config.render.leadingColumns);
-		const specs = getHeaderButtonSpecs(this.ctx.state.ui.overlays.utility.visible, this.ctx.state.ui.overlays.view.visible, this.ctx.state.ui.overlays.skills.visible, this.ctx.state.thinkingLevel);
+		const specs = getHeaderButtonSpecs(
+			this.ctx.state.ui.overlays.utility.visible,
+			this.ctx.state.ui.overlays.view.visible,
+			this.ctx.state.ui.overlays.skills.visible,
+			this.ctx.state.ui.overlays.models.visible,
+			this.ctx.state.thinkingLevel,
+		);
 
 		const fileSpec = specs.find((s) => s.id === "header-file")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;

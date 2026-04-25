@@ -14,7 +14,7 @@ import {
 } from "./defaults.js";
 import { PhoneShellEditor } from "./editor.js";
 import { HeaderBarComponent } from "./header.js";
-import { hideSkillsOverlay, hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
+import { hideModelsOverlay, hideSkillsOverlay, hideUtilityOverlay, hideViewOverlay, registerInputHandler, showUtilityOverlay, unregisterInputHandler } from "./input.js";
 import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderContext, state } from "./state.js";
 import type { PersistedShellState } from "./types.js";
 import { NavigationPadComponent } from "./nav.js";
@@ -57,6 +57,7 @@ export function clearCapturedTui(): void {
 	state.shell.editorAtTop = false;
 	state.ui.overlays.view.visible = false;
 	state.ui.overlays.skills.visible = false;
+	state.ui.overlays.models.visible = false;
 	state.ui.nav.row = 0;
 	state.ui.nav.buttons = [];
 	state.ui.nav.actualHeight = BAR_HEIGHT;
@@ -458,6 +459,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	hideUtilityOverlay();
 	hideViewOverlay();
 	hideSkillsOverlay();
+	hideModelsOverlay();
 	restoreDefaultEditor();
 	destroyPanel();
 	uninstallTopNavPad();
