@@ -69,14 +69,34 @@ export class TouchViewport implements Component {
 			this.scrollTopFractional = maxTop;
 		}
 		this.scrollTop = Math.max(0, Math.min(maxTop, this.scrollTop));
-		this.scrollTopFractional = Math.max(0, Math.min(maxTop, this.scrollTopFractional));
+		// NOTE: do NOT clamp scrollTopFractional here — it can go negative or
+		// exceed maxTop during rubber-banding, and we need the raw value for
+		// the overscroll render path below.
 		this.lastVisibleHeight = visibleHeight;
 		this.lastTotalLines = lines.length;
 		this.lastMaxTop = maxTop;
 		this.ctx.state.ui.viewport.row = rowsBefore + 1;
 		this.ctx.state.ui.viewport.height = visibleHeight;
 
-		const visible = lines.slice(this.scrollTop, this.scrollTop + visibleHeight);
+		const frac = this.scrollTopFractional;
+		let visible: string[];
+
+		if (frac < 0) {
+			// Overscrolled past the top — show empty rows at top, push content down
+			const overscrollRows = Math.min(Math.round(Math.abs(frac)), visibleHeight);
+			visible = [];
+			for (let i = 0; i < overscrollRows; i++) visible.push("");
+			for (let i = 0; i < visibleHeight - overscrollRows; i++) visible.push(lines[i] ?? "");
+		} else if (frac > maxTop) {
+			// Overscrolled past the bottom — show content to end, then empty rows
+			const overscrollRows = Math.min(Math.round(frac - maxTop), visibleHeight);
+			visible = lines.slice(maxTop, maxTop + visibleHeight - overscrollRows);
+			while (visible.length < visibleHeight - overscrollRows) visible.push("");
+			for (let i = 0; i < overscrollRows; i++) visible.push("");
+		} else {
+			// Normal scrolling
+			visible = lines.slice(this.scrollTop, this.scrollTop + visibleHeight);
+		}
 		while (visible.length < visibleHeight) visible.push("");
 
 		const viewportButtons: ButtonHitRegion[] = [];
@@ -167,7 +187,8 @@ export class TouchViewport implements Component {
 	setScrollTopSmooth(scrollTop: number): void {
 		this.followBottom = false;
 		this.scrollTopFractional = scrollTop;
-		// Clamp integer scrollTop to content bounds for rendering
+		// Integer scrollTop for rendering is clamped to content bounds;
+		// the render() method handles showing overscroll from scrollTopFractional.
 		this.scrollTop = Math.max(0, Math.min(this.lastMaxTop, Math.round(scrollTop)));
 		if (this.scrollTop >= this.lastMaxTop && scrollTop >= this.lastMaxTop) {
 			this.followBottom = true;
@@ -282,7 +303,7 @@ export class TouchViewport implements Component {
 	}
 
 	/**
-	 * Cancel any active momentum animation.
+	 * Cancel any active momentum animation and snap back into bounds.
 	 */
 	cancelMomentum(): void {
 		const momentum = this.ctx.state.ui.viewport.momentum;
@@ -290,8 +311,9 @@ export class TouchViewport implements Component {
 			clearInterval(momentum.AnimationFrame);
 		}
 		this.ctx.state.ui.viewport.momentum = undefined;
-		// Snap fractional position to integer
-		this.scrollTopFractional = this.scrollTop;
+		// Snap fractional position back into content bounds
+		this.scrollTopFractional = Math.max(0, Math.min(this.lastMaxTop, this.scrollTopFractional));
+		this.scrollTop = Math.round(this.scrollTopFractional);
 	}
 
 	private getPageSize(): number {
