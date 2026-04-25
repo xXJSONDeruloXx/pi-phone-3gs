@@ -1,7 +1,7 @@
 import type { Component } from "@mariozechner/pi-tui";
-import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { truncateToWidth } from "@mariozechner/pi-tui";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
-import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
+import { makeButtonWidth, renderBoxButton } from "./button-helpers.js";
 import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ThinkingLevel } from "./types.js";
 import { thinkingLevelLabel } from "./types.js";
 
@@ -34,20 +34,12 @@ function renderButtonRow(specs: ButtonSpec[], gap: number, theme: ReturnType<Pho
 
 	for (let i = 0; i < specs.length; i++) {
 		const spec = specs[i]!;
-		const buttonWidth = makeButtonWidth(spec);
-		const innerWidth = Math.max(1, buttonWidth - 2);
-		const palette = buttonPalette(spec);
-		const raw = spec.label.trim();
-		const rawWidth = Math.max(0, visibleWidth(raw));
-		let label = raw;
-		if (rawWidth > innerWidth) label = truncateToWidth(raw, innerWidth, "", true);
-		const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
-		const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
-		const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
-		tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-		mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"));
-		bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
-		totalWidth += buttonWidth;
+		const rendered = renderBoxButton(spec, theme);
+
+		tops.push(rendered.lines[0]!);
+		mids.push(rendered.lines[1]!);
+		bots.push(rendered.lines[2]!);
+		totalWidth += rendered.width;
 		if (i < specs.length - 1) {
 			tops.push(" ".repeat(gap));
 			mids.push(" ".repeat(gap));

@@ -1,5 +1,6 @@
 import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 export function getDropdownInnerWidth(buttons: ButtonSpec[]): number {
@@ -67,12 +68,10 @@ export class ButtonDropdownOverlayComponent implements Component {
 
 		for (const button of visibleButtons) {
 			const rowStart = this.getOverlayRow() + lines.length;
-			const displayLabel = button.label.trim();
-			const buttonLabel = truncateToWidth(displayLabel, Math.max(1, buttonInnerWidth - 2), "", true);
-			const palette = button.palette ?? "accent";
-			const top = theme.fg("accent", "│") + " " + theme.fg(palette, `╭${"─".repeat(buttonInnerWidth - 2)}╮`) + " " + theme.fg("accent", "│");
-			const middle = theme.fg("accent", "│") + " " + theme.bold(theme.fg(palette, `│${centerToWidth(buttonLabel, buttonInnerWidth - 2)}│`)) + " " + theme.fg("accent", "│");
-			const bottom = theme.fg("accent", "│") + " " + theme.fg(palette, `╰${"─".repeat(buttonInnerWidth - 2)}╯`) + " " + theme.fg("accent", "│");
+			const rendered = renderBoxButton(button, theme, buttonInnerWidth);
+			const top = theme.fg("accent", "│") + " " + rendered.lines[0]! + " " + theme.fg("accent", "│");
+			const middle = theme.fg("accent", "│") + " " + rendered.lines[1]! + " " + theme.fg("accent", "│");
+			const bottom = theme.fg("accent", "│") + " " + rendered.lines[2]! + " " + theme.fg("accent", "│");
 			lines.push(top, middle, bottom);
 			addFullWidthHitRows(hitRegions, button, colStart, colEnd, rowStart, 3);
 		}

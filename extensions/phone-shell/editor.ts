@@ -1,7 +1,7 @@
 import { CustomEditor } from "@mariozechner/pi-coding-agent";
 import type { EditorTheme, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { makeButtonWidth, buttonPalette } from "./button-helpers.js";
+import { makeButtonWidth, padLineToWidth, renderBoxButton } from "./button-helpers.js";
 import { HEADER_HEIGHT } from "./defaults.js";
 import { state } from "./state.js";
 import type { ButtonHitRegion, ButtonSpec } from "./types.js";
@@ -34,37 +34,24 @@ type InlineButtonPlacement = {
 	colEnd: number;
 };
 
-function padLineToWidth(line: string, width: number): string {
-	if (width <= 0) return "";
-	const truncated = truncateToWidth(line, width, "", true);
-	const pad = Math.max(0, width - visibleWidth(truncated));
-	return `${truncated}\x1b[0m${" ".repeat(pad)}`;
-}
+// padLineToWidth imported from button-helpers
 
 function renderInlineButton(spec: ButtonSpec): { lines: string[]; width: number } {
 	const theme = state.session.theme;
-	const buttonWidth = makeButtonWidth(spec);
-	const innerWidth = Math.max(1, buttonWidth - 2);
-	const palette = buttonPalette(spec);
-	const raw = spec.label.trim();
-	const label = visibleWidth(raw) > innerWidth ? truncateToWidth(raw, innerWidth, "", true) : raw;
-	const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
-	const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
-	const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
-	return {
-		width: buttonWidth,
-		lines: theme
-			? [
-				theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`),
-				theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"),
-				theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`),
-			]
-			: [
+	if (!theme) {
+		// Fallback before theme is available
+		const buttonWidth = makeButtonWidth(spec);
+		const innerWidth = Math.max(1, buttonWidth - 2);
+		return {
+			width: buttonWidth,
+			lines: [
 				`╭${"─".repeat(innerWidth)}╮`,
-				`│${padded}│`,
+				`│${spec.label.trim().padStart(innerWidth / 2 + 1).padEnd(innerWidth)}│`,
 				`╰${"─".repeat(innerWidth)}╯`,
 			],
-	};
+		};
+	}
+	return renderBoxButton(spec, theme);
 }
 
 function shouldUseInlineButtons(width: number): boolean {

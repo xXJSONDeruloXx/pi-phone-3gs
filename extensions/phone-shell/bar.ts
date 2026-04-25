@@ -1,6 +1,7 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT } from "./defaults.js";
+import { renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 const CHIP_GAP = 1; // columns between chips
@@ -73,7 +74,7 @@ export class BottomBarComponent implements Component {
 		const hitRegions: ButtonHitRegion[] = [];
 		let cursorX = 0;
 
-		for (const { spec, label, palette, virtualX, chipWidth } of layouts) {
+		for (const { spec, virtualX, chipWidth } of layouts) {
 			const screenX = virtualX - scrollX;
 
 			if (screenX >= usableWidth) break;            // off right — done
@@ -91,10 +92,10 @@ export class BottomBarComponent implements Component {
 				cursorX += gap;
 			}
 
-			const innerWidth = chipWidth - 2;
-			tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-			mids.push(theme.fg(palette, "│") + theme.bold(theme.fg(palette, label)) + theme.fg(palette, "│"));
-			bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
+			const rendered = renderBoxButton(spec, theme);
+			tops.push(rendered.lines[0]!);
+			mids.push(rendered.lines[1]!);
+			bots.push(rendered.lines[2]!);
 
 			const colStart = prefixCols + 1 + screenX; // 1-based terminal column
 			hitRegions.push({

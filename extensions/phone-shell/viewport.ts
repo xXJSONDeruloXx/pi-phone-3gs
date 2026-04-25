@@ -1,6 +1,6 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { buttonPalette, makeButtonWidth } from "./button-helpers.js";
+import { makeButtonWidth, padLineToWidth, renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ViewportDebugState } from "./types.js";
 
 const VIEWPORT_TOP_BUTTON: ButtonSpec = {
@@ -20,30 +20,10 @@ const VIEWPORT_BOTTOM_BUTTON: ButtonSpec = {
 };
 
 function renderViewportButton(spec: ButtonSpec, theme: ReturnType<PhoneShellRenderContext["getTheme"]>): { lines: string[]; width: number } {
-	const buttonWidth = makeButtonWidth(spec);
-	const innerWidth = Math.max(1, buttonWidth - 2);
-	const palette = buttonPalette(spec);
-	const raw = spec.label.trim();
-	const label = visibleWidth(raw) > innerWidth ? truncateToWidth(raw, innerWidth, "", true) : raw;
-	const leftPad = Math.floor((innerWidth - Math.min(visibleWidth(label), innerWidth)) / 2);
-	const rightPad = innerWidth - Math.min(visibleWidth(label), innerWidth) - leftPad;
-	const padded = " ".repeat(leftPad) + label + " ".repeat(rightPad);
-	return {
-		width: buttonWidth,
-		lines: [
-			theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`),
-			theme.fg(palette, "│") + theme.bold(theme.fg(palette, padded)) + theme.fg(palette, "│"),
-			theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`),
-		],
-	};
+	return renderBoxButton(spec, theme);
 }
 
-function padLineToWidth(line: string, width: number): string {
-	if (width <= 0) return "";
-	const truncated = truncateToWidth(line, width, "", true);
-	const pad = Math.max(0, width - visibleWidth(truncated));
-	return `${truncated}\x1b[0m${" ".repeat(pad)}`;
-}
+// padLineToWidth imported from button-helpers
 
 function placeButtonAtRight(line: string, width: number, buttonLine: string, buttonWidth: number): string {
 	if (buttonWidth >= width) return truncateToWidth(buttonLine, width);
