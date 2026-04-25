@@ -1,6 +1,6 @@
 import { truncateToWidth } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT } from "./defaults.js";
-import { buttonPalette, makeButtonWidth, splitIntoRows } from "./button-helpers.js";
+import { makeButtonWidth, renderBoxButton, splitIntoRows } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 export interface RenderButtonGroupsOptions {
@@ -47,21 +47,19 @@ export function renderButtonGroups(
 
 			for (let buttonIndex = 0; buttonIndex < row.buttons.length; buttonIndex++) {
 				const button = row.buttons[buttonIndex]!;
-				const buttonWidth = makeButtonWidth(button);
-				const innerWidth = buttonWidth - 2;
-				const palette = buttonPalette(button);
+				const rendered = renderBoxButton(button, theme);
 
-				tops.push(theme.fg(palette, `╭${"─".repeat(innerWidth)}╮`));
-				mids.push(theme.fg(palette, "│") + theme.bold(button.label) + theme.fg(palette, "│"));
-				bots.push(theme.fg(palette, `╰${"─".repeat(innerWidth)}╯`));
+				tops.push(rendered.lines[0]!);
+				mids.push(rendered.lines[1]!);
+				bots.push(rendered.lines[2]!);
 
 				hitRegions.push({
 					button,
 					colStart: col,
-					colEnd: col + buttonWidth - 1,
+					colEnd: col + rendered.width - 1,
 					rowOffset: globalRowIndex,
 				});
-				col += buttonWidth + config.render.buttonGap;
+				col += rendered.width + config.render.buttonGap;
 
 				if (buttonIndex < row.buttons.length - 1) {
 					tops.push(" ".repeat(config.render.buttonGap));

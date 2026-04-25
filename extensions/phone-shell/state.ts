@@ -5,6 +5,7 @@ import path from "node:path";
 import { DEFAULT_CONFIG } from "./defaults.js";
 import { getPhoneShellPaths, loadFavorites, loadPhoneShellSettings } from "./config.js";
 import type {
+	DropdownOverlayState,
 	FavoriteEntry,
 	MouseInput,
 	PhoneShellConfig,
@@ -14,10 +15,27 @@ import type {
 	ThinkingLevel,
 } from "./types.js";
 import type { AgentStateTracker } from "./header.js";
+import type { ModelRegistry, PiExtensionCtx, TUI, EditorTheme, KeybindingsManager, ExtensionUIContext } from "./pi-types.js";
 
 // ---------------------------------------------------------------------------
 // Runtime state
 // ---------------------------------------------------------------------------
+
+/** Factory for the repeated zero-value overlay state shape. */
+function createDropdownOverlayState(): DropdownOverlayState {
+	return {
+		handle: undefined,
+		visible: false,
+		row: 0,
+		col: 0,
+		width: 0,
+		buttons: [],
+		actualHeight: 3,
+		scrollOffset: 0,
+		maxVisibleItems: 0,
+		drag: undefined,
+	};
+}
 
 export type RuntimeState = PhoneShellRenderState & {
 	config: PhoneShellConfig;
@@ -35,16 +53,16 @@ export type RuntimeState = PhoneShellRenderState & {
 	};
 	bindings: {
 		statusSink?: (key: string, text: string | undefined) => void;
-		notify?: (text: string, type?: string) => void;
+		notify?: (text: string, type?: "info" | "warning" | "error") => void;
 		setEditorText?: (text: string) => void;
 		getEditorText?: () => string;
-		setWidget?: (key: string, content: any, options?: any) => void;
-		setEditorComponent?: (factory: ((tui: any, theme: any, keybindings: any) => any) | undefined) => void;
+		setWidget?: ExtensionUIContext["setWidget"];
+		setEditorComponent?: ExtensionUIContext["setEditorComponent"];
 		abort?: () => void;
 		isIdle?: () => boolean;
 	};
 	inputUnsubscribe?: () => void;
-	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
+	modelRegistry?: ModelRegistry;
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
 	thinkingLevel: ThinkingLevel;
@@ -92,54 +110,10 @@ export const state: RuntimeState = {
 			placement: "hidden",
 		},
 		overlays: {
-			utility: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
-			view: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
-			skills: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
-			models: {
-				handle: undefined,
-				visible: false,
-				row: 0,
-				col: 0,
-				width: 0,
-				buttons: [],
-				actualHeight: 3,
-				scrollOffset: 0,
-				maxVisibleItems: 0,
-				drag: undefined,
-			},
+			utility: createDropdownOverlayState(),
+			view: createDropdownOverlayState(),
+			skills: createDropdownOverlayState(),
+			models: createDropdownOverlayState(),
 		},
 		viewport: {
 			row: 0,
@@ -210,12 +184,12 @@ export const renderContext: PhoneShellRenderContext = {
 
 export function queueLog(message: string): void {
 	state.diagnostics.logQueue = state.diagnostics.logQueue
-		.catch(() => undefined)
+		.catch(() => undefined) // absorb any prior queue rejection — never let logger errors cascade
 		.then(async () => {
 			await fs.mkdir(path.dirname(state.paths.log), { recursive: true });
 			await fs.appendFile(state.paths.log, `${new Date().toISOString()} ${message}\n`, "utf8");
 		})
-		.catch(() => undefined);
+		.catch(() => undefined); // suppress write errors — can't log them without infinite recursion
 }
 
 export function scheduleRender(): void {
@@ -232,7 +206,7 @@ export function setLastAction(label: string): void {
 	queueLog(`action ${label}`);
 }
 
-export function captureUiBindings(ctx: { ui: any; abort?: () => void; isIdle?: () => boolean }): void {
+export function captureUiBindings(ctx: PiExtensionCtx): void {
 	state.bindings.statusSink = ctx.ui.setStatus.bind(ctx.ui);
 	state.bindings.notify = ctx.ui.notify.bind(ctx.ui);
 	state.session.theme = ctx.ui.theme;
@@ -248,7 +222,7 @@ export function captureUiBindings(ctx: { ui: any; abort?: () => void; isIdle?: (
 // Config reload
 // ---------------------------------------------------------------------------
 
-export async function reloadRuntimeSettings(ctx?: { ui: any }, notifyOnProblems = false): Promise<void> {
+export async function reloadRuntimeSettings(ctx?: PiExtensionCtx, notifyOnProblems = false): Promise<void> {
 	const { config, layout, errors } = await loadPhoneShellSettings(state.paths);
 	const { favorites, errors: favErrors } = await loadFavorites(state.paths);
 	state.config = config;
