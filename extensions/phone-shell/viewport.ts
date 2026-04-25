@@ -88,10 +88,14 @@ export class TouchViewport implements Component {
 			for (let i = 0; i < overscrollRows; i++) visible.push("");
 			for (let i = 0; i < visibleHeight - overscrollRows; i++) visible.push(lines[i] ?? "");
 		} else if (frac > maxTop) {
-			// Overscrolled past the bottom — show content to end, then empty rows
+			// Overscrolled past the bottom — entire visible block shifts up, empties trail
 			const overscrollRows = Math.min(Math.round(frac - maxTop), visibleHeight);
-			visible = lines.slice(maxTop, maxTop + visibleHeight - overscrollRows);
-			while (visible.length < visibleHeight - overscrollRows) visible.push("");
+			// Content that was at the bottom scrolls up by overscrollRows,
+			// the bottom overscrollRows of the previously-visible screenful exit the top.
+			const start = maxTop + overscrollRows;
+			const contentRows = visibleHeight - overscrollRows;
+			visible = lines.slice(start, start + contentRows);
+			while (visible.length < contentRows) visible.push("");
 			for (let i = 0; i < overscrollRows; i++) visible.push("");
 		} else {
 			// Normal scrolling
