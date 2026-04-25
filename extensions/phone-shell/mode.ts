@@ -32,6 +32,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		barVisible: state.shell.barVisible,
 		navPadVisible: state.shell.navPadVisible,
 		viewportJumpButtonsVisible: state.shell.viewportJumpButtonsVisible,
+		topEditorSendButtonVisible: state.shell.topEditorSendButtonVisible,
 		...patch,
 	});
 }
@@ -50,6 +51,7 @@ export function clearCapturedTui(): void {
 	state.bindings.abort = undefined;
 	state.bindings.isIdle = undefined;
 	state.session.editorContainer = undefined;
+	state.session.phoneShellEditor = undefined;
 	state.session.editorContainerOriginalIndex = undefined;
 	state.shell.editorAtTop = false;
 	state.ui.overlays.view.visible = false;
@@ -58,6 +60,9 @@ export function clearCapturedTui(): void {
 	state.ui.nav.buttons = [];
 	state.ui.nav.actualHeight = BAR_HEIGHT;
 	state.ui.nav.placement = "hidden";
+	state.ui.editor.row = 0;
+	state.ui.editor.height = 0;
+	state.ui.editor.buttons = [];
 }
 
 export function captureTui(ctx: { ui: any }): boolean {
@@ -108,6 +113,9 @@ function uninstallViewport(): void {
 	state.ui.viewport.height = 0;
 	state.ui.viewport.buttons = [];
 	state.ui.viewport.drag = undefined;
+	state.ui.editor.row = 0;
+	state.ui.editor.height = 0;
+	state.ui.editor.buttons = [];
 }
 
 function resetNavLayout(): void {
@@ -153,6 +161,23 @@ function uninstallHeader(): void {
  * After this call Pi's default editor is active; we hold a reference to the
  * Container so we can reposition it for proxy mode.
  */
+function installPhoneShellEditor(): void {
+	if (!state.bindings.setEditorComponent) return;
+	state.bindings.setEditorComponent((tui: TUI, theme: any, keybindings: any) =>
+		new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender()),
+	);
+	queueLog("phone-shell editor installed");
+}
+
+function restoreDefaultEditor(): void {
+	state.session.phoneShellEditor = undefined;
+	state.ui.editor.row = 0;
+	state.ui.editor.height = 0;
+	state.ui.editor.buttons = [];
+	state.bindings.setEditorComponent?.(undefined);
+	queueLog("default editor restored");
+}
+
 function captureEditorContainer(): void {
 	if (!state.session.tui || !state.bindings.setEditorComponent) return;
 	if (state.session.editorContainer) return; // already captured
@@ -182,8 +207,8 @@ function captureEditorContainer(): void {
 	}
 
 	// Restore default editor; we only needed the temp to find the container
-	state.bindings.setEditorComponent(undefined);
-	queueLog("editorContainer captured, default editor restored");
+	restoreDefaultEditor();
+	queueLog("editorContainer captured");
 }
 
 /**
@@ -276,6 +301,13 @@ export function toggleNavPad(): void {
 export function toggleViewportJumpButtons(): void {
 	if (!state.shell.enabled) return;
 	state.shell.viewportJumpButtonsVisible = !state.shell.viewportJumpButtonsVisible;
+	void persistShellState().catch(() => undefined);
+	state.session.tui?.requestRender(true);
+}
+
+export function toggleTopEditorSendButton(): void {
+	if (!state.shell.enabled) return;
+	state.shell.topEditorSendButtonVisible = !state.shell.topEditorSendButtonVisible;
 	void persistShellState().catch(() => undefined);
 	state.session.tui?.requestRender(true);
 }
@@ -395,6 +427,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	installViewport();
 	installHeader();
 	captureEditorContainer();
+	installPhoneShellEditor();
 	syncNavPadPlacement();
 	enableMouseTracking();
 	registerInputHandler(ctx);
@@ -417,6 +450,7 @@ export async function disableTouchMode(ctx?: { ui: any }, permanent = false, per
 	hideUtilityOverlay();
 	hideViewOverlay();
 	hideSkillsOverlay();
+	restoreDefaultEditor();
 	destroyPanel();
 	uninstallTopNavPad();
 	// Restore editorContainer position BEFORE uninstallHeader so uninstallViewport

@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT, getViewMenuButtons, HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleViewportJumpButtons } from "./mode.js";
+import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleViewportJumpButtons } from "./mode.js";
 import type {
 	ButtonHitRegion,
 	ButtonSpec,
@@ -213,6 +213,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleViewportJumpButtons":
 			toggleViewportJumpButtons();
 			return { consume: true };
+		case "toggleTopEditorSendButton":
+			toggleTopEditorSendButton();
+			return { consume: true };
 		case "scrollTop":
 			state.session.viewport?.toTop();
 			return { consume: true };
@@ -262,7 +265,7 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
-export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header"): InputResponse {
+export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
 	const isOverlay = origin === "utility" || origin === "view" || origin === "skills";
@@ -570,6 +573,14 @@ export function registerInputHandler(ctx: { ui: any }): void {
 
 			const skillsDropdownResponse = handleSkillsDropdownMouse(mouse);
 			if (skillsDropdownResponse) return skillsDropdownResponse;
+
+			const editorChildren = (state.session.editorContainer as { children?: unknown[] } | undefined)?.children;
+			const editorVisible = Array.isArray(editorChildren) && !!state.session.phoneShellEditor && editorChildren.includes(state.session.phoneShellEditor);
+			const inEditor = editorVisible && state.ui.editor.row > 0 && mouse.row >= state.ui.editor.row && mouse.row < state.ui.editor.row + state.ui.editor.height;
+			if (inEditor) {
+				const button = findHitRegion(state.ui.editor.buttons, mouse.row - state.ui.editor.row, mouse.col);
+				if (button) return activateButton(button, "editor");
+			}
 
 			const inNav = state.ui.nav.row > 0 && mouse.row >= state.ui.nav.row && mouse.row < state.ui.nav.row + state.ui.nav.actualHeight;
 			if (inNav) {

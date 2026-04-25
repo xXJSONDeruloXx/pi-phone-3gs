@@ -94,6 +94,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			state.shell.barVisible = persisted.barVisible;
 			state.shell.navPadVisible = persisted.navPadVisible;
 			state.shell.viewportJumpButtonsVisible = persisted.viewportJumpButtonsVisible;
+			state.shell.topEditorSendButtonVisible = persisted.topEditorSendButtonVisible;
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
 				await enableTouchMode(ctx, false).catch(() => undefined);

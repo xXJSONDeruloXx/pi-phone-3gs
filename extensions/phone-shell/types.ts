@@ -44,6 +44,7 @@ export type ShellAction =
 	| "toggleEditorPosition"
 	| "toggleNavPad"
 	| "toggleViewportJumpButtons"
+	| "toggleTopEditorSendButton"
 	| "scrollTop"
 	| "pageUp"
 	| "cycleModel"
@@ -150,6 +151,7 @@ export interface PersistedShellState {
 	barVisible: boolean;
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
+	topEditorSendButtonVisible: boolean;
 }
 
 export interface FavoriteEntry {
@@ -261,12 +263,20 @@ export interface ViewportLayoutState {
 	};
 }
 
+export interface EditorLayoutState {
+	row: number;
+	height: number;
+	buttons: ButtonHitRegion[];
+}
+
 export interface SessionRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
 	/** Pi's editorContainer Container instance — selectors and dialogs inject here. */
 	editorContainer?: object;
+	/** Active phone-shell custom editor instance, when installed. */
+	phoneShellEditor?: object;
 	/** Original index of editorContainer in tui.children before proxy mode moves it. */
 	editorContainerOriginalIndex?: number;
 	originalChat?: Component;
@@ -277,6 +287,7 @@ export interface ShellModeState {
 	barVisible: boolean;
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
+	topEditorSendButtonVisible: boolean;
 	proxyOnly: boolean;
 	/** True while editorContainer has been moved to the top of the TUI children array. */
 	editorAtTop: boolean;
@@ -293,6 +304,7 @@ export interface PhoneShellUIState {
 		skills: DropdownOverlayState;
 	};
 	viewport: ViewportLayoutState;
+	editor: EditorLayoutState;
 }
 
 export interface PhoneShellRenderState {

@@ -30,6 +30,7 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleEditorPosition",
 	"toggleNavPad",
 	"toggleViewportJumpButtons",
+	"toggleTopEditorSendButton",
 	"scrollTop",
 	"pageUp",
 	"cycleModel",
@@ -289,6 +290,7 @@ function normalizePersistedShellState(value: unknown, fallback = DEFAULT_PERSIST
 		barVisible: value.barVisible !== false,
 		navPadVisible: value.navPadVisible === true,
 		viewportJumpButtonsVisible: value.viewportJumpButtonsVisible !== false,
+		topEditorSendButtonVisible: value.topEditorSendButtonVisible !== false,
 	};
 }
 
@@ -310,6 +312,7 @@ export async function savePersistedShellState(paths: PhoneShellPaths, patch: Par
 		barVisible: patch.barVisible ?? current.barVisible,
 		navPadVisible: patch.navPadVisible ?? current.navPadVisible,
 		viewportJumpButtonsVisible: patch.viewportJumpButtonsVisible ?? current.viewportJumpButtonsVisible,
+		topEditorSendButtonVisible: patch.topEditorSendButtonVisible ?? current.topEditorSendButtonVisible,
 	};
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
 	await fs.writeFile(paths.state, JSON.stringify(next, null, 2), "utf8");
