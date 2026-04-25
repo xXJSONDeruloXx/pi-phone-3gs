@@ -1,5 +1,6 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
 import type { Component, OverlayHandle, TUI } from "@mariozechner/pi-tui";
+import type { PiEditorContainer } from "./pi-types.js";
 
 export type ButtonPalette = "accent" | "warning" | "muted";
 
@@ -299,9 +300,9 @@ export interface SessionRenderState {
 	theme?: Theme;
 	viewport?: ViewportController;
 	/** Pi's editorContainer Container instance — selectors and dialogs inject here. */
-	editorContainer?: object;
+	editorContainer?: PiEditorContainer;
 	/** Active phone-shell custom editor instance, when installed. */
-	phoneShellEditor?: object;
+	phoneShellEditor?: Component;
 	/** Original index of editorContainer in tui.children before proxy mode moves it. */
 	editorContainerOriginalIndex?: number;
 	originalChat?: Component;

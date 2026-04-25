@@ -15,6 +15,7 @@ import type {
 	ThinkingLevel,
 } from "./types.js";
 import type { AgentStateTracker } from "./header.js";
+import type { ModelRegistry, PiExtensionCtx, TUI, EditorTheme, KeybindingsManager, ExtensionUIContext } from "./pi-types.js";
 
 // ---------------------------------------------------------------------------
 // Runtime state
@@ -52,16 +53,16 @@ export type RuntimeState = PhoneShellRenderState & {
 	};
 	bindings: {
 		statusSink?: (key: string, text: string | undefined) => void;
-		notify?: (text: string, type?: string) => void;
+		notify?: (text: string, type?: "info" | "warning" | "error") => void;
 		setEditorText?: (text: string) => void;
 		getEditorText?: () => string;
-		setWidget?: (key: string, content: any, options?: any) => void;
-		setEditorComponent?: (factory: ((tui: any, theme: any, keybindings: any) => any) | undefined) => void;
+		setWidget?: ExtensionUIContext["setWidget"];
+		setEditorComponent?: ExtensionUIContext["setEditorComponent"];
 		abort?: () => void;
 		isIdle?: () => boolean;
 	};
 	inputUnsubscribe?: () => void;
-	modelRegistry?: { getAll(): Model<any>[]; getAvailable(): Model<any>[] };
+	modelRegistry?: ModelRegistry;
 	currentModel?: Model<any>;
 	setModel?: (model: Model<any>) => Promise<boolean>;
 	thinkingLevel: ThinkingLevel;
@@ -205,7 +206,7 @@ export function setLastAction(label: string): void {
 	queueLog(`action ${label}`);
 }
 
-export function captureUiBindings(ctx: { ui: any; abort?: () => void; isIdle?: () => boolean }): void {
+export function captureUiBindings(ctx: PiExtensionCtx): void {
 	state.bindings.statusSink = ctx.ui.setStatus.bind(ctx.ui);
 	state.bindings.notify = ctx.ui.notify.bind(ctx.ui);
 	state.session.theme = ctx.ui.theme;
@@ -221,7 +222,7 @@ export function captureUiBindings(ctx: { ui: any; abort?: () => void; isIdle?: (
 // Config reload
 // ---------------------------------------------------------------------------
 
-export async function reloadRuntimeSettings(ctx?: { ui: any }, notifyOnProblems = false): Promise<void> {
+export async function reloadRuntimeSettings(ctx?: PiExtensionCtx, notifyOnProblems = false): Promise<void> {
 	const { config, layout, errors } = await loadPhoneShellSettings(state.paths);
 	const { favorites, errors: favErrors } = await loadFavorites(state.paths);
 	state.config = config;

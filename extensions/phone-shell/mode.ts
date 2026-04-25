@@ -1,4 +1,5 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
+import type { Theme } from "@mariozechner/pi-coding-agent";
 import { BottomBarComponent } from "./bar.js";
 import { savePersistedShellState } from "./config.js";
 import {
@@ -19,6 +20,7 @@ import { captureUiBindings, getTheme, queueLog, reloadRuntimeSettings, renderCon
 import type { PersistedShellState } from "./types.js";
 import { NavigationPadComponent } from "./nav.js";
 import { TouchViewport } from "./viewport.js";
+import type { PiExtensionCtx, EditorTheme, KeybindingsManager } from "./pi-types.js";
 
 const EMPTY_COMPONENT: Component = {
 	render: () => [],
@@ -67,11 +69,11 @@ export function clearCapturedTui(): void {
 	state.ui.editor.buttons = [];
 }
 
-export function captureTui(ctx: { ui: any }): boolean {
+export function captureTui(ctx: PiExtensionCtx): boolean {
 	if (state.session.tui) return true;
 	ctx.ui.setWidget(
 		BOOTSTRAP_WIDGET_KEY,
-		(tui: TUI, theme: any) => {
+		(tui: TUI, theme: Theme) => {
 			state.session.tui = tui;
 			state.session.theme = theme;
 			return EMPTY_COMPONENT;
@@ -165,7 +167,7 @@ function uninstallHeader(): void {
  */
 function installPhoneShellEditor(): void {
 	if (!state.bindings.setEditorComponent) return;
-	state.bindings.setEditorComponent((tui: TUI, theme: any, keybindings: any) =>
+	state.bindings.setEditorComponent((tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) =>
 		new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender()),
 	);
 	queueLog("phone-shell editor installed");
@@ -185,7 +187,7 @@ function captureEditorContainer(): void {
 	if (state.session.editorContainer) return; // already captured
 
 	let tempEditor: PhoneShellEditor | undefined;
-	state.bindings.setEditorComponent((tui: TUI, theme: any, keybindings: any) => {
+	state.bindings.setEditorComponent((tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) => {
 		tempEditor = new PhoneShellEditor(tui, theme, keybindings, () => tui.requestRender());
 		return tempEditor;
 	});
@@ -193,10 +195,10 @@ function captureEditorContainer(): void {
 	// Pi has synchronously called our factory and done editorContainer.addChild(tempEditor)
 	if (tempEditor) {
 		for (const child of state.session.tui.children) {
-			const c = child as any;
+			const c = child as { children?: unknown[] } | undefined;
 			if (c && Array.isArray(c.children) && c.children.includes(tempEditor)) {
-				state.session.editorContainer = c;
-				state.session.editorContainerOriginalIndex = state.session.tui.children.indexOf(c);
+				state.session.editorContainer = c as import("./types.js").SessionRenderState["editorContainer"];
+				state.session.editorContainerOriginalIndex = state.session.tui.children.indexOf(child);
 				queueLog(`editorContainer found at index ${state.session.editorContainerOriginalIndex}`);
 				break;
 			}
@@ -221,7 +223,7 @@ function captureEditorContainer(): void {
 function moveEditorToTop(): void {
 	if (!state.session.tui || !state.session.editorContainer) return;
 	const tui = state.session.tui;
-	const ec = state.session.editorContainer as any;
+	const ec = state.session.editorContainer as unknown as Component;
 	const currentIndex = tui.children.indexOf(ec);
 	if (currentIndex === -1) return;
 	const targetIndex = state.shell.headerInstalled ? 1 : 0;
@@ -244,7 +246,7 @@ function moveEditorToTop(): void {
 function moveEditorToOriginalPosition(): void {
 	if (!state.session.tui || !state.session.editorContainer) return;
 	const tui = state.session.tui;
-	const ec = state.session.editorContainer as any;
+	const ec = state.session.editorContainer as unknown as Component;
 	const currentIndex = tui.children.indexOf(ec);
 	if (currentIndex === -1) {
 		state.shell.editorAtTop = false;
@@ -409,7 +411,7 @@ function touchStatusText(): string {
 	return theme.fg("accent", "phone") + theme.fg("dim", " shell");
 }
 
-export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise<void> {
+export async function enableTouchMode(ctx: PiExtensionCtx, persist = true): Promise<void> {
 	captureUiBindings(ctx);
 	await reloadRuntimeSettings(ctx, false);
 	if (!captureTui(ctx) || !state.session.tui) {
@@ -436,7 +438,7 @@ export async function enableTouchMode(ctx: { ui: any }, persist = true): Promise
 	queueLog("enabled");
 }
 
-export async function disableTouchMode(ctx?: { ui: any }, permanent = false, persist = true): Promise<void> {
+export async function disableTouchMode(ctx?: PiExtensionCtx, permanent = false, persist = true): Promise<void> {
 	if (!state.shell.enabled && !permanent) return;
 	state.shell.enabled = false;
 	disableMouseTracking();
