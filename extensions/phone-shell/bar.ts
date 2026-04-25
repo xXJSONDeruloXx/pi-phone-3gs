@@ -34,13 +34,22 @@ export class BottomBarComponent implements Component {
 			const innerWidth = visibleWidth(displayLabel);
 			const chipWidth = innerWidth + 2; // +2 for │ borders
 			const palette = fav.palette ?? "accent";
-			const spec: ButtonSpec = {
-				kind: "command",
-				id: `fav-${i}`,
-				label: fav.label,
-				command: fav.command,
-				palette,
-			};
+
+			let spec: ButtonSpec;
+			if (fav.action) {
+				spec = { kind: "action", id: `fav-${i}`, label: fav.label, action: fav.action, palette };
+			} else if (fav.command) {
+				spec = { kind: "command", id: `fav-${i}`, label: fav.label, command: fav.command, palette };
+			} else if (fav.data) {
+				if (fav.kind === "editorKey") {
+					spec = { kind: "editorKey", id: `fav-${i}`, label: fav.label, data: fav.data, clearFirst: fav.clearFirst, setText: fav.setText, palette };
+				} else {
+					spec = { kind: "input", id: `fav-${i}`, label: fav.label, data: fav.data, palette };
+				}
+			} else {
+				// Should not happen if parsing is correct, skip
+				continue;
+			}
 			layouts.push({ spec, label: displayLabel, palette, virtualX: vx, chipWidth });
 			vx += chipWidth + CHIP_GAP;
 		}

@@ -396,11 +396,33 @@ export async function loadFavorites(paths: PhoneShellPaths): Promise<{ favorites
 				continue;
 			}
 			const label = typeof item.label === "string" && item.label.trim().length > 0 ? item.label.trim() : undefined;
-			const command = typeof item.command === "string" && item.command.trim().length > 0 ? item.command.trim() : undefined;
 			if (!label) { errors.push(`favorites[${i}].label must be a non-empty string`); continue; }
-			if (!command) { errors.push(`favorites[${i}].command must be a non-empty string`); continue; }
+
+			const command = typeof item.command === "string" && item.command.trim().length > 0 ? item.command.trim() : undefined;
+			const action = typeof item.action === "string" && ACTIONS.includes(item.action as ShellAction) ? item.action as ShellAction : undefined;
+			const data = typeof item.data === "string" ? item.data : undefined;
+
+			const provided = [command, action, data].filter(Boolean).length;
+			if (provided === 0) {
+				errors.push(`favorites[${i}] must have at least one of "command", "action", or "data"`);
+				continue;
+			}
+			if (provided > 1) {
+				errors.push(`favorites[${i}] should have only one of "command", "action", or "data" (got ${provided})`);
+			}
+
 			const palette = readPalette(item.palette);
-			favorites.push({ label, command, palette });
+			const entry: FavoriteEntry = { label };
+			if (command) entry.command = command;
+			if (action) entry.action = action;
+			if (data) {
+				entry.data = data;
+				entry.kind = typeof item.kind === "string" && (item.kind === "input" || item.kind === "editorKey") ? item.kind : undefined;
+				if (typeof item.clearFirst === "boolean") entry.clearFirst = item.clearFirst;
+				if (typeof item.setText === "string") entry.setText = item.setText;
+			}
+			if (palette) entry.palette = palette;
+			favorites.push(entry);
 		}
 		return { favorites, errors };
 	} catch (error) {

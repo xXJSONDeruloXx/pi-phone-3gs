@@ -157,14 +157,36 @@ export interface PersistedShellState {
 	topEditorStashButtonVisible: boolean;
 }
 
-export interface FavoriteEntry {
+/**
+ * A favorites rail entry. Exactly one of `command`, `action`, or `data` must be set.
+ *
+ * - `command` → sends a slash command through the editor
+ * - `action`  → performs a shell action (arrows, escape, scroll, toggles, etc.)
+ * - `data`    → sends raw terminal bytes (e.g. ctrl+c, escape sequences)
+ *              Set `kind: "editorKey"` to use editorKey mode with clearFirst/setText.
+ */
+export type FavoriteEntry = {
 	/** Short label shown on the rail button. Keep ≤ 6 chars. */
 	label: string;
 	/** Full slash command sent when tapped, e.g. "/skill:ralph-wiggum" or "/compact". */
-	command: string;
+	command?: string;
+	/** Shell action to perform when tapped. */
+	action?: ShellAction;
+	/** Raw terminal bytes to send when tapped, e.g. "\u0003" for ctrl+c. */
+	data?: string;
+	/**
+	 * Optional explicit kind override. Only needed when `data` is set:
+	 * omit (or "input") for a raw input send, set to "editorKey" for
+	 * editor-aware key sends with optional clearFirst/setText.
+	 */
+	kind?: "input" | "editorKey";
+	/** (editorKey only) Clear editor before sending data. */
+	clearFirst?: boolean;
+	/** (editorKey only) Set editor text before sending data. */
+	setText?: string;
 	/** Optional palette override. Defaults to "accent". */
 	palette?: ButtonPalette;
-}
+};
 
 export interface PhoneShellPaths {
 	config: string;
