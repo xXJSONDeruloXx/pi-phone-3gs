@@ -120,6 +120,8 @@ The favorites rail (`BottomBarComponent`) lives as a `belowEditor` widget. Dropd
 
 ## Branching + merge workflow
 
+- **CRITICAL: Always cut a new branch from `main` BEFORE writing any code.** Never commit feature work directly on `main`.
+- If you realize you've started coding on `main`, stash your changes, create the branch, then pop the stash before continuing.
 - For **new feature work** in this repo, always create a new branch from `main` before implementing.
 - Keep `main` as the last known-good fallback so the user can quickly switch back if a rendering/input experiment breaks the shell.
 - After implementing a feature, let the user reload and test it before merging.

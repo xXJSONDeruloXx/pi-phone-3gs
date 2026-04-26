@@ -47,6 +47,7 @@ export type ShellAction =
 	| "toggleViewportJumpButtons"
 	| "toggleTopEditorSendButton"
 	| "toggleTopEditorStashButton"
+	| "toggleTopEditorFollowUpButton"
 	| "stashEditor"
 	| "scrollTop"
 	| "pageUp"
@@ -171,6 +172,7 @@ export interface PersistedShellState {
 	viewportJumpButtonsVisible: boolean;
 	topEditorSendButtonVisible: boolean;
 	topEditorStashButtonVisible: boolean;
+	topEditorFollowUpButtonVisible: boolean;
 }
 
 /**
@@ -347,6 +349,7 @@ export interface ShellModeState {
 	viewportJumpButtonsVisible: boolean;
 	topEditorSendButtonVisible: boolean;
 	topEditorStashButtonVisible: boolean;
+	topEditorFollowUpButtonVisible: boolean;
 	proxyOnly: boolean;
 	/** True while editorContainer has been moved to the top of the TUI children array. */
 	editorAtTop: boolean;

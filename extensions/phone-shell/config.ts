@@ -306,6 +306,7 @@ function normalizePersistedShellState(value: unknown, fallback = DEFAULT_PERSIST
 		viewportJumpButtonsVisible: value.viewportJumpButtonsVisible !== false,
 		topEditorSendButtonVisible: value.topEditorSendButtonVisible !== false,
 		topEditorStashButtonVisible: value.topEditorStashButtonVisible !== false,
+		topEditorFollowUpButtonVisible: value.topEditorFollowUpButtonVisible === true,
 	};
 }
 
@@ -329,6 +330,7 @@ export async function savePersistedShellState(paths: PhoneShellPaths, patch: Par
 		viewportJumpButtonsVisible: patch.viewportJumpButtonsVisible ?? current.viewportJumpButtonsVisible,
 		topEditorSendButtonVisible: patch.topEditorSendButtonVisible ?? current.topEditorSendButtonVisible,
 		topEditorStashButtonVisible: patch.topEditorStashButtonVisible ?? current.topEditorStashButtonVisible,
+		topEditorFollowUpButtonVisible: patch.topEditorFollowUpButtonVisible ?? current.topEditorFollowUpButtonVisible,
 	};
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
 	await fs.writeFile(paths.state, JSON.stringify(next, null, 2), "utf8");

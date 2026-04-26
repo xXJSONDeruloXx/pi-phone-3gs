@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleViewportJumpButtons } from "./mode.js";
+import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleTopEditorFollowUpButton, toggleViewportJumpButtons } from "./mode.js";
 import type { PiExtensionCtx } from "./pi-types.js";
 import {
 	parseMouseInput,
@@ -245,6 +245,9 @@ export function performAction(action: ShellAction): InputResponse {
 			return { consume: true };
 		case "toggleTopEditorStashButton":
 			toggleTopEditorStashButton();
+			return { consume: true };
+		case "toggleTopEditorFollowUpButton":
+			toggleTopEditorFollowUpButton();
 			return { consume: true };
 		case "stashEditor":
 			return stashOrRestoreEditorText();

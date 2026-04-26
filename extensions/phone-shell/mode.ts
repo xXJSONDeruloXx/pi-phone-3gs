@@ -51,6 +51,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		viewportJumpButtonsVisible: state.shell.viewportJumpButtonsVisible,
 		topEditorSendButtonVisible: state.shell.topEditorSendButtonVisible,
 		topEditorStashButtonVisible: state.shell.topEditorStashButtonVisible,
+		topEditorFollowUpButtonVisible: state.shell.topEditorFollowUpButtonVisible,
 		...patch,
 	});
 }
@@ -129,7 +130,7 @@ export function toggleEditorPosition(): void {
 // Toggle factory
 // ---------------------------------------------------------------------------
 
-type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible";
+type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible";
 
 function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): () => void {
 	return function toggle(): void {
@@ -146,6 +147,7 @@ export const toggleNavPad = makeToggle("navPadVisible", syncNavPadPlacement);
 export const toggleViewportJumpButtons = makeToggle("viewportJumpButtonsVisible");
 export const toggleTopEditorSendButton = makeToggle("topEditorSendButtonVisible");
 export const toggleTopEditorStashButton = makeToggle("topEditorStashButtonVisible");
+export const toggleTopEditorFollowUpButton = makeToggle("topEditorFollowUpButtonVisible");
 
 // ---------------------------------------------------------------------------
 // Bottom widgets (panel + nav pad below editor)
