@@ -1,6 +1,6 @@
 import { CustomEditor } from "@mariozechner/pi-coding-agent";
 import type { Component, EditorTheme, TUI } from "@mariozechner/pi-tui";
-import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { visibleWidth } from "@mariozechner/pi-tui";
 import { makeButtonWidth, padLineToWidth, renderBoxButton } from "./button-helpers.js";
 import { HEADER_HEIGHT } from "./defaults.js";
 import { state } from "./state.js";
@@ -49,15 +49,6 @@ const INLINE_SEND_BUTTON: ButtonSpec = {
 
 const INLINE_BUTTON_GAP = 1;
 const MIN_EDITOR_CONTENT_WIDTH = 12;
-
-type InlineButtonPlacement = {
-	spec: ButtonSpec;
-	lines: string[];
-	width: number;
-	top: number;
-	colStart: number;
-	colEnd: number;
-};
 
 // padLineToWidth imported from button-helpers
 
@@ -141,97 +132,79 @@ export class PhoneShellEditor extends CustomEditor {
 			state.shell.topEditorEscButtonVisible ? INLINE_ESC_BUTTON : undefined,
 			state.shell.topEditorInterruptButtonVisible ? INLINE_INTERRUPT_BUTTON : undefined,
 		].filter((b): b is ButtonSpec => b != null);
-		const followUpButton = state.shell.topEditorFollowUpButtonVisible ? renderInlineButton(INLINE_FOLLOWUP_BUTTON) : undefined;
-		const sendButton = state.shell.topEditorSendButtonVisible ? renderInlineButton(INLINE_SEND_BUTTON) : undefined;
+		const rightButtons = [
+			state.shell.topEditorFollowUpButtonVisible ? INLINE_FOLLOWUP_BUTTON : undefined,
+			state.shell.topEditorSendButtonVisible ? INLINE_SEND_BUTTON : undefined,
+		].filter((b): b is ButtonSpec => b != null);
+
 		const leftRendered = leftButtons.map(b => renderInlineButton(b));
-		const leftReserve = leftRendered.reduce((sum, r) => sum + r.width + INLINE_BUTTON_GAP, 0);
-		const rightReserve =
-			(followUpButton ? INLINE_BUTTON_GAP + followUpButton.width : 0) +
-			(sendButton ? INLINE_BUTTON_GAP + sendButton.width : 0);
+		const rightRendered = rightButtons.map(b => renderInlineButton(b));
+		const leftReserve = leftRendered.reduce((sum, r) => sum + r.width + INLINE_BUTTON_GAP, leftRendered.length > 0 ? INLINE_BUTTON_GAP : 0);
+		const rightReserve = rightRendered.reduce((sum, r) => sum + r.width + INLINE_BUTTON_GAP, rightRendered.length > 0 ? INLINE_BUTTON_GAP : 0);
 		const editorWidth = Math.max(1, width - leftReserve - rightReserve);
 		const lines = super.render(editorWidth);
 
-		// Build left-side placements left-to-right
-		let leftCursor = 0;
-		const leftPlacements: InlineButtonPlacement[] = leftRendered.map((r, i) => {
-			leftCursor += INLINE_BUTTON_GAP; // gap before each button
-			const colStart = leftCursor + 1;
-			leftCursor += r.width;
-			return {
-				spec: leftButtons[i]!,
-				lines: r.lines,
-				width: r.width,
-				top: Math.max(0, Math.floor((lines.length - r.lines.length) / 2)),
-				colStart,
-				colEnd: leftCursor,
-			};
-		});
+		// Pre-compute vertical centering for each button
+		const leftTops = leftRendered.map(r => Math.max(0, Math.floor((lines.length - r.lines.length) / 2)));
+		const rightTops = rightRendered.map(r => Math.max(0, Math.floor((lines.length - r.lines.length) / 2)));
 
-		// Right-side buttons: follow-up first (closer to editor), then send at far right
-		let rightCursor = width;
-		const sendPlacement: InlineButtonPlacement | undefined = sendButton ? (() => {
-			rightCursor -= sendButton.width;
-			return {
-				spec: INLINE_SEND_BUTTON,
-				lines: sendButton.lines,
-				width: sendButton.width,
-				top: Math.max(0, Math.floor((lines.length - sendButton.lines.length) / 2)),
-				colStart: rightCursor + 1,
-				colEnd: rightCursor + sendButton.width,
-			};
-		})() : undefined;
-		if (sendButton) rightCursor -= INLINE_BUTTON_GAP;
+		// Build hit region data: column ranges for each button
+		// Left buttons: gap + button + gap + button + ... + gap
+		let col = 1;
+		const leftRanges: Array<{ spec: ButtonSpec; colStart: number; colEnd: number; renderedIdx: number; top: number }> = [];
+		for (let i = 0; i < leftButtons.length; i++) {
+			col += INLINE_BUTTON_GAP; // gap before button
+			const colStart = col;
+			col += leftRendered[i]!.width;
+			leftRanges.push({ spec: leftButtons[i]!, colStart, colEnd: col, renderedIdx: i, top: leftTops[i]! });
+		}
+		col += INLINE_BUTTON_GAP; // gap before editor
 
-		const followUpPlacement: InlineButtonPlacement | undefined = followUpButton ? (() => {
-			rightCursor -= followUpButton.width;
-			return {
-				spec: INLINE_FOLLOWUP_BUTTON,
-				lines: followUpButton.lines,
-				width: followUpButton.width,
-				top: Math.max(0, Math.floor((lines.length - followUpButton.lines.length) / 2)),
-				colStart: rightCursor + 1,
-				colEnd: rightCursor + followUpButton.width,
-			};
-		})() : undefined;
+		// Editor content takes editorWidth columns
+		col += editorWidth;
+
+		// Right buttons: gap + button + gap + button
+		const rightRanges: Array<{ spec: ButtonSpec; colStart: number; colEnd: number; renderedIdx: number; top: number }> = [];
+		for (let i = 0; i < rightButtons.length; i++) {
+			col += INLINE_BUTTON_GAP; // gap before button
+			const colStart = col;
+			col += rightRendered[i]!.width;
+			rightRanges.push({ spec: rightButtons[i]!, colStart, colEnd: col, renderedIdx: i, top: rightTops[i]! });
+		}
+
 		const hitRegions: ButtonHitRegion[] = [];
-
-		// Collect right-side placements in left-to-right column order
-		const rightPlacements = [followUpPlacement, sendPlacement]
-			.filter((p): p is InlineButtonPlacement => p != null)
-			.sort((a, b) => a.colStart - b.colStart);
 
 		const rendered = lines.map((line, index) => {
 			let result = "";
 
-			// Render left-side buttons left-to-right
-			let prevColEnd = 0;
-			for (const lp of leftPlacements) {
-				result += " ".repeat(lp.colStart - prevColEnd - 1); // gap
-				const row = index - lp.top;
-				if (row >= 0 && row < lp.lines.length) {
-					hitRegions.push({ button: lp.spec, colStart: lp.colStart, colEnd: lp.colEnd, rowOffset: index });
-					result += lp.lines[row]!;
+			// Left buttons
+			for (const lr of leftRanges) {
+				result += " ".repeat(lr.colStart - visibleWidth(result) - 1); // gap before button
+				const row = index - lr.top;
+				if (row >= 0 && row < leftRendered[lr.renderedIdx]!.lines.length) {
+					hitRegions.push({ button: lr.spec, colStart: lr.colStart, colEnd: lr.colEnd, rowOffset: index });
+					result += leftRendered[lr.renderedIdx]!.lines[row]!;
 				} else {
-					result += " ".repeat(lp.width);
+					result += " ".repeat(leftRendered[lr.renderedIdx]!.width);
 				}
-				prevColEnd = lp.colEnd;
 			}
-			if (leftPlacements.length > 0) result += " ".repeat(INLINE_BUTTON_GAP);
 
+			// Gap before editor
+			if (leftRanges.length > 0) result += " ".repeat(INLINE_BUTTON_GAP);
+
+			// Editor content
 			result += padLineToWidth(line, editorWidth);
 
-			// Render right-side buttons with gaps
-			let cursor = leftReserve + editorWidth;
-			for (const rp of rightPlacements) {
-				result += " ".repeat(rp.colStart - cursor - 1); // gap before button
-				const row = index - rp.top;
-				if (row >= 0 && row < rp.lines.length) {
-					hitRegions.push({ button: rp.spec, colStart: rp.colStart, colEnd: rp.colEnd, rowOffset: index });
-					result += rp.lines[row]!;
+			// Right buttons
+			for (const rr of rightRanges) {
+				result += " ".repeat(rr.colStart - visibleWidth(result) - 1); // gap before button
+				const row = index - rr.top;
+				if (row >= 0 && row < rightRendered[rr.renderedIdx]!.lines.length) {
+					hitRegions.push({ button: rr.spec, colStart: rr.colStart, colEnd: rr.colEnd, rowOffset: index });
+					result += rightRendered[rr.renderedIdx]!.lines[row]!;
 				} else {
-					result += " ".repeat(rp.width);
+					result += " ".repeat(rightRendered[rr.renderedIdx]!.width);
 				}
-				cursor = rp.colEnd;
 			}
 
 			return padLineToWidth(result, width);
