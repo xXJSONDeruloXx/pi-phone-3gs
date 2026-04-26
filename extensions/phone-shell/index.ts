@@ -97,6 +97,9 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			state.shell.viewportJumpButtonsVisible = persisted.viewportJumpButtonsVisible;
 			state.shell.topEditorSendButtonVisible = persisted.topEditorSendButtonVisible;
 			state.shell.topEditorStashButtonVisible = persisted.topEditorStashButtonVisible;
+			state.shell.topEditorFollowUpButtonVisible = persisted.topEditorFollowUpButtonVisible;
+			state.shell.topEditorEscButtonVisible = persisted.topEditorEscButtonVisible;
+			state.shell.topEditorInterruptButtonVisible = persisted.topEditorInterruptButtonVisible;
 			if (!persisted.enabled || !persisted.autoEnable) return;
 			setTimeout(async () => {
 				await enableTouchMode(ctx, false).catch((e) => queueLog(`enableTouchMode failed: ${e}`));
