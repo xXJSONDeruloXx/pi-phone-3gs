@@ -104,6 +104,8 @@ export function getViewMenuButtons(shell: ShellModeState): ButtonSpec[] {
 		{ kind: "action", id: "view-stash",      label: " STSH ", action: "toggleTopEditorStashButton", palette: shell.topEditorStashButtonVisible ? on : off },
 		{ kind: "action", id: "view-send",       label: " SEND ", action: "toggleTopEditorSendButton", palette: shell.topEditorSendButtonVisible ? on : off },
 		{ kind: "action", id: "view-followup",   label: "  F/U ", action: "toggleTopEditorFollowUpButton", palette: shell.topEditorFollowUpButtonVisible ? on : off },
+		{ kind: "action", id: "view-esc",        label: "  ESC ", action: "toggleTopEditorEscButton", palette: shell.topEditorEscButtonVisible ? on : off },
+		{ kind: "action", id: "view-interrupt",   label: "  ^C  ", action: "toggleTopEditorInterruptButton", palette: shell.topEditorInterruptButtonVisible ? on : off },
 		{ kind: "action", id: "view-rail",       label: "  FAV  ", action: "toggleBottomBar",       palette: shell.barVisible ? on : off },
 		{ kind: "action", id: "view-keys",       label: "  KEYS ", action: "toggleNavPad",          palette: shell.navPadVisible ? on : off },
 		{ kind: "action", id: "view-jump",       label: "  JUMP ", action: "toggleViewportJumpButtons", palette: shell.viewportJumpButtonsVisible ? on : off },
@@ -144,6 +146,8 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	topEditorSendButtonVisible: true,
 	topEditorStashButtonVisible: true,
 	topEditorFollowUpButtonVisible: false,
+	topEditorEscButtonVisible: false,
+	topEditorInterruptButtonVisible: false,
 };
 
 export const DEFAULT_FAVORITES: FavoriteEntry[] = [

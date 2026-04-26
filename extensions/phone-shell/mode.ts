@@ -52,6 +52,8 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		topEditorSendButtonVisible: state.shell.topEditorSendButtonVisible,
 		topEditorStashButtonVisible: state.shell.topEditorStashButtonVisible,
 		topEditorFollowUpButtonVisible: state.shell.topEditorFollowUpButtonVisible,
+		topEditorEscButtonVisible: state.shell.topEditorEscButtonVisible,
+		topEditorInterruptButtonVisible: state.shell.topEditorInterruptButtonVisible,
 		...patch,
 	});
 }
@@ -130,7 +132,7 @@ export function toggleEditorPosition(): void {
 // Toggle factory
 // ---------------------------------------------------------------------------
 
-type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible";
+type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible" | "topEditorEscButtonVisible" | "topEditorInterruptButtonVisible";
 
 function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): () => void {
 	return function toggle(): void {
@@ -148,6 +150,8 @@ export const toggleViewportJumpButtons = makeToggle("viewportJumpButtonsVisible"
 export const toggleTopEditorSendButton = makeToggle("topEditorSendButtonVisible");
 export const toggleTopEditorStashButton = makeToggle("topEditorStashButtonVisible");
 export const toggleTopEditorFollowUpButton = makeToggle("topEditorFollowUpButtonVisible");
+export const toggleTopEditorEscButton = makeToggle("topEditorEscButtonVisible");
+export const toggleTopEditorInterruptButton = makeToggle("topEditorInterruptButtonVisible");
 
 // ---------------------------------------------------------------------------
 // Bottom widgets (panel + nav pad below editor)
