@@ -120,12 +120,16 @@ The favorites rail (`BottomBarComponent`) lives as a `belowEditor` widget. Dropd
 
 ## Branching + merge workflow
 
-- **CRITICAL: Always cut a new branch from `main` BEFORE writing any code.** Never commit feature work directly on `main`.
-- If you realize you've started coding on `main`, stash your changes, create the branch, then pop the stash before continuing.
-- For **new feature work** in this repo, always create a new branch from `main` before implementing.
-- Keep `main` as the last known-good fallback so the user can quickly switch back if a rendering/input experiment breaks the shell.
-- After implementing a feature, let the user reload and test it before merging.
-- Do **not** merge the feature branch back into `main` until the user explicitly gives the final go-ahead.
+`main` is sacred. It must always be in a known-good, tested state. A broken `main` means the user cannot even start pi until they manually revert — this has happened before and must never happen again.
+
+### Rules (no exceptions)
+
+1. **Always cut a new branch from `main` BEFORE writing any code.** No exceptions — not even for one-line fixes, not even for typos.
+2. **Never commit directly on `main`.** If you realize you've started coding on `main`, stash, create a branch, pop the stash, then continue.
+3. **Never push `main`.** Only the user may push to `main`. The agent may push feature branches to `origin`, but `main` pushes are exclusively the user's decision.
+4. **Never merge a branch into `main` until the user has tested it and explicitly says to merge.** The user saying "merge and push" means they tested and approve — until those exact words (or equivalent explicit confirmation), the branch stays separate.
+5. **Keep `main` as the last known-good fallback.** If a branch breaks something, the user can `git checkout main` and immediately have a working shell again.
+6. **Type checks pass ≠ tested.** `npm run check` only catches compile errors. Runtime rendering bugs (off-by-one column math, hit region misalignment, layout blowups) will pass type checking but break the shell. Only the user reloading pi counts as tested.
 
 ## Build & type checking
 
