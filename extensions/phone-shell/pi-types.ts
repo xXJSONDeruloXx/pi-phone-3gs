@@ -6,12 +6,12 @@
  * extension actually depends on.
  */
 
-import type { ExtensionContext, ExtensionCommandContext, ExtensionUIContext, ModelRegistry, KeybindingsManager } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext, ExtensionCommandContext, ExtensionUIContext, ModelRegistry, KeybindingsManager, SettingsManager } from "@mariozechner/pi-coding-agent";
 import type { TUI, EditorTheme } from "@mariozechner/pi-tui";
 
 // Re-export SDK types for use throughout the extension
 export type { ExtensionContext, ExtensionCommandContext, ExtensionUIContext };
-export type { ModelRegistry };
+export type { ModelRegistry, SettingsManager };
 export type { TUI, EditorTheme, KeybindingsManager };
 
 // Re-export the branded editor container type from layout

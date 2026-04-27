@@ -10,16 +10,20 @@ function getHeaderButtonSpecs(
 	viewOverlayVisible: boolean,
 	skillsOverlayVisible: boolean,
 	modelsOverlayVisible: boolean,
+	allModelsOverlayVisible: boolean,
 	thinkingLevel: ThinkingLevel,
+	modelScopeFilter: "scoped" | "all",
 ): ButtonSpec[] {
 	const fileColor = utilityOverlayVisible ? "accent" : "muted";
 	const viewColor = viewOverlayVisible ? "accent" : "muted";
 	const skillsColor = skillsOverlayVisible ? "accent" : "muted";
-	const modelColor: ButtonSpec["palette"] = modelsOverlayVisible ? "accent" : "warning";
+	const allModelColor: ButtonSpec["palette"] = allModelsOverlayVisible ? "accent" : "muted";
+	const scopedModelColor: ButtonSpec["palette"] = modelsOverlayVisible ? "accent" : (modelScopeFilter === "scoped" ? "warning" : "muted");
 	const thinkingColor: ButtonSpec["palette"] = thinkingLevel === "off" ? "muted" : "accent";
 	return [
 		{ kind: "action", id: "header-thinking", label: thinkingLevelLabel(thinkingLevel), action: "cycleThinkingLevel", palette: thinkingColor },
-		{ kind: "action", id: "header-model", label: "MODEL", action: "selectModel", palette: modelColor },
+		{ kind: "action", id: "header-all-models", label: "ALL", action: "showAllModels", palette: allModelColor },
+		{ kind: "action", id: "header-model", label: "SCOPED", action: "selectModel", palette: scopedModelColor },
 		{ kind: "action", id: "header-skills", label: "SKILLS", action: "toggleSkillsMenu", palette: skillsColor },
 		{ kind: "action", id: "header-view", label: "VIEW", action: "toggleViewMenu", palette: viewColor },
 		{ kind: "action", id: "header-file", label: "FILE", action: "toggleUtilities", palette: fileColor },
@@ -64,16 +68,19 @@ export class HeaderBarComponent implements Component {
 			this.ctx.state.ui.overlays.view.visible,
 			this.ctx.state.ui.overlays.skills.visible,
 			this.ctx.state.ui.overlays.models.visible,
+			this.ctx.state.ui.overlays.allModels.visible,
 			this.ctx.state.thinkingLevel,
+			this.ctx.state.modelsScopeFilter,
 		);
 
 		const fileSpec = specs.find((s) => s.id === "header-file")!;
 		const modelSpec = specs.find((s) => s.id === "header-model")!;
+		const allModelSpec = specs.find((s) => s.id === "header-all-models")!;
 		const viewSpec = specs.find((s) => s.id === "header-view")!;
 		const thinkingSpec = specs.find((s) => s.id === "header-thinking")!;
 		const skillsSpec = specs.find((s) => s.id === "header-skills")!;
 		const leftSpecs = [fileSpec, skillsSpec, viewSpec];
-		const rightSpecs = [thinkingSpec, modelSpec];
+		const rightSpecs = [thinkingSpec, allModelSpec, modelSpec];
 
 		const left = renderButtonRow(leftSpecs, config.render.buttonGap, theme);
 		const right = renderButtonRow(rightSpecs, config.render.buttonGap, theme);

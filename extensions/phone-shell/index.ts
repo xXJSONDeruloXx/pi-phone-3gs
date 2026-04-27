@@ -74,6 +74,16 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		if (!ctx.hasUI) return;
 		captureUiBindings(ctx);
+		// Load enabled models from settings (for scoped model dropdown)
+		if (ctx.modelRegistry) {
+			try {
+				const { SettingsManager } = await import("@mariozechner/pi-coding-agent");
+				state.settingsManager = SettingsManager.create(ctx.cwd);
+				state.enabledModelPatterns = state.settingsManager.getEnabledModels();
+			} catch (e) {
+				queueLog(`SettingsManager init failed: ${e}`);
+			}
+		}
 		state.modelRegistry = ctx.modelRegistry;
 		state.currentModel = ctx.model;
 		if (ctx.model) {

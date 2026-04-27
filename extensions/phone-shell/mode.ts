@@ -78,6 +78,7 @@ export function clearCapturedTui(): void {
 	state.ui.overlays.view.visible = false;
 	state.ui.overlays.skills.visible = false;
 	state.ui.overlays.models.visible = false;
+	state.ui.overlays.allModels.visible = false;
 	state.ui.nav.row = 0;
 	state.ui.nav.buttons = [];
 	state.ui.nav.actualHeight = BAR_HEIGHT;

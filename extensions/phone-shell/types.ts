@@ -54,6 +54,7 @@ export type ShellAction =
 	| "scrollTop"
 	| "pageUp"
 	| "selectModel"
+	| "showAllModels"
 	| "cycleThinkingLevel"
 	| "pageDown"
 	| "scrollBottom"
@@ -371,6 +372,7 @@ export interface PhoneShellUIState {
 		view: DropdownOverlayState;
 		skills: DropdownOverlayState;
 		models: DropdownOverlayState;
+		allModels: DropdownOverlayState;
 	};
 	viewport: ViewportLayoutState;
 	editor: EditorLayoutState;
@@ -381,6 +383,8 @@ export interface PhoneShellRenderState {
 	shell: ShellModeState;
 	ui: PhoneShellUIState;
 	thinkingLevel: ThinkingLevel;
+	/** Whether the models overlay shows scoped (default) or all models. */
+	modelsScopeFilter: "scoped" | "all";
 }
 
 export interface PhoneShellRenderContext {

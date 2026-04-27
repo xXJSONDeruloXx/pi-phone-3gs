@@ -17,10 +17,12 @@ import {
 	hideViewOverlay,
 	hideSkillsOverlay,
 	hideModelsOverlay,
+	hideAllModelsOverlay,
 	toggleUtilityOverlay,
 	toggleViewOverlay,
 	toggleSkillsOverlay,
 	toggleModelsOverlay,
+	toggleAllModelsOverlay,
 	toggleModelsOverlay as selectModel,
 	activateModelButton,
 	handleSkillsDropdownWheel,
@@ -31,6 +33,7 @@ import {
 	setActivateButton,
 	getSkillsDrag,
 	getModelsDrag,
+	getAllModelsDrag,
 	hideDropdown,
 	type DropdownKind,
 } from "./dropdowns.js";
@@ -266,6 +269,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "selectModel":
 			selectModel();
 			return { consume: true };
+		case "showAllModels":
+			toggleAllModelsOverlay();
+			return { consume: true };
 		case "cycleThinkingLevel": {
 			queueMicrotask(() => {
 				state.thinkingLevel = state.getThinkingLevel?.() ?? state.thinkingLevel;
@@ -358,6 +364,7 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 
 	const skillsDrag = getSkillsDrag();
 	const modelsDrag = getModelsDrag();
+	const allModelsDrag = getAllModelsDrag();
 
 	state.inputUnsubscribe = ctx.ui.onTerminalInput((data: string) => {
 		state.diagnostics.lastInput = visualizeInput(data);
@@ -372,7 +379,7 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			if (mouse.phase === "scroll") {
 				const skillsWheelResponse = state.ui.overlays.skills.visible ? handleSkillsDropdownWheel(mouse) : undefined;
 				if (skillsWheelResponse) return skillsWheelResponse;
-				const modelsWheelResponse = state.ui.overlays.models.visible ? handleModelsDropdownWheel(mouse) : undefined;
+				const modelsWheelResponse = (state.ui.overlays.models.visible || state.ui.overlays.allModels.visible) ? handleModelsDropdownWheel(mouse) : undefined;
 				if (modelsWheelResponse) return modelsWheelResponse;
 				return handleViewportWheel(mouse);
 			}
@@ -384,6 +391,8 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			if (state.ui.overlays.skills.drag && isPrimaryPointerDrag(mouse)) return skillsDrag.update(mouse);
 			if (state.ui.overlays.models.drag && mouse.phase === "release") return modelsDrag.finish(mouse);
 			if (state.ui.overlays.models.drag && isPrimaryPointerDrag(mouse)) return modelsDrag.update(mouse);
+			if (state.ui.overlays.allModels.drag && mouse.phase === "release") return allModelsDrag.finish(mouse);
+			if (state.ui.overlays.allModels.drag && isPrimaryPointerDrag(mouse)) return allModelsDrag.update(mouse);
 			if (!isPrimaryPointerPress(mouse)) return { consume: true };
 
 			const inHeader = state.shell.headerInstalled && mouse.row >= 1 && mouse.row <= HEADER_HEIGHT;
@@ -432,7 +441,7 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			return { consume: true };
 		}
 
-		if (state.shell.enabled && state.ui.overlays.utility.visible) scheduleRender();
+		if (state.shell.enabled && (state.ui.overlays.utility.visible || state.ui.overlays.models.visible || state.ui.overlays.allModels.visible)) scheduleRender();
 		if (!state.shell.enabled) return undefined;
 
 		if (matchesKey(data, Key.pageUp)) {
@@ -469,4 +478,5 @@ export function unregisterInputHandler(): void {
 	state.ui.bar.drag = undefined;
 	state.ui.overlays.skills.drag = undefined;
 	state.ui.overlays.models.drag = undefined;
+	state.ui.overlays.allModels.drag = undefined;
 }

@@ -15,7 +15,7 @@ import type {
 	ThinkingLevel,
 } from "./types.js";
 import type { AgentStateTracker } from "./header.js";
-import type { ModelRegistry, PiExtensionCtx, TUI, EditorTheme, KeybindingsManager, ExtensionUIContext } from "./pi-types.js";
+import type { ModelRegistry, SettingsManager, PiExtensionCtx, TUI, EditorTheme, KeybindingsManager, ExtensionUIContext } from "./pi-types.js";
 
 // ---------------------------------------------------------------------------
 // Runtime state
@@ -43,6 +43,11 @@ export type RuntimeState = PhoneShellRenderState & {
 	favorites: FavoriteEntry[];
 	paths: ReturnType<typeof getPhoneShellPaths>;
 	pi?: { getCommands(): { name: string; description?: string; source: string }[] };
+	settingsManager?: SettingsManager;
+	/** Model patterns from settings.json enabledModels. Used to filter the models dropdown. */
+	enabledModelPatterns: string[] | undefined;
+	/** Whether the models overlay shows scoped (default) or all models. */
+	modelsScopeFilter: "scoped" | "all";
 	diagnostics: {
 		loadErrors: string[];
 		logQueue: Promise<void>;
@@ -117,6 +122,7 @@ export const state: RuntimeState = {
 			view: createDropdownOverlayState(),
 			skills: createDropdownOverlayState(),
 			models: createDropdownOverlayState(),
+			allModels: createDropdownOverlayState(),
 		},
 		viewport: {
 			row: 0,
@@ -157,6 +163,9 @@ export const state: RuntimeState = {
 	inputUnsubscribe: undefined,
 	modelRegistry: undefined,
 	currentModel: undefined,
+	settingsManager: undefined,
+	enabledModelPatterns: undefined,
+	modelsScopeFilter: "scoped",
 	setModel: undefined,
 	thinkingLevel: "off",
 	editorStash: undefined,
@@ -221,6 +230,7 @@ export function createInitialState(): RuntimeState {
 				view: createDropdownOverlayState(),
 				skills: createDropdownOverlayState(),
 				models: createDropdownOverlayState(),
+				allModels: createDropdownOverlayState(),
 			},
 			viewport: {
 				row: 0,
@@ -261,6 +271,9 @@ export function createInitialState(): RuntimeState {
 		inputUnsubscribe: undefined,
 		modelRegistry: undefined,
 		currentModel: undefined,
+		settingsManager: undefined,
+		enabledModelPatterns: undefined,
+		modelsScopeFilter: "scoped",
 		setModel: undefined,
 		thinkingLevel: "off",
 		editorStash: undefined,
@@ -358,6 +371,11 @@ export async function reloadRuntimeSettings(ctx?: PiExtensionCtx, notifyOnProble
 	state.config = config;
 	state.layout = layout;
 	state.favorites = favorites;
+	// Refresh enabled model patterns from settings
+	if (state.settingsManager) {
+		state.enabledModelPatterns = state.settingsManager.getEnabledModels();
+		queueLog(`enabledModelPatterns reloaded: ${JSON.stringify(state.enabledModelPatterns)}`);
+	}
 	const allErrors = [...errors, ...favErrors];
 	state.diagnostics.loadErrors = allErrors;
 	if (notifyOnProblems && allErrors.length > 0) {
@@ -401,7 +419,7 @@ export function getStatusReport(): string {
 		`- utility overlay: ${state.ui.overlays.utility.visible}`,
 		`- view overlay: ${state.ui.overlays.view.visible}`,
 		`- skills overlay: ${state.ui.overlays.skills.visible}`,
-		`- models overlay: ${state.ui.overlays.models.visible}`,
+		`- models overlay: ${state.ui.overlays.models.visible} (scope: ${state.modelsScopeFilter})`,
 		`- loaded skills: ${state.pi?.getCommands().filter(c => c.source === "skill").length ?? "?"}`,
 		`- config warnings: ${state.diagnostics.loadErrors.length === 0 ? "none" : state.diagnostics.loadErrors.join(" | ")}`,
 		`- last action: ${state.diagnostics.lastAction ?? "(none)"}`,
