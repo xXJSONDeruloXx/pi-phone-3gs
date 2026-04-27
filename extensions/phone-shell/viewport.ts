@@ -42,10 +42,6 @@ export class TouchViewport implements Component {
 	private lastVisibleHeight = 1;
 	private lastTotalLines = 0;
 	private lastMaxTop = 0;
-	/** Cached heights from the last render pass, keyed by child index. */
-	private cachedChildHeights: Map<number, number> = new Map();
-	/** Width used for the last height cache, to invalidate on resize. */
-	private cachedChildWidth = -1;
 
 	constructor(
 		private readonly tui: TUI,
@@ -53,42 +49,17 @@ export class TouchViewport implements Component {
 		private readonly ctx: PhoneShellRenderContext,
 	) {}
 
-	/**
-	 * Compute the total fixed height and rows-before-viewport.
-	 *
-	 * On the first render after a width change (or first ever), we render each
-	 * sibling once to seed the cache. On subsequent renders at the same width
-	 * we reuse cached heights, avoiding recursive render invocations on every
-	 * momentum / scroll frame.
-	 */
-	private computeLayout(width: number): { rowsBefore: number; fixedHeight: number } {
-		const needsRecompute = width !== this.cachedChildWidth;
-		if (needsRecompute) this.cachedChildHeights.clear();
-		this.cachedChildWidth = width;
-
+	render(width: number): string[] {
 		let rowsBefore = 0;
 		let fixedHeight = 0;
 		const viewportIndex = this.tui.children.indexOf(this);
-
 		for (let index = 0; index < this.tui.children.length; index++) {
-			if (index === viewportIndex) continue;
-			let childHeight: number;
-			if (this.cachedChildHeights.has(index)) {
-				childHeight = this.cachedChildHeights.get(index)!;
-			} else {
-				const child = this.tui.children[index]!;
-				childHeight = child.render(width).length;
-				this.cachedChildHeights.set(index, childHeight);
-			}
+			const child = this.tui.children[index]!;
+			if (child === this) continue;
+			const childHeight = child.render(width).length;
 			fixedHeight += childHeight;
 			if (index < viewportIndex) rowsBefore += childHeight;
 		}
-
-		return { rowsBefore, fixedHeight };
-	}
-
-	render(width: number): string[] {
-		const { rowsBefore, fixedHeight } = this.computeLayout(width);
 		const visibleHeight = Math.max(1, this.tui.terminal.rows - fixedHeight);
 		const lines = this.content.render(width);
 		const maxTop = Math.max(0, lines.length - visibleHeight);

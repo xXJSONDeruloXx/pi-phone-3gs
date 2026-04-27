@@ -109,14 +109,12 @@ export class BottomBarComponent implements Component {
 		}
 
 		// ---------------------------------------------------------------------------
-		// Update state — compute row from terminal dimensions without rendering siblings
+		// Update state
 		// ---------------------------------------------------------------------------
 
-		// The bar is always the second-to-last widget (editor bar is last).
-		// We know the editor bar is always BAR_HEIGHT rows, so we can compute
-		// our row directly without rendering the footer child.
-		const editorBarHeight = BAR_HEIGHT;
-		this.ctx.state.ui.bar.row = this.tui.terminal.rows - editorBarHeight - BAR_HEIGHT + 1;
+		const footerChild = this.tui.children[this.tui.children.length - 1];
+		const footerHeight = footerChild ? footerChild.render(width).length : BAR_HEIGHT;
+		this.ctx.state.ui.bar.row = this.tui.terminal.rows - footerHeight - BAR_HEIGHT + 1;
 		this.ctx.state.ui.bar.buttons = hitRegions;
 
 		if (this.ctx.state.ui.nav.placement === "bottom") {
