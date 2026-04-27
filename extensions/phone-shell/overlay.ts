@@ -28,6 +28,14 @@ export interface DropdownScrollOptions {
 	getScrollOffset: () => number;
 }
 
+/**
+ * Optional vertical clamp for overlays that could exceed terminal bounds.
+ * When provided, the overlay will not render more lines than this limit.
+ */
+export interface DropdownHeightOptions {
+	getMaxOverlayHeight: () => number;
+}
+
 export class ButtonDropdownOverlayComponent implements Component {
 	constructor(
 		private readonly ctx: PhoneShellRenderContext,
@@ -36,6 +44,7 @@ export class ButtonDropdownOverlayComponent implements Component {
 		private readonly getOverlayCol: () => number,
 		private readonly setLayoutState: (hitRegions: ButtonHitRegion[], actualHeight: number) => void,
 		private readonly scrollOptions?: DropdownScrollOptions,
+		private readonly heightOptions?: DropdownHeightOptions,
 	) {}
 
 	render(width: number): string[] {
@@ -57,7 +66,17 @@ export class ButtonDropdownOverlayComponent implements Component {
 		const rawOffset = this.scrollOptions?.getScrollOffset?.() ?? 0;
 		const maxOffset = Math.max(0, allButtons.length - maxVisible);
 		const scrollOffset = Math.min(rawOffset, maxOffset);
-		const visibleButtons = allButtons.slice(scrollOffset, scrollOffset + maxVisible);
+		let visibleButtons = allButtons.slice(scrollOffset, scrollOffset + maxVisible);
+
+		// Clamp to terminal vertical bounds — prevents overlay from extending past the bottom
+		if (this.heightOptions) {
+			const maxHeight = this.heightOptions.getMaxOverlayHeight();
+			// Each button = 3 lines + 2 border lines = 3*count + 2
+			const maxButtonsForHeight = Math.max(1, Math.floor((maxHeight - 2) / 3));
+			if (visibleButtons.length > maxButtonsForHeight) {
+				visibleButtons = visibleButtons.slice(0, maxButtonsForHeight);
+			}
+		}
 		const hasUp = scrollOffset > 0;
 		const hasDown = scrollOffset + visibleButtons.length < allButtons.length;
 

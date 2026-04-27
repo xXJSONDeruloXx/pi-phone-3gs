@@ -14,10 +14,11 @@ export type { ExtensionContext, ExtensionCommandContext, ExtensionUIContext };
 export type { ModelRegistry };
 export type { TUI, EditorTheme, KeybindingsManager };
 
+// Re-export the branded editor container type from layout
+export type { DiscoveredEditorContainer } from "./layout.js";
+
 /**
- * The shape of Pi's editorContainer — a Container-like object that holds
- * the active editor as one of its children. We only depend on `children`
- * for locating the editor in the TUI tree.
+ * @deprecated Use DiscoveredEditorContainer instead. Kept for reference.
  */
 export interface PiEditorContainer {
 	children: unknown[];

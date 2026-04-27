@@ -113,6 +113,22 @@ export function restoreDefaultEditor(): void {
 	queueLog("default editor restored");
 }
 
+/**
+ * Branded type for a discovered editorContainer.
+ *
+ * We only depend on the Container having `children` and being usable as a
+ * TUI child (for splice operations). The brand prevents accidental use of
+ * an arbitrary object without going through the discovery function.
+ */
+export interface DiscoveredEditorContainer {
+	readonly children: unknown[];
+	readonly __brand: unique symbol;
+}
+
+function asTuiChild(ec: DiscoveredEditorContainer): Component {
+	return ec as unknown as Component;
+}
+
 export function captureEditorContainer(): void {
 	if (!state.session.tui || !state.bindings.setEditorComponent) return;
 	if (state.session.editorContainer) return; // already captured
@@ -128,7 +144,7 @@ export function captureEditorContainer(): void {
 		for (const child of state.session.tui.children) {
 			const c = child as { children?: unknown[] } | undefined;
 			if (c && Array.isArray(c.children) && c.children.includes(tempEditor)) {
-				state.session.editorContainer = c as import("./types.js").SessionRenderState["editorContainer"];
+				state.session.editorContainer = c as unknown as DiscoveredEditorContainer;
 				state.session.editorContainerOriginalIndex = state.session.tui.children.indexOf(child);
 				queueLog(`editorContainer found at index ${state.session.editorContainerOriginalIndex}`);
 				break;
@@ -138,6 +154,7 @@ export function captureEditorContainer(): void {
 
 	if (!state.session.editorContainer) {
 		queueLog("editorContainer not found — proxy mode disabled");
+		state.bindings.notify?.("phone-shell: proxy mode unavailable (editor container not found)", "warning");
 		return;
 	}
 
@@ -154,7 +171,7 @@ export function captureEditorContainer(): void {
 export function moveEditorToTop(): void {
 	if (!state.session.tui || !state.session.editorContainer) return;
 	const tui = state.session.tui;
-	const ec = state.session.editorContainer as unknown as Component;
+	const ec = asTuiChild(state.session.editorContainer);
 	const currentIndex = tui.children.indexOf(ec);
 	if (currentIndex === -1) return;
 	const targetIndex = state.shell.headerInstalled ? 1 : 0;
@@ -177,7 +194,7 @@ export function moveEditorToTop(): void {
 export function moveEditorToOriginalPosition(): void {
 	if (!state.session.tui || !state.session.editorContainer) return;
 	const tui = state.session.tui;
-	const ec = state.session.editorContainer as unknown as Component;
+	const ec = asTuiChild(state.session.editorContainer);
 	const currentIndex = tui.children.indexOf(ec);
 	if (currentIndex === -1) {
 		state.shell.editorAtTop = false;

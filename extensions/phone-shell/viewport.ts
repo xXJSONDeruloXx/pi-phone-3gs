@@ -219,6 +219,10 @@ export class TouchViewport implements Component {
 	/**
 	 * Start a momentum animation from the given initial velocity (rows/frame).
 	 * Handles rubber-banding at content edges and exponential deceleration.
+	 *
+	 * Uses recursive setTimeout instead of setInterval so that if a frame takes
+	 * longer than frameIntervalMs the next frame is simply delayed rather than
+	 * queuing up behind it.
 	 */
 	startMomentum(initialVelocity: number): void {
 		this.cancelMomentum();
@@ -228,15 +232,15 @@ export class TouchViewport implements Component {
 
 		if (Math.abs(initialVelocity) < config.stopThreshold) return;
 
-		const momentum = {
+		const momentum: import("./types.js").MomentumState = {
 			velocity: initialVelocity,
-			AnimationFrame: undefined as ReturnType<typeof setInterval> | undefined,
+			animationFrame: undefined,
 		};
 		this.ctx.state.ui.viewport.momentum = momentum;
 
 		queueLog(`momentum: start velocity=${initialVelocity.toFixed(3)}`);
 
-		momentum.AnimationFrame = setInterval(() => {
+		const tick = (): void => {
 			// Check if momentum was cancelled externally (e.g. new drag started)
 			if (!this.ctx.state.ui.viewport.momentum || this.ctx.state.ui.viewport.momentum !== momentum) {
 				this.cancelMomentum();
@@ -302,8 +306,15 @@ export class TouchViewport implements Component {
 			if (Math.abs(velocity) < config.stopThreshold) {
 				this.cancelMomentum();
 				this.setScrollTopSmooth(pos);
+				return;
 			}
-		}, config.frameIntervalMs);
+
+			// Schedule next frame — recursive setTimeout prevents frame stacking
+			momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);
+		};
+
+		// Kick off the first frame
+		momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);
 	}
 
 	/**
@@ -311,8 +322,8 @@ export class TouchViewport implements Component {
 	 */
 	cancelMomentum(): void {
 		const momentum = this.ctx.state.ui.viewport.momentum;
-		if (momentum?.AnimationFrame) {
-			clearInterval(momentum.AnimationFrame);
+		if (momentum?.animationFrame) {
+			clearTimeout(momentum.animationFrame);
 		}
 		this.ctx.state.ui.viewport.momentum = undefined;
 		// Snap fractional position back into content bounds
