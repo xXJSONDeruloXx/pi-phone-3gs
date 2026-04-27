@@ -167,6 +167,131 @@ export const state: RuntimeState = {
 };
 
 // ---------------------------------------------------------------------------
+// State reset — safe teardown without manual field-by-field clearing
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a fresh zero-value state object. Used during session shutdown
+ * to ensure no stale references leak, and available for tests that need
+ * an isolated state.
+ */
+export function createInitialState(): RuntimeState {
+	return {
+		session: {
+			tui: undefined,
+			theme: undefined,
+			viewport: undefined,
+			editorContainer: undefined,
+			phoneShellEditor: undefined,
+			editorContainerOriginalIndex: undefined,
+			originalChat: undefined,
+		},
+		shell: {
+			enabled: false,
+			barVisible: true,
+			navPadVisible: false,
+			viewportJumpButtonsVisible: true,
+			topEditorSendButtonVisible: true,
+			topEditorStashButtonVisible: true,
+			topEditorFollowUpButtonVisible: false,
+			topEditorEscButtonVisible: false,
+			topEditorInterruptButtonVisible: false,
+			proxyOnly: false,
+			editorAtTop: false,
+			headerInstalled: false,
+		},
+		ui: {
+			headerButtons: [],
+			bar: {
+				row: 0,
+				buttons: [],
+				actualHeight: 3,
+				scrollX: 0,
+				maxScrollX: 0,
+				drag: undefined,
+			},
+			nav: {
+				row: 0,
+				buttons: [],
+				actualHeight: 3,
+				placement: "hidden",
+			},
+			overlays: {
+				utility: createDropdownOverlayState(),
+				view: createDropdownOverlayState(),
+				skills: createDropdownOverlayState(),
+				models: createDropdownOverlayState(),
+			},
+			viewport: {
+				row: 0,
+				height: 0,
+				buttons: [],
+				drag: undefined,
+				velocitySamples: [],
+				momentum: undefined,
+			},
+			editor: {
+				row: 0,
+				height: 0,
+				buttons: [],
+			},
+		},
+		config: DEFAULT_CONFIG,
+		layout: { utilityButtons: [], bottomGroups: [] },
+		favorites: [],
+		paths: getPhoneShellPaths(),
+		diagnostics: {
+			loadErrors: [],
+			logQueue: Promise.resolve(),
+			renderQueued: false,
+			lastInput: undefined,
+			lastMouse: undefined,
+			lastAction: undefined,
+		},
+		bindings: {
+			statusSink: undefined,
+			notify: undefined,
+			setEditorText: undefined,
+			getEditorText: undefined,
+			setWidget: undefined,
+			setEditorComponent: undefined,
+			abort: undefined,
+			isIdle: undefined,
+		},
+		inputUnsubscribe: undefined,
+		modelRegistry: undefined,
+		currentModel: undefined,
+		setModel: undefined,
+		thinkingLevel: "off",
+		editorStash: undefined,
+		getThinkingLevel: undefined,
+		setThinkingLevel: undefined,
+		agentTracker: undefined,
+		pi: undefined,
+	};
+}
+
+/**
+ * Reset the global state to a clean slate, preserving only `paths` and
+ * `agentTracker` which are session-scoped. Used during `session_shutdown`
+ * to avoid manual field-by-field clearing that can miss fields.
+ */
+export function resetState(): void {
+	const fresh = createInitialState();
+	// Preserve paths (constant for the install) and agentTracker (session-scoped)
+	const { paths, agentTracker, config, layout, favorites, diagnostics } = fresh;
+	Object.assign(state, {
+		...fresh,
+		// Keep the existing paths (they don't change)
+		paths: state.paths,
+		// Keep the running logQueue to avoid dropping in-flight writes
+		diagnostics: { ...diagnostics, logQueue: state.diagnostics.logQueue },
+		// agentTracker is reset separately by the caller
+		agentTracker: state.agentTracker,
+	});
+}
+
+// ---------------------------------------------------------------------------
 // Render context (shared by all phone-shell components)
 // ---------------------------------------------------------------------------
 

@@ -110,6 +110,17 @@ function computeScrollableDropdownMaxVisibleItems(): number {
 	return Math.max(1, Math.floor((availableRows - 2) / 3)); // -2 for borders, 3 rows per button
 }
 
+/**
+ * Compute the max overlay height that fits between the header and the bottom
+ * margin, clamped to available terminal rows. Prevents overlays from
+ * extending past the terminal bottom.
+ */
+function computeMaxOverlayHeight(): number {
+	const terminalRows = state.session.tui?.terminal.rows ?? 24;
+	// Reserve header rows + 3-row bottom margin (bar / editor / status)
+	return Math.max(3, terminalRows - HEADER_HEIGHT - 3);
+}
+
 // ---------------------------------------------------------------------------
 // Dropdown lifecycle (show / hide / toggle)
 // ---------------------------------------------------------------------------
@@ -141,6 +152,8 @@ function showDropdown(kind: DropdownKind): void {
 		getScrollOffset: () => overlayState.scrollOffset,
 	} : undefined;
 
+	const heightOpts = { getMaxOverlayHeight: computeMaxOverlayHeight };
+
 	const overlay = state.session.tui.showOverlay(new ButtonDropdownOverlayComponent(
 		renderContext,
 		() => getDropdownButtons(kind),
@@ -148,6 +161,7 @@ function showDropdown(kind: DropdownKind): void {
 		() => overlayState.col,
 		(hitRegions, actualHeight) => setDropdownLayoutState(kind, hitRegions, actualHeight),
 		scrollOpts,
+		heightOpts,
 	), {
 		anchor: "top-left",
 		row: overlayRow,
@@ -382,13 +396,22 @@ export function handleDropdownMouse(kind: "utility" | "view", mouse: MouseInput)
 // We break the cycle by having input.ts set this at registration time.
 // ---------------------------------------------------------------------------
 
-let _activateButton: (button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor") => InputResponse = () => ({ consume: true });
+let _activateButton: (button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor") => InputResponse = () => {
+	queueLog("activateButton called before setActivateButton — input handler not registered yet");
+	return { consume: true };
+};
+
+let _activateButtonSet = false;
 
 export function setActivateButton(fn: typeof _activateButton): void {
 	_activateButton = fn;
+	_activateButtonSet = true;
 }
 
 function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor"): InputResponse {
+	if (!_activateButtonSet) {
+		queueLog(`activateButton(${button.id}, ${origin}) called before late-binding was wired — input handler not registered yet`);
+	}
 	return _activateButton(button, origin);
 }
 

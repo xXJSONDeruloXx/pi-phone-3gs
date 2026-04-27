@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { COMPAT_COMMAND, PRIMARY_COMMAND, TOGGLE_ALIAS_COMMAND, TOGGLE_SHORTCUT } from "./defaults.js";
 import { ensureStarterFiles, loadPersistedShellState } from "./config.js";
 import { AgentStateTracker } from "./header.js";
-import { captureUiBindings, queueLog, reloadRuntimeSettings, scheduleRender, state } from "./state.js";
+import { captureUiBindings, queueLog, reloadRuntimeSettings, resetState, scheduleRender, state } from "./state.js";
 import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 
@@ -113,25 +113,8 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 
 	pi.on("session_shutdown", async () => {
 		await disableTouchMode(undefined, true, false);
-		state.diagnostics.lastInput = undefined;
-		state.diagnostics.lastMouse = undefined;
-		state.diagnostics.lastAction = undefined;
-		state.bindings.statusSink = undefined;
-		state.session.theme = undefined;
-		state.bindings.getEditorText = undefined;
-		state.bindings.setWidget = undefined;
-		state.bindings.notify = undefined;
-		state.bindings.abort = undefined;
-		state.bindings.isIdle = undefined;
-		state.modelRegistry = undefined;
-		state.currentModel = undefined;
-		state.setModel = undefined;
-		state.getThinkingLevel = undefined;
-		state.setThinkingLevel = undefined;
-		state.thinkingLevel = "off";
-		state.editorStash = undefined;
-		state.pi = undefined;
 		state.agentTracker?.reset();
+		resetState();
 	});
 
 	pi.registerShortcut(TOGGLE_SHORTCUT, {

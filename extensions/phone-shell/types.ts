@@ -1,6 +1,6 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
 import type { Component, OverlayHandle, TUI } from "@mariozechner/pi-tui";
-import type { PiEditorContainer } from "./pi-types.js";
+import type { DiscoveredEditorContainer } from "./pi-types.js";
 
 export type ButtonPalette = "accent" | "warning" | "muted";
 
@@ -315,7 +315,7 @@ export interface VelocitySample {
 
 export interface MomentumState {
 	velocity: number;
-	AnimationFrame: ReturnType<typeof setInterval> | undefined;
+	animationFrame: ReturnType<typeof setTimeout> | undefined;
 }
 
 export interface ViewportLayoutState {
@@ -337,8 +337,8 @@ export interface SessionRenderState {
 	tui?: TUI;
 	theme?: Theme;
 	viewport?: ViewportController;
-	/** Pi's editorContainer Container instance — selectors and dialogs inject here. */
-	editorContainer?: PiEditorContainer;
+	/** Discovered editorContainer — a Container-like object that holds the active editor. */
+	editorContainer?: DiscoveredEditorContainer;
 	/** Active phone-shell custom editor instance, when installed. */
 	phoneShellEditor?: Component;
 	/** Original index of editorContainer in tui.children before proxy mode moves it. */

@@ -312,10 +312,15 @@ function normalizePersistedShellState(value: unknown, fallback = DEFAULT_PERSIST
 	};
 }
 
+/** In-memory cache for the persisted shell state to avoid read-before-write. */
+let cachedShellState: PersistedShellState | undefined;
+
 export async function loadPersistedShellState(paths: PhoneShellPaths): Promise<PersistedShellState> {
+	if (cachedShellState) return cachedShellState;
 	try {
 		const value = await readJsonIfExists(paths.state);
-		return normalizePersistedShellState(value);
+		cachedShellState = normalizePersistedShellState(value);
+		return cachedShellState;
 	} catch {
 		return DEFAULT_PERSISTED_STATE;
 	}
@@ -336,6 +341,7 @@ export async function savePersistedShellState(paths: PhoneShellPaths, patch: Par
 		topEditorEscButtonVisible: patch.topEditorEscButtonVisible ?? current.topEditorEscButtonVisible,
 		topEditorInterruptButtonVisible: patch.topEditorInterruptButtonVisible ?? current.topEditorInterruptButtonVisible,
 	};
+	cachedShellState = next;
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });
 	await fs.writeFile(paths.state, JSON.stringify(next, null, 2), "utf8");
 }

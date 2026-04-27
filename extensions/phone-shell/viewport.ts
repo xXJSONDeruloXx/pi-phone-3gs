@@ -42,6 +42,10 @@ export class TouchViewport implements Component {
 	private lastVisibleHeight = 1;
 	private lastTotalLines = 0;
 	private lastMaxTop = 0;
+	/** Cached heights from the last render pass, keyed by child index. */
+	private cachedChildHeights: Map<number, number> = new Map();
+	/** Width used for the last height cache, to invalidate on resize. */
+	private cachedChildWidth = -1;
 
 	constructor(
 		private readonly tui: TUI,
@@ -49,17 +53,42 @@ export class TouchViewport implements Component {
 		private readonly ctx: PhoneShellRenderContext,
 	) {}
 
-	render(width: number): string[] {
+	/**
+	 * Compute the total fixed height and rows-before-viewport.
+	 *
+	 * On the first render after a width change (or first ever), we render each
+	 * sibling once to seed the cache. On subsequent renders at the same width
+	 * we reuse cached heights, avoiding recursive render invocations on every
+	 * momentum / scroll frame.
+	 */
+	private computeLayout(width: number): { rowsBefore: number; fixedHeight: number } {
+		const needsRecompute = width !== this.cachedChildWidth;
+		if (needsRecompute) this.cachedChildHeights.clear();
+		this.cachedChildWidth = width;
+
 		let rowsBefore = 0;
 		let fixedHeight = 0;
 		const viewportIndex = this.tui.children.indexOf(this);
+
 		for (let index = 0; index < this.tui.children.length; index++) {
-			const child = this.tui.children[index]!;
-			if (child === this) continue;
-			const childHeight = child.render(width).length;
+			if (index === viewportIndex) continue;
+			let childHeight: number;
+			if (this.cachedChildHeights.has(index)) {
+				childHeight = this.cachedChildHeights.get(index)!;
+			} else {
+				const child = this.tui.children[index]!;
+				childHeight = child.render(width).length;
+				this.cachedChildHeights.set(index, childHeight);
+			}
 			fixedHeight += childHeight;
 			if (index < viewportIndex) rowsBefore += childHeight;
 		}
+
+		return { rowsBefore, fixedHeight };
+	}
+
+	render(width: number): string[] {
+		const { rowsBefore, fixedHeight } = this.computeLayout(width);
 		const visibleHeight = Math.max(1, this.tui.terminal.rows - fixedHeight);
 		const lines = this.content.render(width);
 		const maxTop = Math.max(0, lines.length - visibleHeight);
@@ -219,6 +248,10 @@ export class TouchViewport implements Component {
 	/**
 	 * Start a momentum animation from the given initial velocity (rows/frame).
 	 * Handles rubber-banding at content edges and exponential deceleration.
+	 *
+	 * Uses recursive setTimeout instead of setInterval so that if a frame takes
+	 * longer than frameIntervalMs the next frame is simply delayed rather than
+	 * queuing up behind it.
 	 */
 	startMomentum(initialVelocity: number): void {
 		this.cancelMomentum();
@@ -228,15 +261,15 @@ export class TouchViewport implements Component {
 
 		if (Math.abs(initialVelocity) < config.stopThreshold) return;
 
-		const momentum = {
+		const momentum: import("./types.js").MomentumState = {
 			velocity: initialVelocity,
-			AnimationFrame: undefined as ReturnType<typeof setInterval> | undefined,
+			animationFrame: undefined,
 		};
 		this.ctx.state.ui.viewport.momentum = momentum;
 
 		queueLog(`momentum: start velocity=${initialVelocity.toFixed(3)}`);
 
-		momentum.AnimationFrame = setInterval(() => {
+		const tick = (): void => {
 			// Check if momentum was cancelled externally (e.g. new drag started)
 			if (!this.ctx.state.ui.viewport.momentum || this.ctx.state.ui.viewport.momentum !== momentum) {
 				this.cancelMomentum();
@@ -302,8 +335,15 @@ export class TouchViewport implements Component {
 			if (Math.abs(velocity) < config.stopThreshold) {
 				this.cancelMomentum();
 				this.setScrollTopSmooth(pos);
+				return;
 			}
-		}, config.frameIntervalMs);
+
+			// Schedule next frame — recursive setTimeout prevents frame stacking
+			momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);
+		};
+
+		// Kick off the first frame
+		momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);
 	}
 
 	/**
@@ -311,8 +351,8 @@ export class TouchViewport implements Component {
 	 */
 	cancelMomentum(): void {
 		const momentum = this.ctx.state.ui.viewport.momentum;
-		if (momentum?.AnimationFrame) {
-			clearInterval(momentum.AnimationFrame);
+		if (momentum?.animationFrame) {
+			clearTimeout(momentum.animationFrame);
 		}
 		this.ctx.state.ui.viewport.momentum = undefined;
 		// Snap fractional position back into content bounds
