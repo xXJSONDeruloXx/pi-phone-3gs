@@ -50,6 +50,7 @@ export type ShellAction =
 	| "toggleTopEditorFollowUpButton"
 	| "toggleTopEditorEscButton"
 	| "toggleTopEditorInterruptButton"
+	| "togglePiFooter"
 	| "stashEditor"
 	| "scrollTop"
 	| "pageUp"
@@ -178,6 +179,7 @@ export interface PersistedShellState {
 	topEditorFollowUpButtonVisible: boolean;
 	topEditorEscButtonVisible: boolean;
 	topEditorInterruptButtonVisible: boolean;
+	piFooterVisible: boolean;
 }
 
 /**
@@ -357,6 +359,8 @@ export interface ShellModeState {
 	topEditorFollowUpButtonVisible: boolean;
 	topEditorEscButtonVisible: boolean;
 	topEditorInterruptButtonVisible: boolean;
+	/** When false, the Pi footer is replaced with a zero-height component to reclaim screen rows. */
+	piFooterVisible: boolean;
 	proxyOnly: boolean;
 	/** True while editorContainer has been moved to the top of the TUI children array. */
 	editorAtTop: boolean;

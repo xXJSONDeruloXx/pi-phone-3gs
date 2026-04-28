@@ -109,6 +109,7 @@ export function getViewMenuButtons(shell: ShellModeState): ButtonSpec[] {
 		{ kind: "action", id: "view-rail",       label: "  FAV  ", action: "toggleBottomBar",       palette: shell.barVisible ? on : off },
 		{ kind: "action", id: "view-keys",       label: "  KEYS ", action: "toggleNavPad",          palette: shell.navPadVisible ? on : off },
 		{ kind: "action", id: "view-jump",       label: "  JUMP ", action: "toggleViewportJumpButtons", palette: shell.viewportJumpButtonsVisible ? on : off },
+		{ kind: "action", id: "view-pi-footer",  label: "  FTR  ", action: "togglePiFooter",          palette: shell.piFooterVisible ? on : off },
 	];
 }
 
@@ -148,6 +149,7 @@ export const DEFAULT_PERSISTED_STATE: PersistedShellState = {
 	topEditorFollowUpButtonVisible: false,
 	topEditorEscButtonVisible: false,
 	topEditorInterruptButtonVisible: false,
+	piFooterVisible: true,
 };
 
 export const DEFAULT_FAVORITES: FavoriteEntry[] = [

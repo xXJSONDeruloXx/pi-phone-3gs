@@ -24,10 +24,6 @@ export interface PiEditorContainer {
 	children: unknown[];
 }
 
-/**
- * Minimal ctx shape accepted by phone-shell enable/disable functions.
- * Both ExtensionContext and ExtensionCommandContext satisfy this.
- */
 export type PiExtensionCtx = Pick<ExtensionContext, "ui" | "hasUI"> & {
 	abort?: () => void;
 	isIdle?: () => boolean;

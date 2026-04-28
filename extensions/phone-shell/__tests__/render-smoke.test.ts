@@ -39,6 +39,7 @@ function fakeRenderState(): PhoneShellRenderState {
 			topEditorFollowUpButtonVisible: false,
 			topEditorEscButtonVisible: false,
 			topEditorInterruptButtonVisible: false,
+			piFooterVisible: true,
 			proxyOnly: false,
 			editorAtTop: false,
 			headerInstalled: false,

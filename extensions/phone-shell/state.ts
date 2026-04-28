@@ -63,6 +63,7 @@ export type RuntimeState = PhoneShellRenderState & {
 		getEditorText?: () => string;
 		setWidget?: ExtensionUIContext["setWidget"];
 		setEditorComponent?: ExtensionUIContext["setEditorComponent"];
+		setFooter?: ExtensionUIContext["setFooter"];
 		abort?: () => void;
 		isIdle?: () => boolean;
 	};
@@ -97,6 +98,7 @@ export const state: RuntimeState = {
 		topEditorFollowUpButtonVisible: false,
 		topEditorEscButtonVisible: false,
 		topEditorInterruptButtonVisible: false,
+		piFooterVisible: true,
 		proxyOnly: false,
 		editorAtTop: false,
 		headerInstalled: false,
@@ -205,6 +207,7 @@ export function createInitialState(): RuntimeState {
 			topEditorFollowUpButtonVisible: false,
 			topEditorEscButtonVisible: false,
 			topEditorInterruptButtonVisible: false,
+			piFooterVisible: true,
 			proxyOnly: false,
 			editorAtTop: false,
 			headerInstalled: false,
@@ -357,6 +360,7 @@ export function captureUiBindings(ctx: PiExtensionCtx): void {
 	state.bindings.getEditorText = ctx.ui.getEditorText.bind(ctx.ui);
 	state.bindings.setWidget = ctx.ui.setWidget.bind(ctx.ui);
 	state.bindings.setEditorComponent = ctx.ui.setEditorComponent?.bind(ctx.ui);
+	state.bindings.setFooter = ctx.ui.setFooter?.bind(ctx.ui);
 	state.bindings.abort = ctx.abort?.bind(ctx);
 	state.bindings.isIdle = ctx.isIdle?.bind(ctx);
 }
@@ -415,6 +419,7 @@ export function getStatusReport(): string {
 		`- editor follow-up button: ${state.shell.topEditorFollowUpButtonVisible}`,
 		`- editor esc button: ${state.shell.topEditorEscButtonVisible}`,
 		`- editor interrupt button: ${state.shell.topEditorInterruptButtonVisible}`,
+		`- pi footer visible: ${state.shell.piFooterVisible}`,
 		`- editor stash: ${state.editorStash ? `${state.editorStash.length} chars` : "empty"}`,
 		`- utility overlay: ${state.ui.overlays.utility.visible}`,
 		`- view overlay: ${state.ui.overlays.view.visible}`,
