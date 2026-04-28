@@ -124,7 +124,7 @@ The favorites rail (`BottomBarComponent`) lives as a `belowEditor` widget. Dropd
 
 ### Rules (no exceptions)
 
-1. **Always cut a new branch from `main` BEFORE writing any code.** No exceptions — not even for one-line fixes, not even for typos.
+1. **Always cut a new branch from `main` BEFORE writing any code.** No exceptions — not even for one-line fixes, not even for typos. **Before editing any file, verify `git branch --show-current` is not `main`. If you are on `main`, stop and create a branch first.**
 2. **Never commit directly on `main`.** If you realize you've started coding on `main`, stash, create a branch, pop the stash, then continue.
 3. **Never push `main`.** Only the user may push to `main`. The agent may push feature branches to `origin`, but `main` pushes are exclusively the user's decision.
 4. **Never merge a branch into `main` until the user has tested it and explicitly says to merge.** The user saying "merge and push" means they tested and approve — until those exact words (or equivalent explicit confirmation), the branch stays separate.
