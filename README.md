@@ -2,7 +2,7 @@
 
 > A touch-optimized coding agent harness that still runs in your real terminal on your real computer.
 
-![Reference screenshot of the early portrait touch UI](docs/images/phone-touch-reference.png)
+![Reference screenshot of the early portrait touch UI](docs/images/pi-phone-apr28.png)
 
 `pi-phone-3gs` is an early vision repo for a phone-first, portrait-friendly coding harness built on top of the Pi ecosystem.
 
