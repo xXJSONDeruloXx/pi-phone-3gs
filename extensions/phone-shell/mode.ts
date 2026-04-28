@@ -54,6 +54,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		topEditorFollowUpButtonVisible: state.shell.topEditorFollowUpButtonVisible,
 		topEditorEscButtonVisible: state.shell.topEditorEscButtonVisible,
 		topEditorInterruptButtonVisible: state.shell.topEditorInterruptButtonVisible,
+		piFooterVisible: state.shell.piFooterVisible,
 		...patch,
 	});
 }
@@ -69,6 +70,7 @@ export function clearCapturedTui(): void {
 	state.bindings.getEditorText = undefined;
 	state.bindings.setWidget = undefined;
 	state.bindings.setEditorComponent = undefined;
+	state.bindings.setFooter = undefined;
 	state.bindings.abort = undefined;
 	state.bindings.isIdle = undefined;
 	state.session.editorContainer = undefined;
@@ -133,7 +135,7 @@ export function toggleEditorPosition(): void {
 // Toggle factory
 // ---------------------------------------------------------------------------
 
-type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible" | "topEditorEscButtonVisible" | "topEditorInterruptButtonVisible";
+type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible" | "topEditorEscButtonVisible" | "topEditorInterruptButtonVisible" | "piFooterVisible";
 
 function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): () => void {
 	return function toggle(): void {
@@ -153,6 +155,23 @@ export const toggleTopEditorStashButton = makeToggle("topEditorStashButtonVisibl
 export const toggleTopEditorFollowUpButton = makeToggle("topEditorFollowUpButtonVisible");
 export const toggleTopEditorEscButton = makeToggle("topEditorEscButtonVisible");
 export const toggleTopEditorInterruptButton = makeToggle("topEditorInterruptButtonVisible");
+export const togglePiFooter = makeToggle("piFooterVisible", syncPiFooter);
+
+function syncPiFooter(): void {
+	if (!state.bindings.setFooter) return;
+	if (state.shell.piFooterVisible) {
+		// Restore Pi's built-in footer
+		state.bindings.setFooter(undefined);
+		queueLog("pi footer shown");
+	} else {
+		// Replace with a zero-height component to reclaim the row
+		state.bindings.setFooter(() => ({
+			render: () => [],
+			invalidate: () => {},
+		}));
+		queueLog("pi footer hidden");
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Bottom widgets (panel + nav pad below editor)
@@ -247,6 +266,7 @@ export async function enableTouchMode(ctx: PiExtensionCtx, persist = true): Prom
 	captureEditorContainer();
 	installPhoneShellEditor();
 	syncNavPadPlacement();
+	syncPiFooter();
 	enableMouseTracking();
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
@@ -275,6 +295,11 @@ export async function disableTouchMode(ctx?: PiExtensionCtx, permanent = false, 
 	state.shell.proxyOnly = false;
 	uninstallHeader();
 	uninstallViewport();
+	// Restore Pi footer before clearing bindings
+	if (state.shell.piFooterVisible !== true) {
+		state.shell.piFooterVisible = true;
+		state.bindings.setFooter?.(undefined);
+	}
 	state.bindings.statusSink?.(STATUS_KEY, undefined);
 	if (permanent) {
 		destroyPanel();

@@ -33,6 +33,7 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleTopEditorSendButton",
 	"toggleTopEditorStashButton",
 	"stashEditor",
+	"togglePiFooter",
 	"scrollTop",
 	"pageUp",
 	"selectModel",
@@ -309,6 +310,7 @@ function normalizePersistedShellState(value: unknown, fallback = DEFAULT_PERSIST
 		topEditorFollowUpButtonVisible: value.topEditorFollowUpButtonVisible === true,
 		topEditorEscButtonVisible: value.topEditorEscButtonVisible === true,
 		topEditorInterruptButtonVisible: value.topEditorInterruptButtonVisible === true,
+		piFooterVisible: value.piFooterVisible !== false,
 	};
 }
 
@@ -340,6 +342,7 @@ export async function savePersistedShellState(paths: PhoneShellPaths, patch: Par
 		topEditorFollowUpButtonVisible: patch.topEditorFollowUpButtonVisible ?? current.topEditorFollowUpButtonVisible,
 		topEditorEscButtonVisible: patch.topEditorEscButtonVisible ?? current.topEditorEscButtonVisible,
 		topEditorInterruptButtonVisible: patch.topEditorInterruptButtonVisible ?? current.topEditorInterruptButtonVisible,
+		piFooterVisible: patch.piFooterVisible ?? current.piFooterVisible,
 	};
 	cachedShellState = next;
 	await fs.mkdir(path.dirname(paths.state), { recursive: true });

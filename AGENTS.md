@@ -180,6 +180,10 @@ npm run check    # tsc --noEmit — type check only, no emit
 
 This is a Pi package, not a standalone build. There is no bundle step — Pi loads the TypeScript extension directly at runtime via the entry point declared in `package.json`.
 
+## Testing changes
+
+After any code change, the user must run `/reload` in pi to pick up the modified extension. The agent should always remind the user to `/reload` when changes are ready to test.
+
 ## User config files
 
 Per-user files live at `~/.pi/agent/pi-phone-3gs/`:
