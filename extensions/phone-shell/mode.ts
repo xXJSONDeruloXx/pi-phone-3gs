@@ -232,10 +232,6 @@ function disableMouseTracking(): void {
 // Touch mode enable / disable
 // ---------------------------------------------------------------------------
 
-function touchStatusText(): string {
-	const theme = getTheme();
-	return theme.fg("accent", "phone") + theme.fg("dim", " shell");
-}
 
 export async function enableTouchMode(ctx: PiExtensionCtx, persist = true): Promise<void> {
 	captureUiBindings(ctx);
@@ -255,7 +251,6 @@ export async function enableTouchMode(ctx: PiExtensionCtx, persist = true): Prom
 	registerInputHandler(ctx);
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
 	if (persist) await persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
-	ctx.ui.setStatus(STATUS_KEY, touchStatusText());
 	if (state.diagnostics.loadErrors.length > 0) {
 		ctx.ui.notify(`phone-shell enabled • ${state.diagnostics.loadErrors.length} config warning(s)`, "warning");
 	} else {
