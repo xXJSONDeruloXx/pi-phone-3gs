@@ -1,13 +1,13 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
-import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { makeButtonWidth, padLineToWidth, renderBoxButton } from "./button-helpers.js";
+import { visibleWidth } from "@mariozechner/pi-tui";
+import { padLineToWidth } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ViewportDebugState } from "./types.js";
 import { queueLog, scheduleRender, state } from "./state.js";
 
 const VIEWPORT_TOP_BUTTON: ButtonSpec = {
 	kind: "action",
 	id: "viewport-top",
-	label: "TOP",
+	label: "▲",
 	action: "scrollTop",
 	palette: "accent",
 };
@@ -15,21 +15,36 @@ const VIEWPORT_TOP_BUTTON: ButtonSpec = {
 const VIEWPORT_BOTTOM_BUTTON: ButtonSpec = {
 	kind: "action",
 	id: "viewport-bottom",
-	label: "BTM",
+	label: "▼",
 	action: "scrollBottom",
 	palette: "accent",
 };
 
-function renderViewportButton(spec: ButtonSpec, theme: ReturnType<PhoneShellRenderContext["getTheme"]>): { lines: string[]; width: number } {
-	return renderBoxButton(spec, theme);
-}
+/**
+ * Render a thin jump bar: a full-width horizontal rule with a small arrow
+ * indicator on the right. Returns a single line and its hit width (just
+ * the arrow portion for tap targeting).
+ */
+function renderThinJumpBar(
+	spec: ButtonSpec,
+	theme: ReturnType<PhoneShellRenderContext["getTheme"]>,
+	width: number,
+): string {
+	const arrow = spec.label;
+	const indicatorWidth = visibleWidth(arrow) + 2; // padding around arrow
+	const indicatorColStart = Math.max(1, width - indicatorWidth - 1);
 
-// padLineToWidth imported from button-helpers
+	// Build the bar: muted horizontal rule across most of the width,
+	// with a small accent-colored arrow region on the right.
+	const ruleWidth = indicatorColStart - 1;
+	const ruleChar = "─";
+	const leftPad = 1; // 1 space before arrow
+	const rightPad = indicatorWidth - visibleWidth(arrow) - leftPad;
 
-function placeButtonAtRight(line: string, width: number, buttonLine: string, buttonWidth: number): string {
-	if (buttonWidth >= width) return truncateToWidth(buttonLine, width);
-	const contentWidth = Math.max(0, width - buttonWidth - 1);
-	return `${padLineToWidth(line, contentWidth)} ${buttonLine}`;
+	const rulePart = ruleWidth > 0 ? theme.fg("muted", ruleChar.repeat(ruleWidth)) : "";
+	const arrowPart = theme.fg("accent", `${" ".repeat(leftPad)}${arrow}${" ".repeat(Math.max(0, rightPad))}`);
+
+	return `${rulePart}${arrowPart}`;
 }
 
 export class TouchViewport implements Component {
@@ -104,35 +119,30 @@ export class TouchViewport implements Component {
 		while (visible.length < visibleHeight) visible.push("");
 
 		const viewportButtons: ButtonHitRegion[] = [];
-		const shouldRenderJumpButtons = this.ctx.state.shell.viewportJumpButtonsVisible && visibleHeight >= 6 && width >= 6;
+		const shouldRenderJumpButtons = this.ctx.state.shell.viewportJumpButtonsVisible && visibleHeight >= 4 && width >= 6;
 		if (shouldRenderJumpButtons) {
 			const theme = this.ctx.getTheme();
-			const topButton = renderViewportButton(VIEWPORT_TOP_BUTTON, theme);
-			const bottomButton = renderViewportButton(VIEWPORT_BOTTOM_BUTTON, theme);
-			const buttonWidth = Math.max(topButton.width, bottomButton.width);
-			const buttonColStart = Math.max(1, width - buttonWidth + 1);
-			const topStart = 0;
-			const bottomStart = visibleHeight - bottomButton.lines.length;
 
-			for (let index = 0; index < topButton.lines.length; index++) {
-				visible[topStart + index] = placeButtonAtRight(visible[topStart + index] ?? "", width, topButton.lines[index]!, buttonWidth);
-				viewportButtons.push({
-					button: VIEWPORT_TOP_BUTTON,
-					colStart: buttonColStart,
-					colEnd: width,
-					rowOffset: topStart + index,
-				});
-			}
+			// Replace first and last visible lines with thin jump bars.
+			// This sacrifices one content row at top and one at bottom,
+			// but the bars are full-width horizontal rules with just a small
+			// arrow indicator — much less intrusive than 3-line box buttons.
+			visible[0] = renderThinJumpBar(VIEWPORT_TOP_BUTTON, theme, width);
+			viewportButtons.push({
+				button: VIEWPORT_TOP_BUTTON,
+				colStart: 1,
+				colEnd: width,
+				rowOffset: 0,
+			});
 
-			for (let index = 0; index < bottomButton.lines.length; index++) {
-				visible[bottomStart + index] = placeButtonAtRight(visible[bottomStart + index] ?? "", width, bottomButton.lines[index]!, buttonWidth);
-				viewportButtons.push({
-					button: VIEWPORT_BOTTOM_BUTTON,
-					colStart: buttonColStart,
-					colEnd: width,
-					rowOffset: bottomStart + index,
-				});
-			}
+			const bottomRow = visibleHeight - 1;
+			visible[bottomRow] = renderThinJumpBar(VIEWPORT_BOTTOM_BUTTON, theme, width);
+			viewportButtons.push({
+				button: VIEWPORT_BOTTOM_BUTTON,
+				colStart: 1,
+				colEnd: width,
+				rowOffset: bottomRow,
+			});
 		}
 
 		this.ctx.state.ui.viewport.buttons = viewportButtons;
