@@ -252,9 +252,7 @@ export async function enableTouchMode(ctx: PiExtensionCtx, persist = true): Prom
 	if (state.config.utilityOverlay.autoOpenOnEnable) showUtilityOverlay();
 	if (persist) await persistShellState().catch((e) => queueLog(`persistShellState failed: ${e}`));
 	if (state.diagnostics.loadErrors.length > 0) {
-		ctx.ui.notify(`phone-shell enabled • ${state.diagnostics.loadErrors.length} config warning(s)`, "warning");
-	} else {
-		ctx.ui.notify("phone-shell enabled", "info");
+		ctx.ui.notify(`${state.diagnostics.loadErrors.length} config warning(s)`, "warning");
 	}
 	queueLog("enabled");
 }
