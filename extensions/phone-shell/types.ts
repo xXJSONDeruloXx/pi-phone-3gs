@@ -41,6 +41,7 @@ export type ShellAction =
 	| "toggleUtilities"
 	| "toggleViewMenu"
 	| "toggleSkillsMenu"
+	| "togglePromptsMenu"
 	| "toggleBottomBar"
 	| "toggleEditorPosition"
 	| "toggleNavPad"
@@ -151,6 +152,9 @@ export interface PhoneShellConfig {
 		keepOpenAfterButtonActivation: boolean;
 	};
 	skillsOverlay: {
+		keepOpenAfterButtonActivation: boolean;
+	};
+	promptsOverlay: {
 		keepOpenAfterButtonActivation: boolean;
 	};
 	render: {
@@ -376,6 +380,7 @@ export interface PhoneShellUIState {
 		utility: DropdownOverlayState;
 		view: DropdownOverlayState;
 		skills: DropdownOverlayState;
+		prompts: DropdownOverlayState;
 		models: DropdownOverlayState;
 		allModels: DropdownOverlayState;
 	};

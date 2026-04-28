@@ -26,6 +26,7 @@ const ACTIONS: readonly ShellAction[] = [
 	"toggleUtilities",
 	"toggleViewMenu",
 	"toggleSkillsMenu",
+	"togglePromptsMenu",
 	"toggleBottomBar",
 	"toggleEditorPosition",
 	"toggleNavPad",
@@ -217,6 +218,9 @@ export function parseConfig(value: unknown): { config: PhoneShellConfig; errors:
 	const skillsOverlay = isRecord(value.skillsOverlay) ? value.skillsOverlay : {};
 	if (value.skillsOverlay !== undefined && !isRecord(value.skillsOverlay)) errors.push("skillsOverlay must be an object");
 
+	const promptsOverlay = isRecord(value.promptsOverlay) ? value.promptsOverlay : {};
+	if (value.promptsOverlay !== undefined && !isRecord(value.promptsOverlay)) errors.push("promptsOverlay must be an object");
+
 	const render = isRecord(value.render) ? value.render : {};
 	if (value.render !== undefined && !isRecord(value.render)) errors.push("render must be an object");
 
@@ -257,6 +261,13 @@ export function parseConfig(value: unknown): { config: PhoneShellConfig; errors:
 				skillsOverlay,
 				"keepOpenAfterButtonActivation",
 				DEFAULT_CONFIG.skillsOverlay.keepOpenAfterButtonActivation,
+			),
+		},
+		promptsOverlay: {
+			keepOpenAfterButtonActivation: readBoolean(
+				promptsOverlay,
+				"keepOpenAfterButtonActivation",
+				DEFAULT_CONFIG.promptsOverlay.keepOpenAfterButtonActivation,
 			),
 		},
 		render: {

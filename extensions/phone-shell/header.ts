@@ -10,6 +10,7 @@ function getHeaderButtonSpecs(
 	utilityOverlayVisible: boolean,
 	viewOverlayVisible: boolean,
 	skillsOverlayVisible: boolean,
+	promptsOverlayVisible: boolean,
 	modelsOverlayVisible: boolean,
 	allModelsOverlayVisible: boolean,
 	thinkingLevel: ThinkingLevel,
@@ -18,6 +19,7 @@ function getHeaderButtonSpecs(
 	const fileColor = utilityOverlayVisible ? "accent" : "muted";
 	const viewColor = viewOverlayVisible ? "accent" : "muted";
 	const skillsColor = skillsOverlayVisible ? "accent" : "muted";
+	const promptsColor = promptsOverlayVisible ? "accent" : "muted";
 	const allModelColor: ButtonSpec["palette"] = allModelsOverlayVisible ? "accent" : "muted";
 	const scopedModelColor: ButtonSpec["palette"] = modelsOverlayVisible ? "accent" : (modelScopeFilter === "scoped" ? "warning" : "muted");
 	const thinkingColor: ButtonSpec["palette"] = thinkingLevel === "off" ? "muted" : "accent";
@@ -25,6 +27,7 @@ function getHeaderButtonSpecs(
 		{ kind: "action", id: "header-thinking", label: thinkingLevelLabel(thinkingLevel), action: "cycleThinkingLevel", palette: thinkingColor },
 		{ kind: "action", id: "header-all-models", label: "ALL", action: "showAllModels", palette: allModelColor },
 		{ kind: "action", id: "header-model", label: "SCOPED", action: "selectModel", palette: scopedModelColor },
+		{ kind: "action", id: "header-prompts", label: "PRMPT", action: "togglePromptsMenu", palette: promptsColor },
 		{ kind: "action", id: "header-skills", label: "SKILLS", action: "toggleSkillsMenu", palette: skillsColor },
 		{ kind: "action", id: "header-view", label: "VIEW", action: "toggleViewMenu", palette: viewColor },
 		{ kind: "action", id: "header-file", label: "FILE", action: "toggleUtilities", palette: fileColor },
@@ -68,6 +71,7 @@ export class HeaderBarComponent implements Component {
 			this.ctx.state.ui.overlays.utility.visible,
 			this.ctx.state.ui.overlays.view.visible,
 			this.ctx.state.ui.overlays.skills.visible,
+			this.ctx.state.ui.overlays.prompts.visible,
 			this.ctx.state.ui.overlays.models.visible,
 			this.ctx.state.ui.overlays.allModels.visible,
 			this.ctx.state.thinkingLevel,
@@ -79,8 +83,9 @@ export class HeaderBarComponent implements Component {
 		const allModelSpec = specs.find((s) => s.id === "header-all-models")!;
 		const viewSpec = specs.find((s) => s.id === "header-view")!;
 		const thinkingSpec = specs.find((s) => s.id === "header-thinking")!;
+		const promptsSpec = specs.find((s) => s.id === "header-prompts")!;
 		const skillsSpec = specs.find((s) => s.id === "header-skills")!;
-		const leftSpecs = [fileSpec, skillsSpec, viewSpec];
+		const leftSpecs = [fileSpec, promptsSpec, skillsSpec, viewSpec];
 		const rightSpecs = [thinkingSpec, allModelSpec, modelSpec];
 
 		const left = renderButtonRow(leftSpecs, config.render.buttonGap, theme);

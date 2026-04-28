@@ -70,6 +70,9 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 	skillsOverlay: {
 		keepOpenAfterButtonActivation: false,
 	},
+	promptsOverlay: {
+		keepOpenAfterButtonActivation: false,
+	},
 	render: {
 		buttonGap: 1,
 		leadingColumns: 1,

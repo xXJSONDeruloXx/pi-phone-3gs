@@ -16,22 +16,27 @@ import {
 	hideUtilityOverlay,
 	hideViewOverlay,
 	hideSkillsOverlay,
+	hidePromptsOverlay,
 	hideModelsOverlay,
 	hideAllModelsOverlay,
 	toggleUtilityOverlay,
 	toggleViewOverlay,
 	toggleSkillsOverlay,
+	togglePromptsOverlay,
 	toggleModelsOverlay,
 	toggleAllModelsOverlay,
 	toggleModelsOverlay as selectModel,
 	activateModelButton,
 	handleSkillsDropdownWheel,
+	handlePromptsDropdownWheel,
 	handleModelsDropdownWheel,
 	handleSkillsDropdownMouse,
+	handlePromptsDropdownMouse,
 	handleModelsDropdownMouse,
 	handleDropdownMouse,
 	setActivateButton,
 	getSkillsDrag,
+	getPromptsDrag,
 	getModelsDrag,
 	getAllModelsDrag,
 	hideDropdown,
@@ -234,6 +239,9 @@ export function performAction(action: ShellAction): InputResponse {
 		case "toggleSkillsMenu":
 			toggleSkillsOverlay();
 			return { consume: true };
+		case "togglePromptsMenu":
+			togglePromptsOverlay();
+			return { consume: true };
 		case "toggleBottomBar":
 			toggleBottomBar();
 			return { consume: true };
@@ -318,15 +326,16 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
-type OverlayOrigin = "utility" | "view" | "skills";
+type OverlayOrigin = "utility" | "view" | "skills" | "prompts";
 
 const overlayBehaviors: Record<OverlayOrigin, { keepOpen: () => boolean; hide: () => void }> = {
 	utility: { keepOpen: () => state.config.utilityOverlay.keepOpenAfterButtonActivation, hide: hideUtilityOverlay },
 	view:     { keepOpen: () => state.config.viewOverlay.keepOpenAfterButtonActivation,     hide: hideViewOverlay },
 	skills:   { keepOpen: () => state.config.skillsOverlay.keepOpenAfterButtonActivation,   hide: hideSkillsOverlay },
+	prompts:  { keepOpen: () => state.config.promptsOverlay.keepOpenAfterButtonActivation,  hide: hidePromptsOverlay },
 };
 
-export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor"): InputResponse {
+export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "prompts" | "bar" | "nav" | "header" | "editor"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
 	const behavior = overlayBehaviors[origin as OverlayOrigin];
@@ -369,6 +378,7 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 	unregisterInputHandler();
 
 	const skillsDrag = getSkillsDrag();
+	const promptsDrag = getPromptsDrag();
 	const modelsDrag = getModelsDrag();
 	const allModelsDrag = getAllModelsDrag();
 
@@ -383,8 +393,14 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			}
 			if (!state.shell.enabled) return { consume: true };
 			if (mouse.phase === "scroll") {
-				const skillsWheelResponse = state.ui.overlays.skills.visible ? handleSkillsDropdownWheel(mouse) : undefined;
-				if (skillsWheelResponse) return skillsWheelResponse;
+				if (state.ui.overlays.skills.visible) {
+					const skillsWheelResponse = handleSkillsDropdownWheel(mouse);
+					if (skillsWheelResponse) return skillsWheelResponse;
+				}
+				if (state.ui.overlays.prompts.visible) {
+					const promptsWheelResponse = handlePromptsDropdownWheel(mouse);
+					if (promptsWheelResponse) return promptsWheelResponse;
+				}
 				const modelsWheelResponse = (state.ui.overlays.models.visible || state.ui.overlays.allModels.visible) ? handleModelsDropdownWheel(mouse) : undefined;
 				if (modelsWheelResponse) return modelsWheelResponse;
 				return handleViewportWheel(mouse);
@@ -395,6 +411,8 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			if (state.ui.viewport.drag && isPrimaryPointerDrag(mouse)) return updateViewportDrag(mouse);
 			if (state.ui.overlays.skills.drag && mouse.phase === "release") return skillsDrag.finish(mouse);
 			if (state.ui.overlays.skills.drag && isPrimaryPointerDrag(mouse)) return skillsDrag.update(mouse);
+			if (state.ui.overlays.prompts.drag && mouse.phase === "release") return promptsDrag.finish(mouse);
+			if (state.ui.overlays.prompts.drag && isPrimaryPointerDrag(mouse)) return promptsDrag.update(mouse);
 			if (state.ui.overlays.models.drag && mouse.phase === "release") return modelsDrag.finish(mouse);
 			if (state.ui.overlays.models.drag && isPrimaryPointerDrag(mouse)) return modelsDrag.update(mouse);
 			if (state.ui.overlays.allModels.drag && mouse.phase === "release") return allModelsDrag.finish(mouse);
@@ -416,6 +434,9 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 
 			const skillsDropdownResponse = handleSkillsDropdownMouse(mouse);
 			if (skillsDropdownResponse) return skillsDropdownResponse;
+
+			const promptsDropdownResponse = handlePromptsDropdownMouse(mouse);
+			if (promptsDropdownResponse) return promptsDropdownResponse;
 
 			const modelsDropdownResponse = handleModelsDropdownMouse(mouse);
 			if (modelsDropdownResponse) return modelsDropdownResponse;
@@ -455,7 +476,7 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			return { consume: true };
 		}
 
-		if (state.shell.enabled && (state.ui.overlays.utility.visible || state.ui.overlays.models.visible || state.ui.overlays.allModels.visible)) scheduleRender();
+		if (state.shell.enabled && (state.ui.overlays.utility.visible || state.ui.overlays.models.visible || state.ui.overlays.allModels.visible || state.ui.overlays.prompts.visible)) scheduleRender();
 		if (!state.shell.enabled) return undefined;
 
 		if (matchesKey(data, Key.pageUp)) {
@@ -491,6 +512,7 @@ export function unregisterInputHandler(): void {
 	state.session.viewport?.cancelMomentum();
 	state.ui.bar.drag = undefined;
 	state.ui.overlays.skills.drag = undefined;
+	state.ui.overlays.prompts.drag = undefined;
 	state.ui.overlays.models.drag = undefined;
 	state.ui.overlays.allModels.drag = undefined;
 }

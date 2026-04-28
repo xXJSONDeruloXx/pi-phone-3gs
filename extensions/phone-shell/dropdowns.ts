@@ -14,7 +14,7 @@ import type {
 // Dropdown types
 // ---------------------------------------------------------------------------
 
-export type DropdownKind = "utility" | "view" | "skills" | "models" | "allModels";
+export type DropdownKind = "utility" | "view" | "skills" | "prompts" | "models" | "allModels";
 
 /** Which model list the models overlay is currently showing. */
 export type ModelScopeFilter = "scoped" | "all";
@@ -77,6 +77,18 @@ function getSkillsMenuButtons(): ButtonSpec[] {
 		}));
 }
 
+function getPromptsMenuButtons(): ButtonSpec[] {
+	const commands = state.pi?.getCommands() ?? [];
+	return commands
+		.filter((c) => c.source === "prompt")
+		.map((c) => ({
+			kind: "command" as const,
+			id: `prompt-${c.name}`,
+			label: ` /${c.name} `,
+			command: `/${c.name}`,
+		}));
+}
+
 function isCurrentModel(model: AvailableModel): boolean {
 	return modelsAreEqual(state.currentModel, model);
 }
@@ -113,6 +125,7 @@ function getDropdownButtons(kind: DropdownKind): ButtonSpec[] {
 	if (kind === "utility") return state.layout.utilityButtons;
 	if (kind === "view") return getViewMenuButtons(state.shell);
 	if (kind === "skills") return getSkillsMenuButtons();
+	if (kind === "prompts") return getPromptsMenuButtons();
 	if (kind === "models" || kind === "allModels") return getModelMenuButtons();
 	return getModelMenuButtons();
 }
@@ -120,6 +133,7 @@ function getDropdownButtons(kind: DropdownKind): ButtonSpec[] {
 function getDropdownAnchorButtonId(kind: DropdownKind): string {
 	if (kind === "utility") return "header-file";
 	if (kind === "skills") return "header-skills";
+	if (kind === "prompts") return "header-prompts";
 	if (kind === "models" || kind === "allModels") return "header-model";
 	return "header-view";
 }
@@ -142,7 +156,7 @@ function setDropdownPlacement(kind: DropdownKind, row: number, col: number, widt
 }
 
 function hideOtherOverlays(except?: DropdownKind): void {
-	for (const k of ["utility", "view", "skills", "models", "allModels"] as DropdownKind[]) {
+	for (const k of ["utility", "view", "skills", "prompts", "models", "allModels"] as DropdownKind[]) {
 		if (k !== except) hideDropdown(k);
 	}
 }
@@ -185,12 +199,12 @@ function showDropdown(kind: DropdownKind): void {
 	const overlayState = getDropdownOverlayState(kind);
 
 	// Compute max visible items for scrollable dropdowns
-	if (kind === "skills" || kind === "models" || kind === "allModels") {
+	if (kind === "skills" || kind === "prompts" || kind === "models" || kind === "allModels") {
 		overlayState.maxVisibleItems = computeScrollableDropdownMaxVisibleItems();
 		overlayState.scrollOffset = 0;
 	}
 
-	const scrollOpts = kind === "skills" || kind === "models" || kind === "allModels" ? {
+	const scrollOpts = kind === "skills" || kind === "prompts" || kind === "models" || kind === "allModels" ? {
 		getMaxVisibleItems: () => overlayState.maxVisibleItems,
 		getScrollOffset: () => overlayState.scrollOffset,
 	} : undefined;
@@ -251,6 +265,9 @@ export const toggleViewOverlay = (): void => toggleDropdown("view");
 export const showSkillsOverlay = (): void => showDropdown("skills");
 export const hideSkillsOverlay = (): void => hideDropdown("skills");
 export const toggleSkillsOverlay = (): void => toggleDropdown("skills");
+export const showPromptsOverlay = (): void => showDropdown("prompts");
+export const hidePromptsOverlay = (): void => hideDropdown("prompts");
+export const togglePromptsOverlay = (): void => toggleDropdown("prompts");
 export const showModelsOverlay = (): void => { setModelsScopeFilter("scoped"); showDropdown("models"); };
 export const hideModelsOverlay = (): void => hideDropdown("models");
 export const toggleModelsOverlay = (): void => { setModelsScopeFilter("scoped"); toggleDropdown("models"); };
@@ -293,7 +310,7 @@ export function activateModelButton(button: ButtonSpec): InputResponse {
 // Scrollable dropdown drag (skills / models)
 // ---------------------------------------------------------------------------
 
-function adjustScrollableDropdownOffset(kind: "skills" | "models" | "allModels", delta: number): boolean {
+function adjustScrollableDropdownOffset(kind: "skills" | "prompts" | "models" | "allModels", delta: number): boolean {
 	const overlay = state.ui.overlays[kind];
 	const totalButtons = getDropdownButtons(kind).length;
 	const maxOffset = Math.max(0, totalButtons - overlay.maxVisibleItems);
@@ -305,7 +322,7 @@ function adjustScrollableDropdownOffset(kind: "skills" | "models" | "allModels",
 }
 
 function createScrollableDragHandlers(
-	kind: "skills" | "models" | "allModels",
+	kind: "skills" | "prompts" | "models" | "allModels",
 	getButtons: () => ButtonSpec[],
 	onTap: (button: ButtonSpec) => InputResponse,
 	hideOverlay: () => void,
@@ -373,6 +390,13 @@ const skillsDrag = createScrollableDragHandlers(
 	hideSkillsOverlay,
 );
 
+const promptsDrag = createScrollableDragHandlers(
+	"prompts",
+	getPromptsMenuButtons,
+	(button) => activateButton(button, "prompts"),
+	hidePromptsOverlay,
+);
+
 const modelsDrag = createScrollableDragHandlers(
 	"models",
 	getModelMenuButtons,
@@ -411,6 +435,17 @@ export function handleSkillsDropdownWheel(mouse: MouseInput): InputResponse {
 	return { consume: true };
 }
 
+export function handlePromptsDropdownWheel(mouse: MouseInput): InputResponse {
+	const direction = mouse.scrollDirection;
+	if (!direction) return { consume: true };
+	if (!isDropdownRow("prompts", mouse.row, mouse.col)) return undefined;
+	if (direction === "left" || direction === "right") return { consume: true };
+	if (adjustScrollableDropdownOffset("prompts", direction === "up" ? -1 : 1)) {
+		setLastAction(`mouse:prompts-wheel-${direction}`);
+	}
+	return { consume: true };
+}
+
 export function handleModelsDropdownWheel(mouse: MouseInput): InputResponse {
 	const direction = mouse.scrollDirection;
 	if (!direction) return { consume: true };
@@ -429,6 +464,10 @@ export function handleModelsDropdownWheel(mouse: MouseInput): InputResponse {
 
 export function handleSkillsDropdownMouse(mouse: MouseInput): InputResponse | undefined {
 	return skillsDrag.handleMouse(mouse);
+}
+
+export function handlePromptsDropdownMouse(mouse: MouseInput): InputResponse | undefined {
+	return promptsDrag.handleMouse(mouse);
 }
 
 export function handleModelsDropdownMouse(mouse: MouseInput): InputResponse | undefined {
@@ -456,7 +495,7 @@ export function handleDropdownMouse(kind: "utility" | "view", mouse: MouseInput)
 // We break the cycle by having input.ts set this at registration time.
 // ---------------------------------------------------------------------------
 
-let _activateButton: (button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor") => InputResponse = () => {
+let _activateButton: (button: ButtonSpec, origin: "utility" | "view" | "skills" | "prompts" | "bar" | "nav" | "header" | "editor") => InputResponse = () => {
 	queueLog("activateButton called before setActivateButton — input handler not registered yet");
 	return { consume: true };
 };
@@ -468,7 +507,7 @@ export function setActivateButton(fn: typeof _activateButton): void {
 	_activateButtonSet = true;
 }
 
-function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor"): InputResponse {
+function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "prompts" | "bar" | "nav" | "header" | "editor"): InputResponse {
 	if (!_activateButtonSet) {
 		queueLog(`activateButton(${button.id}, ${origin}) called before late-binding was wired — input handler not registered yet`);
 	}
@@ -477,5 +516,6 @@ function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills
 
 // Export drag handler references for input handler
 export function getSkillsDrag() { return skillsDrag; }
+export function getPromptsDrag() { return promptsDrag; }
 export function getModelsDrag() { return modelsDrag; }
 export function getAllModelsDrag() { return allModelsDrag; }

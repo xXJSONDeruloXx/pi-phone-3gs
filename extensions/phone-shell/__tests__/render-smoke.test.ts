@@ -56,6 +56,7 @@ function fakeRenderState(): PhoneShellRenderState {
 				utility: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 				view: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 				skills: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
+				prompts: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 				models: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 			allModels: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 			},
