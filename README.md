@@ -1,34 +1,27 @@
 # pi-phone-3gs
 
-> A touch-optimized coding agent harness that still runs in your real terminal on your real computer.
+> A touch-optimized TUI shell that runs inside Pi, designed for driving a coding agent from a phone.
 
-![Reference screenshot of the early portrait touch UI](docs/images/pi-phone-apr28.png)
+![Reference screenshot of the portrait touch UI](docs/images/pi-phone-apr28.png)
 
-`pi-phone-3gs` is an early vision repo for a phone-first, portrait-friendly coding harness built on top of the Pi ecosystem.
+`pi-phone-3gs` is a Pi package that replaces Pi's default chrome with a phone-first touch interface — big buttons, scrollable overlays, a favorites rail, and viewport controls — all inside the same terminal session running on your real machine.
 
-The bet is simple:
+The idea: you SSH into your Mac from your phone, open Pi, and the UI is actually usable at thumb-width.
 
-- the **computer stays the real computer**
-- the **terminal stays the real interface**
-- the **phone is just how you remote into it**
-- the UI is redesigned so that terminal-native agent work is actually comfortable to drive by touch
+## What it does
 
-## Thesis
+When enabled, the extension installs a custom TUI layout on top of Pi's existing session:
 
-A lot of "personal agent" systems move the agent behind a chat abstraction: Telegram, Discord, WhatsApp, Slack, or a web dashboard.
+- **Sticky header bar** — shows agent phase (idle / thinking / streaming / tool-calling), current model, thinking level, and tap-to-toggle dropdown buttons
+- **Dropdown overlays** — FILE (utility commands), PRMPT (prompt templates), SKILLS (skill commands), VIEW (toggle switches), SCOPED / ALL (model selectors) — all with scroll, drag, and tap support
+- **Scrollable viewport** — wraps the chat area with page-up / page-down / top / bottom controls and kinetic drag scrolling
+- **Favorites rail** — horizontally scrollable bottom bar of quick-access buttons (customizable via JSON)
+- **Nav pad** — optional arrow-key / enter / escape / interrupt pad for fine-grained input
+- **Editor controls** — optional top-of-editor buttons for send, stash, follow-up, escape, interrupt
 
-That makes access easy, but it usually waters down the best parts of a serious coding harness:
+Everything is driven by touch (mouse events over SSH) or keyboard. No web UI, no chat bot, no proxy — just the terminal, redesigned for thumbs.
 
-- direct model control
-- rich session state
-- tool visibility
-- prompt and context steering
-- compaction / resume / branch navigation
-- the whole moment-to-moment gameplay loop of agentic work
-
-`pi-phone-3gs` takes the opposite approach. The product is the **remote terminal itself**, full-screened on a phone, with large touch targets and a layout tuned for narrow portrait displays.
-
-## Install right now
+## Install
 
 From a local checkout:
 
@@ -48,136 +41,120 @@ Then inside Pi:
 /reload
 ```
 
-On first load, the package now seeds a starter config/layout/favorites/state under `~/.pi/agent/pi-phone-3gs/` and auto-enables phone-shell mode. Existing user files are left alone on later updates.
+The package auto-enables phone-shell mode on first load by seeding starter config/layout/favorites/state files under `~/.pi/agent/pi-phone-3gs/`. Existing user files are never overwritten on later updates.
 
-If you ever want to toggle it manually:
+## Commands
 
-```text
-/phone-shell on
+| Command | What it does |
+|---|---|
+| `/phone-shell on\|off\|toggle` | Enable or disable the touch shell |
+| `/touch` | Quick toggle alias |
+| `/phone-shell status` | Show current state, overlay visibility, loaded resources |
+| `/phone-shell reload-config` | Re-read config/layout/favorites from disk |
+| `/phone-shell show-config` | Print the active config JSON |
+| `/phone-shell show-layout` | Print the active layout JSON |
+| `/phone-shell config-template` | Print the default config template |
+| `/phone-shell layout-template` | Print the default layout template |
+| `/phone-shell favorites-template` | Print the default favorites template |
+| `/phone-shell paths` | Show all file paths used by the shell |
+| `/phone-shell log` | Show the last N lines of the debug log |
+| `/phone-shell top\|bottom\|page-up\|page-down` | Viewport scroll commands |
+| `Ctrl+1` | Toggle shortcut (keyboard) |
+
+## Header buttons
+
+The 3-line header bar contains these tap targets, left to right:
+
+**Left group:** FILE · PRMPT · SKILLS · VIEW
+
+**Right group:** THINKING · ALL · SCOPED
+
+| Button | Action |
+|---|---|
+| FILE | Toggle the utility dropdown (`/new`, `/reload`, `/compact`, `/resume`, `/tree`, `^C`, follow-up) |
+| PRMPT | Toggle the prompts dropdown (lists available prompt templates from `pi.getCommands()` where `source === "prompt"`) |
+| SKILLS | Toggle the skills dropdown (lists available skills from `pi.getCommands()` where `source === "skill"`) |
+| VIEW | Toggle the view menu (show/hide toggles for: editor top, stash, send, follow-up, esc, interrupt, favorites rail, nav pad, jump buttons, pi footer) |
+| THINKING | Cycle thinking level (OFF → MIN → LOW → MED → HI → XHI) |
+| ALL | Open the all-models dropdown (every model with configured auth) |
+| SCOPED | Open the scoped-models dropdown (models matching `enabledModels` in settings) |
+
+Each dropdown is scrollable (wheel or drag), anchors under its header button, and auto-dismisses when you tap outside it. Opening one closes any other that's open.
+
+## Customization
+
+Per-user files live at `~/.pi/agent/pi-phone-3gs/`:
+
+| File | Controls |
+|---|---|
+| `phone-shell.config.json` | Viewport paging, overlay stay-open behavior, kinetic scroll tuning, render spacing, input keybindings |
+| `phone-shell.layout.json` | Utility button list and bottom panel button groups |
+| `phone-shell.favorites.json` | Favorites rail entries (label + command / action / raw input) |
+| `phone-shell.state.json` | Session persistence (enabled, auto-enable, bar/nav visibility, editor button toggles) |
+
+Templates live in `extras/`:
+
+- `phone-shell.config.example.json`
+- `phone-shell.layout.example.json`
+- `phone-shell.favorites.example.json`
+- `settings.phone.example.json`
+
+The config supports a `promptsOverlay` section (same shape as `skillsOverlay`) for controlling whether the prompts dropdown stays open after selecting a prompt.
+
+## Architecture
+
+This is a Pi extension, not a standalone app. It installs custom TUI components into Pi's component tree during `session_start` and tears them down on `session_shutdown`.
+
+Extension source lives in `extensions/phone-shell/` with one file per responsibility:
+
+```
+types.ts          — type definitions
+defaults.ts       — constants, default config/layout/favorites/state
+config.ts         — JSON parsing, validation, persistence, bootstrap
+button-helpers.ts — shared button sizing / palette / row-splitting
+button-panel.ts   — generic multi-row button group renderer with hit regions
+overlay.ts        — generic dropdown overlay renderer
+dropdowns.ts      — all dropdown lifecycle, scroll/drag handlers, model/skill/prompt button builders
+header.ts         — sticky 3-line header bar + AgentStateTracker
+viewport.ts       — TouchViewport (scroll + page + kinetic drag)
+bar.ts            — horizontally scrollable favorites rail
+nav.ts            — optional arrow/nav key pad
+editor.ts         — editor wrapper that keeps shell re-renders in sync
+state.ts          — mutable state singleton, render context, shared utilities
+input.ts          — mouse/keyboard routing, action dispatch, overlay management
+mode.ts           — touch mode enable/disable lifecycle, TUI install/uninstall
+commands.ts       — slash command parsing & handlers
+layout.ts         — editor container discovery and proxy positioning
+mouse.ts          — mouse input parsing, hit testing, visualization
+index.ts          — extension entry point (agent events, bootstrap, registration)
 ```
 
-Primary commands:
+### Key patterns
 
-- `/phone-shell on|off|toggle`
-- `/phone-shell status`
-- `/phone-shell reload-config`
-- `/phone-shell show-config`
-- `/phone-shell show-layout`
-- `/phone-shell config-template`
-- `/phone-shell layout-template`
-- `/phone-shell favorites-template`
-- `/phone-shell paths`
-- `/touch` — quick toggle alias
-- `/pi-touch ...` — compatibility alias
-- `Ctrl+1` — toggle shortcut
+- **Render context**: All components receive `PhoneShellRenderContext` — a `{ state, getConfig, getLayout, getFavorites, getTheme }` bag
+- **Centralized state**: One mutable `state` object in `state.ts`; components write to it during render, input handlers mutate it directly
+- **Batched renders**: `scheduleRender()` via `queueMicrotask` — never call `tui.requestRender()` directly
+- **Width safety**: Every `render(width)` must clamp output to exactly `width` visible columns via `padLineToWidth` (truncates + pads + resets ANSI state)
+- **Bootstrap-first**: starter files created on first load, never overwritten
+- **Config hot-reload**: `/phone-shell reload-config` re-reads JSON from disk without restarting
 
-Per-user override files:
+## Build & test
 
-- `~/.pi/agent/pi-phone-3gs/phone-shell.config.json`
-- `~/.pi/agent/pi-phone-3gs/phone-shell.layout.json`
-- `~/.pi/agent/pi-phone-3gs/phone-shell.favorites.json`
-- `~/.pi/agent/pi-phone-3gs/phone-shell.state.json`
+```bash
+npm run check    # tsc --noEmit — type check
+npm test         # vitest run — smoke tests for render output and hit regions
+```
 
-Templates live in:
+This is a Pi package — there is no bundle step. Pi loads the TypeScript extension directly at runtime.
 
-- `extras/phone-shell.config.example.json`
-- `extras/phone-shell.layout.example.json`
-- `extras/phone-shell.favorites.example.json`
-- `extras/settings.phone.example.json`
+After any code change, run `/reload` in pi to pick up the modified extension.
 
-## Customization model
+## Docs
 
-This package is intentionally built so the core shell can stay clean while per-user tweaks stay outside the code:
-
-- **behavior** lives in `phone-shell.config.json`
-- **button layout** lives in `phone-shell.layout.json`
-- **favorites rail entries** live in `phone-shell.favorites.json`
-- **session persistence / kill-switch state** lives in `phone-shell.state.json`
-
-The goal is to make it easy to:
-
-- change paging behavior
-- reorder buttons
-- swap buttons between top utility rail and grouped panels
-- add custom command buttons and starter favorites
-- keep local experimentation out of the shared package code
-
-## What this project is aiming to be
-
-A dedicated harness, built off Pi in the same spirit that **GSD-2** builds a custom workflow system on top of the Pi SDK, but focused on a different problem:
-
-**make a fully capable coding agent feel good on a phone without giving up terminal-native power.**
-
-Target capabilities include:
-
-- skills
-- prompts and prompt templates
-- tools
-- loops / autonomy modes
-- subagents
-- browser use
-- computer use / GUI automation
-- process supervision
-- session tree navigation
-- compaction / resume
-- self-heal and recovery surfaces
-- model switching and multi-provider workflows
-- dense but touchable status / observability widgets
-
-## What this is not
-
-This repo is explicitly **not** trying to become:
-
-- a web UI
-- a proxy to an iPhone app
-- a Telegram-bot-first coding agent
-- a watered-down remote shell with only a few approved commands
-- a chat layer that hides the harness behind another transport abstraction
-
-The core UX is:
-
-1. a home Mac mini or similar machine stays on
-2. the machine runs the actual harness in Terminal/iTerm/Ghostty/etc.
-3. the display is configured for a portrait-ish phone-friendly viewport
-4. you remote in from your phone
-5. you operate the harness mostly through a touch-optimized TUI
-6. you occasionally pop out to other apps on the host when needed
-
-## Current inspiration sources
-
-This repo is grounded in four concrete references:
-
-1. **Your `pi-personal-package`**
-   - especially the experimental `pi-touch` extension and the curated package stack
-2. **The current screenshot / prototype direction**
-   - large command buttons, viewport controls, model tap target, visible provider usage
-3. **`badlogic/pi-mono` and Pi docs**
-   - proves the base system is intentionally extensible: SDK, TUI components, skills, extensions, packages, themes
-4. **Prior-art harnesses like GSD-2 and OpenClaw**
-   - useful examples of what to borrow and what to avoid
-
-## Docs in this repo
-
-- [docs/vision.md](docs/vision.md) — product vision, design principles, gameplay loop, non-goals
-- [docs/research.md](docs/research.md) — research notes from Pi, `pi-personal-package`, the screenshot, GSD-2, and OpenClaw
-- [docs/architecture.md](docs/architecture.md) — core components, layers, and their roles
-- [docs/prior-art.md](docs/prior-art.md) — comparison against Pi, GSD-2, OpenClaw, and adjacent tools
-- [docs/assets.md](docs/assets.md) — current assets, references, and reusable building blocks
-- [docs/roadmap.md](docs/roadmap.md) — phased build order for turning the vision into a real harness
-
-## Current implementation status
-
-This repo contains a working Pi package with a modular touch shell extension:
-
-- installable via `pi install /path/to/pi-phone-3gs`
-- self-bootstrapping starter files on first load/update if user overrides are missing
-- auto-enabled touch mode by default via the seeded state file
-- per-user config/layout/favorites overrides in `~/.pi/agent/pi-phone-3gs/`
-- a sticky header bar with live agent state, model, and thinking-level controls
-- a scrollable viewport with top / page-up / page-down / bottom controls
-- touch-optimized dropdown overlays for utility, view, and skills menus
-- a favorites rail and optional nav pad for common touch interactions
-
-Extension source lives in `extensions/phone-shell/` with one file per responsibility. See [AGENTS.md](AGENTS.md) for the full module map and conventions.
-
-The immediate goal is to make the phone shell real enough to dogfood daily, then iterate from there.
+- [AGENTS.md](AGENTS.md) — full module map, conventions, width-safety rules, branching workflow
+- [docs/vision.md](docs/vision.md) — product vision and design principles
+- [docs/architecture.md](docs/architecture.md) — component layers and roles
+- [docs/roadmap.md](docs/roadmap.md) — phased build order
+- [docs/research.md](docs/research.md) — research notes from Pi and adjacent tools
+- [docs/prior-art.md](docs/prior-art.md) — comparison against GSD-2, OpenClaw, etc.
+- [docs/assets.md](docs/assets.md) — current assets and references
