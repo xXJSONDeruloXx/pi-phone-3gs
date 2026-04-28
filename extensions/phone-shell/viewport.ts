@@ -1,5 +1,5 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
-import { visibleWidth } from "@mariozechner/pi-tui";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { padLineToWidth } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ViewportDebugState } from "./types.js";
 import { queueLog, scheduleRender, state } from "./state.js";
@@ -7,7 +7,7 @@ import { queueLog, scheduleRender, state } from "./state.js";
 const VIEWPORT_TOP_BUTTON: ButtonSpec = {
 	kind: "action",
 	id: "viewport-top",
-	label: "▲",
+	label: "TOP",
 	action: "scrollTop",
 	palette: "accent",
 };
@@ -15,36 +15,45 @@ const VIEWPORT_TOP_BUTTON: ButtonSpec = {
 const VIEWPORT_BOTTOM_BUTTON: ButtonSpec = {
 	kind: "action",
 	id: "viewport-bottom",
-	label: "▼",
+	label: "BTM",
 	action: "scrollBottom",
 	palette: "accent",
 };
 
 /**
- * Render a thin jump bar: a full-width horizontal rule with a small arrow
- * indicator on the right. Returns a single line and its hit width (just
- * the arrow portion for tap targeting).
+ * Render a thin jump bar: centered label with ─ lines to either side
+ * and ▲/▼ arrows surrounding it. Layout:
+ *
+ *   ─── ▲ TOP ▲ ───
+ *   ─── ▼ BTM ▼ ───
+ *
+ * The label and arrows are accent-colored; the rules are muted.
  */
 function renderThinJumpBar(
 	spec: ButtonSpec,
+	upArrow: string,
 	theme: ReturnType<PhoneShellRenderContext["getTheme"]>,
 	width: number,
 ): string {
-	const arrow = spec.label;
-	const indicatorWidth = visibleWidth(arrow) + 2; // padding around arrow
-	const indicatorColStart = Math.max(1, width - indicatorWidth - 1);
+	const label = spec.label; // "TOP" or "BTM"
+	// Center segment: " ▲ TOP ▲ " or " ▼ BTM ▼ "
+	const center = ` ${upArrow} ${label} ${upArrow} `;
+	const centerWidth = visibleWidth(center);
 
-	// Build the bar: muted horizontal rule across most of the width,
-	// with a small accent-colored arrow region on the right.
-	const ruleWidth = indicatorColStart - 1;
-	const ruleChar = "─";
-	const leftPad = 1; // 1 space before arrow
-	const rightPad = indicatorWidth - visibleWidth(arrow) - leftPad;
+	if (centerWidth >= width) {
+		// Too narrow for the full center + rules; just show the center
+		return theme.fg("accent", truncateToWidth(center, width, "", true));
+	}
 
-	const rulePart = ruleWidth > 0 ? theme.fg("muted", ruleChar.repeat(ruleWidth)) : "";
-	const arrowPart = theme.fg("accent", `${" ".repeat(leftPad)}${arrow}${" ".repeat(Math.max(0, rightPad))}`);
+	const remaining = width - centerWidth;
+	const leftRuleLen = Math.floor(remaining / 2);
+	const rightRuleLen = remaining - leftRuleLen;
 
-	return `${rulePart}${arrowPart}`;
+	const leftRule = leftRuleLen > 0 ? theme.fg("muted", "─".repeat(leftRuleLen)) : "";
+	const centerPart = theme.fg("accent", center);
+	const rightRule = rightRuleLen > 0 ? theme.fg("muted", "─".repeat(rightRuleLen)) : "";
+
+	return `${leftRule}${centerPart}${rightRule}`;
 }
 
 export class TouchViewport implements Component {
@@ -125,9 +134,9 @@ export class TouchViewport implements Component {
 
 			// Replace first and last visible lines with thin jump bars.
 			// This sacrifices one content row at top and one at bottom,
-			// but the bars are full-width horizontal rules with just a small
-			// arrow indicator — much less intrusive than 3-line box buttons.
-			visible[0] = renderThinJumpBar(VIEWPORT_TOP_BUTTON, theme, width);
+			// but the bars are single-line centered labels with rules
+			// and arrows — much less intrusive than 3-line box buttons.
+			visible[0] = renderThinJumpBar(VIEWPORT_TOP_BUTTON, "▲", theme, width);
 			viewportButtons.push({
 				button: VIEWPORT_TOP_BUTTON,
 				colStart: 1,
@@ -136,7 +145,7 @@ export class TouchViewport implements Component {
 			});
 
 			const bottomRow = visibleHeight - 1;
-			visible[bottomRow] = renderThinJumpBar(VIEWPORT_BOTTOM_BUTTON, theme, width);
+			visible[bottomRow] = renderThinJumpBar(VIEWPORT_BOTTOM_BUTTON, "▼", theme, width);
 			viewportButtons.push({
 				button: VIEWPORT_BOTTOM_BUTTON,
 				colStart: 1,
