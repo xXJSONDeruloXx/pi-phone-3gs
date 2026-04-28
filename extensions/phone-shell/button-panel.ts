@@ -1,6 +1,6 @@
 import { truncateToWidth } from "@mariozechner/pi-tui";
 import { BAR_HEIGHT } from "./defaults.js";
-import { makeButtonWidth, renderBoxButton, splitIntoRows } from "./button-helpers.js";
+import { makeButtonWidth, padLineToWidth, renderBoxButton, splitIntoRows } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 export interface RenderButtonGroupsOptions {
@@ -79,7 +79,7 @@ export function renderButtonGroups(
 	}
 
 	return {
-		lines: allLines,
+		lines: allLines.map((line) => padLineToWidth(line, width)),
 		hitRegions,
 		rowCount: globalRowIndex,
 		actualHeight: Math.max(options.minHeight ?? BAR_HEIGHT, globalRowIndex * BAR_HEIGHT),

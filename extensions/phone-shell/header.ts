@@ -1,5 +1,6 @@
 import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth } from "@mariozechner/pi-tui";
+import { padLineToWidth } from "./button-helpers.js";
 import { DEFAULT_AGENT_STATE } from "./defaults.js";
 import { makeButtonWidth, renderBoxButton } from "./button-helpers.js";
 import type { AgentStateInfo, ButtonHitRegion, ButtonSpec, PhoneShellRenderContext, ThinkingLevel } from "./types.js";
@@ -103,10 +104,12 @@ export class HeaderBarComponent implements Component {
 
 		this.ctx.state.ui.headerButtons = hitRegions;
 
+		// Width-safety: padLineToWidth clamps to `width` and resets ANSI state,
+		// stricter than truncateToWidth alone which can leave trailing ANSI codes.
 		return [
-			truncateToWidth(lead + left.top + " ".repeat(fill) + right.top, width),
-			truncateToWidth(lead + left.mid + " ".repeat(fill) + right.mid, width),
-			truncateToWidth(lead + left.bot + " ".repeat(fill) + right.bot, width),
+			padLineToWidth(lead + left.top + " ".repeat(fill) + right.top, width),
+			padLineToWidth(lead + left.mid + " ".repeat(fill) + right.mid, width),
+			padLineToWidth(lead + left.bot + " ".repeat(fill) + right.bot, width),
 		];
 	}
 

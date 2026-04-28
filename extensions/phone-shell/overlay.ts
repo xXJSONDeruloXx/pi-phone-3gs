@@ -1,5 +1,6 @@
 import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { padLineToWidth } from "./button-helpers.js";
 import { renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
@@ -107,7 +108,10 @@ export class ButtonDropdownOverlayComponent implements Component {
 		}
 
 		this.setLayoutState(hitRegions, lines.length);
-		return lines;
+
+		// Width-safety: every line must be clamped to `width` to prevent
+		// terminal overflow. padLineToWidth also resets ANSI state per line.
+		return lines.map((line) => padLineToWidth(line, width));
 	}
 
 	invalidate(): void {}

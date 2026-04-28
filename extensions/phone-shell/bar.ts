@@ -1,5 +1,6 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { padLineToWidth } from "./button-helpers.js";
 import { BAR_HEIGHT } from "./defaults.js";
 import { renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
@@ -139,9 +140,9 @@ export class BottomBarComponent implements Component {
 		}
 
 		return [
-			truncateToWidth(lead + " " + tops.join(""), width),
-			midRow,
-			truncateToWidth(lead + " " + bots.join(""), width),
+			padLineToWidth(lead + " " + tops.join(""), width),
+			padLineToWidth(midRow, width),
+			padLineToWidth(lead + " " + bots.join(""), width),
 		];
 	}
 

@@ -131,6 +131,47 @@ The favorites rail (`BottomBarComponent`) lives as a `belowEditor` widget. Dropd
 5. **Keep `main` as the last known-good fallback.** If a branch breaks something, the user can `git checkout main` and immediately have a working shell again.
 6. **Type checks pass ≠ tested.** `npm run check` only catches compile errors. Runtime rendering bugs (off-by-one column math, hit region misalignment, layout blowups) will pass type checking but break the shell. Only the user reloading pi counts as tested.
 
+## Width-safety rules (no exceptions)
+
+Pi's TUI system enforces a strict contract: every line returned from `render(width)` must not exceed `width` visible columns. Overflowing lines crash the TUI or cause visual corruption. Pi's own components (tree selector, select list, text, etc.) all follow this pattern, and the TUI renderer has a final-guard `sliceByColumn` as a backstop.
+
+### The rule
+
+Every `render(width)` method must ensure **every returned line** is clamped to `width` visible columns before returning. The approved mechanism is `padLineToWidth(line, width)` from `button-helpers.ts`, which:
+1. Calls `truncateToWidth(line, width, "", true)` — ANSI-aware truncation with right-padding to exactly `width`
+2. Appends `\x1b[0m` — full SGR reset to prevent ANSI bleed across lines
+
+`truncateToWidth` alone is *not sufficient* — it truncates but does not reset ANSI state, so a trailing color code can bleed into the next line during differential rendering.
+
+### Where to apply
+
+- **All `render()` return values** — every Component in this project must clamp its output lines.
+- **Overlay lines** — even though the TUI compositor has a defensive truncation guard, we clamp at the source to keep lines clean and avoid edge-case drift.
+- **Viewport visible slice** — the `TouchViewport` clips chat content, but must also clamp each visible line since the underlying content may not respect our width.
+
+### Current enforcement
+
+| File | Component / function | Clamp method |
+|---|---|---|
+| `header.ts` | `HeaderBarComponent.render()` | `padLineToWidth` on each of 3 lines |
+| `bar.ts` | `BottomBarComponent.render()` | `padLineToWidth` on each of 3 lines |
+| `button-panel.ts` | `renderButtonGroups()` return | `.map(line => padLineToWidth(line, width))` |
+| `nav.ts` | `NavigationPadComponent.render()` | `.map(line => padLineToWidth(line, width))` |
+| `overlay.ts` | `ButtonDropdownOverlayComponent.render()` | `.map(line => padLineToWidth(line, width))` |
+| `viewport.ts` | `TouchViewport.render()` | `.map(line => padLineToWidth(line, width))` on visible slice |
+| `editor.ts` | `PhoneShellEditor.render()` | `padLineToWidth(result, width)` on each composed line |
+
+### When adding new components or render paths
+
+1. **Always end `render()` with `.map(line => padLineToWidth(line, width))`** unless every line is already constructed with `padLineToWidth`.
+2. **Never return raw concatenated strings** without a final `padLineToWidth` pass — even if the math looks right, ANSI codes and wide chars can cause visible-width drift.
+3. **Never use `truncateToWidth` alone as the final step** — it does not reset ANSI state. Use `padLineToWidth` which does both truncate+pad+reset.
+4. **Test narrow terminals** — a 20-column terminal should not crash or corrupt. The phone is the primary target; width can be very small.
+
+### Why this matters
+
+Pi's TUI does differential rendering — it compares old and new lines and only redraws changed lines. A line that is one column too wide causes the cursor to wrap, shifting all subsequent lines down by one row. This cascades into a visual blowup that is very hard to diagnose. The TUI has a final-guard `sliceByColumn` in its compositor, but that only handles overlays — component-level output has no automatic backstop.
+
 ## Build & type checking
 
 ```bash

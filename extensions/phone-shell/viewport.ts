@@ -136,7 +136,10 @@ export class TouchViewport implements Component {
 		}
 
 		this.ctx.state.ui.viewport.buttons = viewportButtons;
-		return visible;
+
+		// Width-safety: every line must be clamped to `width` to prevent
+		// terminal overflow. padLineToWidth also resets ANSI state per line.
+		return visible.map((line) => padLineToWidth(line, width));
 	}
 
 	invalidate(): void {

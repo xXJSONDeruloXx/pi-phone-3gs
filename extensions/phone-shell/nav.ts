@@ -1,4 +1,6 @@
 import type { Component, TUI } from "@mariozechner/pi-tui";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { padLineToWidth } from "./button-helpers.js";
 import { BAR_HEIGHT } from "./defaults.js";
 import { renderButtonGroups } from "./button-panel.js";
 import type { ButtonSpec, PhoneShellRenderContext } from "./types.js";
@@ -49,7 +51,7 @@ export class NavigationPadComponent implements Component {
 			this.ctx.state.ui.nav.row = this.tui.terminal.rows - footerHeight - rendered.actualHeight + 1;
 		}
 
-		return rendered.lines;
+		return rendered.lines.map((line) => padLineToWidth(line, width));
 	}
 
 	invalidate(): void {}
