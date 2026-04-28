@@ -432,9 +432,17 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 			const inBar = state.shell.barVisible && state.ui.bar.row > 0 && mouse.row >= state.ui.bar.row && mouse.row < state.ui.bar.row + state.ui.bar.actualHeight;
 			if (inBar) return startBarDrag(mouse);
 
-			if (isViewportRow(mouse.row)) {
-				const viewportButton = findHitRegion(state.ui.viewport.buttons, mouse.row - state.ui.viewport.row, mouse.col);
+			// Check viewport jump bar buttons first — they sit just outside the
+			// chat region (above/below) so isViewportRow won't match them.
+			// rowOffset is relative to viewport.row, with -1 for top bar and
+			// chatVisibleHeight for bottom bar.
+			if (state.ui.viewport.buttons.length > 0) {
+				const relRow = mouse.row - state.ui.viewport.row;
+				const viewportButton = findHitRegion(state.ui.viewport.buttons, relRow, mouse.col);
 				if (viewportButton) return activateButton(viewportButton, "bar");
+			}
+
+			if (isViewportRow(mouse.row)) {
 				return startViewportDrag(mouse);
 			}
 

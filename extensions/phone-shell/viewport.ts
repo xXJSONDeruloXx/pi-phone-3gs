@@ -134,12 +134,14 @@ export class TouchViewport implements Component {
 		if (showJumpBars) {
 			const theme = this.ctx.getTheme();
 			// Top jump bar sits above chat content — does not overlap any chat lines
+			// rowOffset is relative to the chat region start: top bar is 1 row above,
+			// so its offset is -1.
 			result.push(renderThinJumpBar(VIEWPORT_TOP_BUTTON, "▲", theme, width));
 			viewportButtons.push({
 				button: VIEWPORT_TOP_BUTTON,
 				colStart: 1,
 				colEnd: width,
-				rowOffset: 0,
+				rowOffset: -1,
 			});
 		}
 
@@ -153,12 +155,13 @@ export class TouchViewport implements Component {
 		if (showJumpBars) {
 			const theme = this.ctx.getTheme();
 			// Bottom jump bar sits below chat content
+			// rowOffset relative to chat region start: chatVisibleHeight rows below.
 			result.push(renderThinJumpBar(VIEWPORT_BOTTOM_BUTTON, "▼", theme, width));
 			viewportButtons.push({
 				button: VIEWPORT_BOTTOM_BUTTON,
 				colStart: 1,
 				colEnd: width,
-				rowOffset: result.length - 1,
+				rowOffset: chatVisibleHeight,
 			});
 		}
 
