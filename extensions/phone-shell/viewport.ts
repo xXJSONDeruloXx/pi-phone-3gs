@@ -219,7 +219,7 @@ export class TouchViewport implements Component {
 
 	/**
 	 * Set fractional scrollTop for smooth momentum animation.
-	 * Supports rubber-banding beyond content edges.
+	 * Supports overscroll rendering beyond content edges.
 	 */
 	setScrollTopSmooth(scrollTop: number): void {
 		this.followBottom = false;
@@ -250,8 +250,42 @@ export class TouchViewport implements Component {
 	// ---------------------------------------------------------------------------
 
 	/**
+	 * Diminishing-returns damping for overscroll during drag.
+	 * As the user drags further past the edge, each additional row of
+	 * drag produces less actual scroll — simulating the iOS/Android
+	 * "rubber band" feel without a hard wall.
+	 *
+	 * @param overscroll  Distance past the edge (always >= 0).
+	 * @param maxOverscroll  The row distance at which damping is ~50%.
+	 * @returns The damped overscroll distance.
+	 */
+	private static dampOverscroll(overscroll: number, maxOverscroll: number): number {
+		if (overscroll <= 0) return 0;
+		return maxOverscroll * (1 - 1 / (1 + overscroll / maxOverscroll));
+	}
+
+	/**
+	 * Apply diminishing-returns damping to a scroll target that may be
+	 * beyond content edges. Content-edge range is [0, maxTop].
+	 * Returns the damped position within a reasonable overscroll range.
+	 */
+	applyDragDamping(rawTarget: number, maxTop: number): number {
+		const maxOverscroll = 6; // rows at which damping reaches ~50%
+		if (rawTarget < 0) {
+			return -TouchViewport.dampOverscroll(-rawTarget, maxOverscroll);
+		}
+		if (rawTarget > maxTop) {
+			return maxTop + TouchViewport.dampOverscroll(rawTarget - maxTop, maxOverscroll);
+		}
+		return rawTarget;
+	}
+
+	/**
 	 * Start a momentum animation from the given initial velocity (rows/frame).
-	 * Handles rubber-banding at content edges and exponential deceleration.
+	 *
+	 * Within content bounds, exponential friction decelerates the scroll.
+	 * If the scroll reaches a content edge, momentum is killed and the
+	 * position snaps back via ease-out over a few frames.
 	 *
 	 * Uses recursive setTimeout instead of setInterval so that if a frame takes
 	 * longer than frameIntervalMs the next frame is simply delayed rather than
@@ -280,67 +314,40 @@ export class TouchViewport implements Component {
 				return;
 			}
 
-			let velocity = momentum.velocity;
 			let pos = this.scrollTopFractional;
 
-			// Apply rubber-banding force when overscrolled
+			// If we're overscrolled, ease-out snap back to the edge
 			if (pos < 0) {
-				// Above top: pull back toward 0
-				const overscroll = Math.abs(pos);
-				const maxOverscroll = config.maxOverscrollRows;
-				const resistance = Math.max(0, 1 - overscroll / maxOverscroll);
-				velocity += overscroll * config.rubberBandStiffness;
-				velocity *= resistance;
-			} else if (pos > this.lastMaxTop) {
-				// Below bottom: pull back toward maxTop
-				const overscroll = pos - this.lastMaxTop;
-				const maxOverscroll = config.maxOverscrollRows;
-				const resistance = Math.max(0, 1 - overscroll / maxOverscroll);
-				velocity -= overscroll * config.rubberBandStiffness;
-				velocity *= resistance;
+				pos = pos + (0 - pos) * 0.3;
+				if (Math.abs(pos) < 0.5) pos = 0;
+				this.setScrollTopSmooth(pos);
+				if (pos === 0) { this.cancelMomentum(); return; }
+				momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);
+				return;
+			}
+			if (pos > this.lastMaxTop) {
+				pos = pos + (this.lastMaxTop - pos) * 0.3;
+				if (Math.abs(pos - this.lastMaxTop) < 0.5) pos = this.lastMaxTop;
+				this.setScrollTopSmooth(pos);
+				if (pos === this.lastMaxTop) { this.cancelMomentum(); return; }
+				momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);
+				return;
 			}
 
-			// Apply friction
+			// Normal in-content momentum: apply friction
+			let velocity = momentum.velocity;
 			velocity *= config.friction;
 			pos += velocity;
 
-			// Hard clamp to prevent runaway overscroll
-			const maxOverscroll = config.maxOverscrollRows;
-			pos = Math.max(-maxOverscroll, Math.min(this.lastMaxTop + maxOverscroll, pos));
-
-			// Stop if velocity is low enough and we're within bounds
-			const nearEdge = pos < 0 || pos > this.lastMaxTop;
-			if (Math.abs(velocity) < config.stopThreshold) {
-				if (nearEdge) {
-					// Snap back to boundary
-					pos = pos < 0 ? 0 : this.lastMaxTop;
-				} else {
-					// Natural stop within content
-					this.cancelMomentum();
-					this.setScrollTopSmooth(pos);
-					return;
-				}
-			}
-
-			// If rubber-banding and velocity changed direction (snap back), let it settle
-			if (nearEdge && pos < 0 && velocity > 0 && Math.abs(pos) < 0.5) {
-				pos = 0;
-				velocity = 0;
-			}
-			if (nearEdge && pos > this.lastMaxTop && velocity < 0 && Math.abs(pos - this.lastMaxTop) < 0.5) {
-				pos = this.lastMaxTop;
-				velocity = 0;
-			}
-
-			momentum.velocity = velocity;
-			this.setScrollTopSmooth(pos);
-
-			// If velocity died after snapping, end momentum
+			// If friction brought velocity below threshold, stop
 			if (Math.abs(velocity) < config.stopThreshold) {
 				this.cancelMomentum();
 				this.setScrollTopSmooth(pos);
 				return;
 			}
+
+			momentum.velocity = velocity;
+			this.setScrollTopSmooth(pos);
 
 			// Schedule next frame — recursive setTimeout prevents frame stacking
 			momentum.animationFrame = setTimeout(tick, config.frameIntervalMs);

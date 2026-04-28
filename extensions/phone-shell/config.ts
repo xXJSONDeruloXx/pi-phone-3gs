@@ -265,8 +265,6 @@ export function parseConfig(value: unknown): { config: PhoneShellConfig; errors:
 			velocitySampleCount: Math.max(2, Math.floor(readNumber(kineticScroll, "velocitySampleCount", DEFAULT_CONFIG.kineticScroll.velocitySampleCount))),
 			friction: Math.min(0.999, Math.max(0.8, readNumber(kineticScroll, "friction", DEFAULT_CONFIG.kineticScroll.friction))),
 			stopThreshold: Math.max(0.01, readNumber(kineticScroll, "stopThreshold", DEFAULT_CONFIG.kineticScroll.stopThreshold)),
-			rubberBandStiffness: Math.min(1, Math.max(0.01, readNumber(kineticScroll, "rubberBandStiffness", DEFAULT_CONFIG.kineticScroll.rubberBandStiffness))),
-			maxOverscrollRows: Math.max(1, Math.floor(readNumber(kineticScroll, "maxOverscrollRows", DEFAULT_CONFIG.kineticScroll.maxOverscrollRows))),
 			frameIntervalMs: Math.max(8, Math.floor(readNumber(kineticScroll, "frameIntervalMs", DEFAULT_CONFIG.kineticScroll.frameIntervalMs))),
 		},
 	};

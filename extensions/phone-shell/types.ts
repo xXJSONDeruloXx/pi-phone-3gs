@@ -140,10 +140,6 @@ export interface PhoneShellConfig {
 		friction: number;
 		/** Minimum velocity (rows/frame) below which momentum stops. */
 		stopThreshold: number;
-		/** Rubber-band stiffness: how strongly overscroll is pulled back (0–1). */
-		rubberBandStiffness: number;
-		/** Max overscroll distance in rows beyond content edges. */
-		maxOverscrollRows: number;
 		/** Animation frame interval in ms (~16 = 60fps). */
 		frameIntervalMs: number;
 	};
@@ -247,6 +243,7 @@ export interface ViewportController extends Component {
 	toBottom(): void;
 	setScrollTop(scrollTop: number): void;
 	setScrollTopSmooth(scrollTop: number): void;
+	applyDragDamping(rawTarget: number, maxTop: number): number;
 	startMomentum(initialVelocity: number): void;
 	cancelMomentum(): void;
 	getDebugState(): ViewportDebugState;

@@ -58,8 +58,6 @@ export const DEFAULT_CONFIG: PhoneShellConfig = {
 		velocitySampleCount: 5,
 		friction: 0.95,
 		stopThreshold: 0.15,
-		rubberBandStiffness: 0.12,
-		maxOverscrollRows: 8,
 		frameIntervalMs: 16,
 	},
 	utilityOverlay: {

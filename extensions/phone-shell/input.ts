@@ -108,14 +108,12 @@ function finishBarDrag(mouse: MouseInput): InputResponse {
 // Viewport drag + kinetic scroll helpers
 // ---------------------------------------------------------------------------
 
-const MAX_VELOCITY_SAMPLES = 8;
-
 function recordVelocitySample(row: number): void {
 	const samples = state.ui.viewport.velocitySamples;
 	const now = performance.now();
 	samples.push({ row, time: now });
-	// Keep only the most recent samples
-	while (samples.length > MAX_VELOCITY_SAMPLES) samples.shift();
+	const maxSamples = state.config.kineticScroll.velocitySampleCount;
+	while (samples.length > maxSamples) samples.shift();
 }
 
 function computeDragVelocity(): number {
@@ -166,14 +164,13 @@ function updateViewportDrag(mouse: MouseInput): InputResponse {
 
 	const config = state.config.kineticScroll;
 	if (config.enabled) {
-		// During drag, allow rubber-banding beyond content edges
+		// Apply diminishing-returns damping past content edges (soft rubber band)
 		const rawTarget = state.ui.viewport.drag.anchorScrollTop - deltaRows;
-		const maxOverscroll = config.maxOverscrollRows;
-		const clamped = Math.max(-maxOverscroll, Math.min(
-			state.session.viewport.getDebugState().maxTop + maxOverscroll,
+		const damped = state.session.viewport.applyDragDamping(
 			rawTarget,
-		));
-		state.session.viewport.setScrollTopSmooth(clamped);
+			state.session.viewport.getDebugState().maxTop,
+		);
+		state.session.viewport.setScrollTopSmooth(damped);
 	} else {
 		state.session.viewport.setScrollTop(state.ui.viewport.drag.anchorScrollTop - deltaRows);
 	}
