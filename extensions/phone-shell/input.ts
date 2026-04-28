@@ -182,12 +182,18 @@ function finishViewportDrag(mouse: MouseInput): InputResponse {
 	const moved = Math.abs(mouse.row - state.ui.viewport.drag.anchorRow);
 	state.ui.viewport.drag = undefined;
 
-	// Compute velocity and start momentum if significant
-	if (moved > 0 && state.session.viewport) {
-		recordVelocitySample(mouse.row);
-		const velocity = computeDragVelocity();
-		state.ui.viewport.velocitySamples = [];
-		state.session.viewport.startMomentum(velocity);
+	if (!state.session.viewport) return { consume: true };
+
+	// Compute velocity from drag samples
+	recordVelocitySample(mouse.row);
+	const velocity = computeDragVelocity();
+	state.ui.viewport.velocitySamples = [];
+
+	// Start momentum if there's any velocity, or if we're overscrolled
+	// (even with zero velocity, the momentum tick handles snap-back).
+	const overscrolled = state.session.viewport.isOverscrolled();
+	if (moved > 0 || velocity !== 0 || overscrolled) {
+		state.session.viewport.startMomentum(velocity, overscrolled);
 		setLastAction("mouse:viewport-drag-end");
 	}
 	return { consume: true };

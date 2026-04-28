@@ -244,7 +244,8 @@ export interface ViewportController extends Component {
 	setScrollTop(scrollTop: number): void;
 	setScrollTopSmooth(scrollTop: number): void;
 	applyDragDamping(rawTarget: number, maxTop: number): number;
-	startMomentum(initialVelocity: number): void;
+	isOverscrolled(): boolean;
+	startMomentum(initialVelocity: number, allowSnapBack?: boolean): void;
 	cancelMomentum(): void;
 	getDebugState(): ViewportDebugState;
 }

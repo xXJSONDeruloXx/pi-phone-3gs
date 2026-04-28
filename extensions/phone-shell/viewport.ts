@@ -245,6 +245,11 @@ export class TouchViewport implements Component {
 		};
 	}
 
+	/** Whether the fractional scroll position is beyond content edges. */
+	isOverscrolled(): boolean {
+		return this.scrollTopFractional < 0 || this.scrollTopFractional > this.lastMaxTop;
+	}
+
 	// ---------------------------------------------------------------------------
 	// Kinetic / momentum scrolling
 	// ---------------------------------------------------------------------------
@@ -287,17 +292,19 @@ export class TouchViewport implements Component {
 	 * If the scroll reaches a content edge, momentum is killed and the
 	 * position snaps back via ease-out over a few frames.
 	 *
-	 * Uses recursive setTimeout instead of setInterval so that if a frame takes
-	 * longer than frameIntervalMs the next frame is simply delayed rather than
-	 * queuing up behind it.
+	 * @param initialVelocity  Initial velocity in rows/frame.
+	 * @param allowSnapBack  When true, bypass the velocity threshold check
+	 *   so that a zero-velocity overscrolled position still starts the
+	 *   ease-out snap-back animation on release.
 	 */
-	startMomentum(initialVelocity: number): void {
+	startMomentum(initialVelocity: number, allowSnapBack = false): void {
 		this.cancelMomentum();
 
 		const config = this.ctx.getConfig().kineticScroll;
 		if (!config.enabled) return;
 
-		if (Math.abs(initialVelocity) < config.stopThreshold) return;
+		// Skip if velocity is too low — unless we're overscrolled and need snap-back
+		if (!allowSnapBack && Math.abs(initialVelocity) < config.stopThreshold) return;
 
 		const momentum: import("./types.js").MomentumState = {
 			velocity: initialVelocity,
