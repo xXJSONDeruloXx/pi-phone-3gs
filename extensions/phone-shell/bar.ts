@@ -6,6 +6,7 @@ import { renderBoxButton } from "./button-helpers.js";
 import type { ButtonHitRegion, ButtonSpec, PhoneShellRenderContext } from "./types.js";
 
 const CHIP_GAP = 1; // columns between chips
+const RAIL_CHAR = "─"; // horizontal rail character for top/bottom rows
 
 export class BottomBarComponent implements Component {
 	constructor(
@@ -32,9 +33,9 @@ export class BottomBarComponent implements Component {
 
 		for (let i = 0; i < favorites.length; i++) {
 			const fav = favorites[i]!;
-			const displayLabel = ` ${fav.label} `;
-			const innerWidth = visibleWidth(displayLabel);
-			const chipWidth = innerWidth + 2; // +2 for │ borders
+			// chipWidth must match renderBoxButton's naturalWidth (visibleWidth(label) + 2)
+			// renderBoxButton centers the label inside its own innerWidth and adds │ borders itself.
+			const chipWidth = visibleWidth(fav.label) + 2;
 			const palette = fav.palette ?? "accent";
 
 			let spec: ButtonSpec;
@@ -52,7 +53,7 @@ export class BottomBarComponent implements Component {
 				// Should not happen if parsing is correct, skip
 				continue;
 			}
-			layouts.push({ spec, label: displayLabel, palette, virtualX: vx, chipWidth });
+			layouts.push({ spec, label: ` ${fav.label} `, palette, virtualX: vx, chipWidth });
 			vx += chipWidth + CHIP_GAP;
 		}
 
@@ -86,10 +87,9 @@ export class BottomBarComponent implements Component {
 			// Fill gap between current cursor and this chip
 			const gap = screenX - cursorX;
 			if (gap > 0) {
-				const spaces = " ".repeat(gap);
-				tops.push(spaces);
-				mids.push(spaces);
-				bots.push(spaces);
+				tops.push(theme.fg("dim", RAIL_CHAR.repeat(gap)));
+				mids.push(" ".repeat(gap));
+				bots.push(theme.fg("dim", RAIL_CHAR.repeat(gap)));
 				cursorX += gap;
 			}
 
@@ -131,18 +131,26 @@ export class BottomBarComponent implements Component {
 		const leftInd = hasLeft ? theme.fg("dim", "‹") : " ";
 		const rightInd = hasRight ? theme.fg("dim", "›") : "";
 
-		let midRow: string;
+		// Remaining width after chip content (for rail fill on top/bot, padding on mid)
+		const remainingCols = Math.max(0, usableWidth - cursorX);
+
 		if (favorites.length === 0) {
+			const railLine = theme.fg("dim", RAIL_CHAR.repeat(usableWidth));
 			const hint = theme.fg("dim", "  no favorites — say \"add to favorites\" to populate  ");
-			midRow = truncateToWidth(lead + leftInd + hint, width);
-		} else {
-			midRow = truncateToWidth(lead + leftInd + mids.join("") + rightInd, width);
+			return [
+				padLineToWidth(lead + railLine, width),
+				padLineToWidth(lead + " " + hint, width),
+				padLineToWidth(lead + railLine, width),
+			];
 		}
 
+		const railFill = remainingCols > 0 ? theme.fg("dim", RAIL_CHAR.repeat(remainingCols)) : "";
+		const midPad = Math.max(0, remainingCols - (hasRight ? 1 : 0));
+
 		return [
-			padLineToWidth(lead + " " + tops.join(""), width),
-			padLineToWidth(midRow, width),
-			padLineToWidth(lead + " " + bots.join(""), width),
+			padLineToWidth(lead + theme.fg("dim", RAIL_CHAR) + tops.join("") + railFill, width),
+			padLineToWidth(lead + leftInd + mids.join("") + " ".repeat(midPad) + rightInd, width),
+			padLineToWidth(lead + theme.fg("dim", RAIL_CHAR) + bots.join("") + railFill, width),
 		];
 	}
 
