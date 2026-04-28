@@ -318,20 +318,20 @@ export function performAction(action: ShellAction): InputResponse {
 	}
 }
 
+type OverlayOrigin = "utility" | "view" | "skills";
+
+const overlayBehaviors: Record<OverlayOrigin, { keepOpen: () => boolean; hide: () => void }> = {
+	utility: { keepOpen: () => state.config.utilityOverlay.keepOpenAfterButtonActivation, hide: hideUtilityOverlay },
+	view:     { keepOpen: () => state.config.viewOverlay.keepOpenAfterButtonActivation,     hide: hideViewOverlay },
+	skills:   { keepOpen: () => state.config.skillsOverlay.keepOpenAfterButtonActivation,   hide: hideSkillsOverlay },
+};
+
 export function activateButton(button: ButtonSpec, origin: "utility" | "view" | "skills" | "bar" | "nav" | "header" | "editor"): InputResponse {
 	setLastAction(`${origin}:${button.id}`);
 
-	const isOverlay = origin === "utility" || origin === "view" || origin === "skills";
-	const keepOpen = origin === "view"
-		? state.config.viewOverlay.keepOpenAfterButtonActivation
-		: state.config.utilityOverlay.keepOpenAfterButtonActivation;
-	const shouldAutoHideOverlay = isOverlay && !keepOpen;
-	const maybeHideOverlay = () => {
-		if (!shouldAutoHideOverlay) return;
-		if (origin === "utility") hideUtilityOverlay();
-		if (origin === "view") hideViewOverlay();
-		if (origin === "skills") hideSkillsOverlay();
-	};
+	const behavior = overlayBehaviors[origin as OverlayOrigin];
+	const keepOpen = behavior?.keepOpen() ?? false;
+	const maybeHideOverlay = () => { if (behavior && !keepOpen) behavior.hide(); };
 
 	if (button.kind === "command") {
 		state.bindings.setEditorText?.(button.command);

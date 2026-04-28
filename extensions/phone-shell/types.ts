@@ -150,6 +150,9 @@ export interface PhoneShellConfig {
 	viewOverlay: {
 		keepOpenAfterButtonActivation: boolean;
 	};
+	skillsOverlay: {
+		keepOpenAfterButtonActivation: boolean;
+	};
 	render: {
 		buttonGap: number;
 		leadingColumns: number;
