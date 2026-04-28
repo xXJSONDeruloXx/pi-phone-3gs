@@ -84,9 +84,13 @@ export class TouchViewport implements Component {
 			fixedHeight += childHeight;
 			if (index < viewportIndex) rowsBefore += childHeight;
 		}
-		const visibleHeight = Math.max(1, this.tui.terminal.rows - fixedHeight);
+		const totalViewportRows = Math.max(1, this.tui.terminal.rows - fixedHeight);
+		const showJumpBars = this.ctx.state.shell.viewportJumpButtonsVisible && totalViewportRows >= 6 && width >= 6;
+		const jumpBarRows = showJumpBars ? 2 : 0; // 1 top + 1 bottom
+		const chatVisibleHeight = Math.max(1, totalViewportRows - jumpBarRows);
+
 		const lines = this.content.render(width);
-		const maxTop = Math.max(0, lines.length - visibleHeight);
+		const maxTop = Math.max(0, lines.length - chatVisibleHeight);
 
 		if (this.followBottom && this.scrollTopFractional >= 0 && this.scrollTopFractional <= maxTop) {
 			this.scrollTop = maxTop;
@@ -96,61 +100,65 @@ export class TouchViewport implements Component {
 		// NOTE: do NOT clamp scrollTopFractional here — it can go negative or
 		// exceed maxTop during rubber-banding, and we need the raw value for
 		// the overscroll render path below.
-		this.lastVisibleHeight = visibleHeight;
+		this.lastVisibleHeight = chatVisibleHeight;
 		this.lastTotalLines = lines.length;
 		this.lastMaxTop = maxTop;
-		this.ctx.state.ui.viewport.row = rowsBefore + 1;
-		this.ctx.state.ui.viewport.height = visibleHeight;
 
 		const frac = this.scrollTopFractional;
-		let visible: string[];
+		let chatVisible: string[];
 
 		if (frac < 0) {
 			// Overscrolled past the top — show empty rows at top, push content down
-			const overscrollRows = Math.min(Math.round(Math.abs(frac)), visibleHeight);
-			visible = [];
-			for (let i = 0; i < overscrollRows; i++) visible.push("");
-			for (let i = 0; i < visibleHeight - overscrollRows; i++) visible.push(lines[i] ?? "");
+			const overscrollRows = Math.min(Math.round(Math.abs(frac)), chatVisibleHeight);
+			chatVisible = [];
+			for (let i = 0; i < overscrollRows; i++) chatVisible.push("");
+			for (let i = 0; i < chatVisibleHeight - overscrollRows; i++) chatVisible.push(lines[i] ?? "");
 		} else if (frac > maxTop) {
 			// Overscrolled past the bottom — entire visible block shifts up, empties trail
-			const overscrollRows = Math.min(Math.round(frac - maxTop), visibleHeight);
-			// Content that was at the bottom scrolls up by overscrollRows,
-			// the bottom overscrollRows of the previously-visible screenful exit the top.
+			const overscrollRows = Math.min(Math.round(frac - maxTop), chatVisibleHeight);
 			const start = maxTop + overscrollRows;
-			const contentRows = visibleHeight - overscrollRows;
-			visible = lines.slice(start, start + contentRows);
-			while (visible.length < contentRows) visible.push("");
-			for (let i = 0; i < overscrollRows; i++) visible.push("");
+			const contentRows = chatVisibleHeight - overscrollRows;
+			chatVisible = lines.slice(start, start + contentRows);
+			while (chatVisible.length < contentRows) chatVisible.push("");
+			for (let i = 0; i < overscrollRows; i++) chatVisible.push("");
 		} else {
 			// Normal scrolling
-			visible = lines.slice(this.scrollTop, this.scrollTop + visibleHeight);
+			chatVisible = lines.slice(this.scrollTop, this.scrollTop + chatVisibleHeight);
 		}
-		while (visible.length < visibleHeight) visible.push("");
+		while (chatVisible.length < chatVisibleHeight) chatVisible.push("");
 
+		// Assemble final output: [top bar?] + chat + [bottom bar?]
+		const result: string[] = [];
 		const viewportButtons: ButtonHitRegion[] = [];
-		const shouldRenderJumpButtons = this.ctx.state.shell.viewportJumpButtonsVisible && visibleHeight >= 4 && width >= 6;
-		if (shouldRenderJumpButtons) {
-			const theme = this.ctx.getTheme();
 
-			// Replace first and last visible lines with thin jump bars.
-			// This sacrifices one content row at top and one at bottom,
-			// but the bars are single-line centered labels with rules
-			// and arrows — much less intrusive than 3-line box buttons.
-			visible[0] = renderThinJumpBar(VIEWPORT_TOP_BUTTON, "▲", theme, width);
+		if (showJumpBars) {
+			const theme = this.ctx.getTheme();
+			// Top jump bar sits above chat content — does not overlap any chat lines
+			result.push(renderThinJumpBar(VIEWPORT_TOP_BUTTON, "▲", theme, width));
 			viewportButtons.push({
 				button: VIEWPORT_TOP_BUTTON,
 				colStart: 1,
 				colEnd: width,
 				rowOffset: 0,
 			});
+		}
 
-			const bottomRow = visibleHeight - 1;
-			visible[bottomRow] = renderThinJumpBar(VIEWPORT_BOTTOM_BUTTON, "▼", theme, width);
+		// Viewport row/height for hit testing: the chat region starts after
+		// the top bar (if present) and spans chatVisibleHeight rows.
+		this.ctx.state.ui.viewport.row = rowsBefore + 1 + (showJumpBars ? 1 : 0);
+		this.ctx.state.ui.viewport.height = chatVisibleHeight;
+
+		result.push(...chatVisible);
+
+		if (showJumpBars) {
+			const theme = this.ctx.getTheme();
+			// Bottom jump bar sits below chat content
+			result.push(renderThinJumpBar(VIEWPORT_BOTTOM_BUTTON, "▼", theme, width));
 			viewportButtons.push({
 				button: VIEWPORT_BOTTOM_BUTTON,
 				colStart: 1,
 				colEnd: width,
-				rowOffset: bottomRow,
+				rowOffset: result.length - 1,
 			});
 		}
 
@@ -158,7 +166,7 @@ export class TouchViewport implements Component {
 
 		// Width-safety: every line must be clamped to `width` to prevent
 		// terminal overflow. padLineToWidth also resets ANSI state per line.
-		return visible.map((line) => padLineToWidth(line, width));
+		return result.map((line) => padLineToWidth(line, width));
 	}
 
 	invalidate(): void {
