@@ -42,7 +42,10 @@ export type RuntimeState = PhoneShellRenderState & {
 	layout: PhoneShellLayout;
 	favorites: FavoriteEntry[];
 	paths: ReturnType<typeof getPhoneShellPaths>;
-	pi?: { getCommands(): { name: string; description?: string; source: string }[] };
+	pi?: {
+		getCommands(): { name: string; description?: string; source: string }[];
+		setLabel?(entryId: string, label: string | undefined): void;
+	};
 	settingsManager?: SettingsManager;
 	/** Model patterns from settings.json enabledModels. Used to filter the models dropdown. */
 	enabledModelPatterns: string[] | undefined;

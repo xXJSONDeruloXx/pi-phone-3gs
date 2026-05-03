@@ -11,13 +11,18 @@ import type { MouseInput } from "./types.js";
 
 type TreeFilterMode = "all" | "user" | "labeled";
 type TreeSortMode = "newest" | "tree";
-type TreeSummaryMode = "none" | "summary";
+type TreeSummaryMode = "none" | "summary" | "custom";
+type TreeTapMode = "nav" | "label" | "fold";
 type TreeControlAction =
 	| "filter-all"
 	| "filter-user"
 	| "filter-labeled"
 	| "toggle-sort"
 	| "toggle-summary"
+	| "toggle-tap-mode"
+	| "toggle-label-timestamps"
+	| "prev-branch"
+	| "next-branch"
 	| "page-up"
 	| "page-down"
 	| "top"
@@ -60,6 +65,9 @@ interface PhoneTreeOverlayState {
 	filterMode: TreeFilterMode;
 	sortMode: TreeSortMode;
 	summaryMode: TreeSummaryMode;
+	tapMode: TreeTapMode;
+	showLabelTimestamps: boolean;
+	collapsedIds: Set<string>;
 	tree: SessionTreeNode[];
 	branchIds: Set<string>;
 	leafId?: string | null;
@@ -80,6 +88,9 @@ const treeOverlay: PhoneTreeOverlayState = {
 	filterMode: "all",
 	sortMode: "newest",
 	summaryMode: "none",
+	tapMode: "nav",
+	showLabelTimestamps: false,
+	collapsedIds: new Set(),
 	tree: [],
 	branchIds: new Set(),
 	leafId: undefined,
@@ -185,7 +196,7 @@ function flattenTree(): FlatTreeNode[] {
 				isLeaf: node.entry.id === treeOverlay.leafId,
 			};
 			if (matchesFilter(item)) result.push(item);
-			walk(node.children, depth + 1);
+			if (!treeOverlay.collapsedIds.has(node.entry.id)) walk(node.children, depth + 1);
 		}
 	};
 	walk(treeOverlay.tree, 0);
@@ -248,6 +259,30 @@ function scrollByRows(deltaRows: number): void {
 	requestRender();
 }
 
+function cycleSummaryMode(): void {
+	treeOverlay.summaryMode = treeOverlay.summaryMode === "none" ? "summary" : treeOverlay.summaryMode === "summary" ? "custom" : "none";
+}
+
+function cycleTapMode(): void {
+	treeOverlay.tapMode = treeOverlay.tapMode === "nav" ? "label" : treeOverlay.tapMode === "label" ? "fold" : "nav";
+}
+
+function jumpBranch(delta: -1 | 1): void {
+	const items = flattenTree();
+	if (items.length === 0) return;
+	const candidates = items
+		.map((item, index) => ({ item, index }))
+		.filter(({ item }) => item.node.children.length > 1 || item.isLeaf || item.node.label);
+	if (candidates.length === 0) return;
+	const current = delta > 0
+		? candidates.find(({ index }) => index > treeOverlay.scrollOffset)
+		: [...candidates].reverse().find(({ index }) => index < treeOverlay.scrollOffset);
+	const fallback = delta > 0 ? candidates[candidates.length - 1] : candidates[0];
+	treeOverlay.scrollOffset = Math.max(0, (current ?? fallback)!.index);
+	clampScroll();
+	requestRender();
+}
+
 function activateControl(action: TreeControlAction): void {
 	setLastAction(`ptree:${action}`);
 	switch (action) {
@@ -272,8 +307,22 @@ function activateControl(action: TreeControlAction): void {
 			requestRender();
 			return;
 		case "toggle-summary":
-			treeOverlay.summaryMode = treeOverlay.summaryMode === "none" ? "summary" : "none";
+			cycleSummaryMode();
 			requestRender();
+			return;
+		case "toggle-tap-mode":
+			cycleTapMode();
+			requestRender();
+			return;
+		case "toggle-label-timestamps":
+			treeOverlay.showLabelTimestamps = !treeOverlay.showLabelTimestamps;
+			requestRender();
+			return;
+		case "prev-branch":
+			jumpBranch(-1);
+			return;
+		case "next-branch":
+			jumpBranch(1);
 			return;
 		case "page-up":
 			page(-1);
@@ -297,18 +346,82 @@ function activateControl(action: TreeControlAction): void {
 	}
 }
 
+function findNodeById(entryId: string): SessionTreeNode | undefined {
+	const walk = (nodes: SessionTreeNode[]): SessionTreeNode | undefined => {
+		for (const node of nodes) {
+			if (node.entry.id === entryId) return node;
+			const child = walk(node.children);
+			if (child) return child;
+		}
+		return undefined;
+	};
+	return walk(treeOverlay.tree);
+}
+
+async function editEntryLabel(entryId: string): Promise<void> {
+	const ctx = treeOverlay.ctx;
+	const node = findNodeById(entryId);
+	if (!ctx || !node) return;
+	closePhoneTreeOverlay();
+	try {
+		const placeholder = node.label ? `current: ${node.label} (empty clears)` : "empty clears label";
+		const next = await ctx.ui.input("Tree label", placeholder);
+		if (next === undefined) {
+			notify("phone-shell: label edit cancelled", "info");
+			return;
+		}
+		const label = next.trim() || undefined;
+		state.pi?.setLabel?.(entryId, label);
+		notify(label ? `phone-shell: label set to ${label}` : "phone-shell: label cleared", "info");
+		showPhoneTreeOverlay(ctx);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		notify(`phone-shell: label edit failed: ${message}`, "error");
+		queueLog(`phone-tree label edit failed: ${message}`);
+	}
+}
+
+function toggleEntryFold(entryId: string): void {
+	const node = findNodeById(entryId);
+	if (!node || node.children.length === 0) {
+		notify("phone-shell: no children to fold", "info");
+		return;
+	}
+	if (treeOverlay.collapsedIds.has(entryId)) treeOverlay.collapsedIds.delete(entryId);
+	else treeOverlay.collapsedIds.add(entryId);
+	requestRender();
+}
+
 async function selectEntry(entryId: string): Promise<void> {
 	const ctx = treeOverlay.ctx;
 	if (!ctx) return;
+	if (treeOverlay.tapMode === "label") {
+		await editEntryLabel(entryId);
+		return;
+	}
+	if (treeOverlay.tapMode === "fold") {
+		toggleEntryFold(entryId);
+		return;
+	}
 	if (entryId === treeOverlay.leafId) {
 		notify("phone-shell: already at this point", "info");
 		return;
 	}
 	setLastAction("ptree:navigate");
+	const summaryMode = treeOverlay.summaryMode;
 	closePhoneTreeOverlay();
 	try {
-		if (treeOverlay.summaryMode === "summary") notify("phone-shell: summarizing branch…", "info");
-		const result = await ctx.navigateTree(entryId, { summarize: treeOverlay.summaryMode === "summary" });
+		let customInstructions: string | undefined;
+		if (summaryMode === "custom") {
+			const prompt = await ctx.ui.editor("Custom branch summary prompt", "Focus on the important work from the branch being left.");
+			if (prompt === undefined) {
+				notify("phone-shell: tree navigation cancelled", "info");
+				return;
+			}
+			customInstructions = prompt;
+		}
+		if (summaryMode !== "none") notify("phone-shell: summarizing branch…", "info");
+		const result = await ctx.navigateTree(entryId, { summarize: summaryMode !== "none", customInstructions });
 		if (result.cancelled) notify("phone-shell: tree navigation cancelled", "info");
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
@@ -345,11 +458,13 @@ function styleEntryTitle(item: FlatTreeNode, title: string): string {
 function renderToolbar(innerWidth: number, rowOffset: number): string {
 	const compact = innerWidth < 42;
 	const controls: Array<{ action: TreeControlAction; label: string; active: boolean }> = [
-		{ action: "filter-all", label: compact ? `ALL${treeOverlay.filterMode === "all" ? "●" : "○"}` : `ALL ${treeOverlay.filterMode === "all" ? "●" : "○"}`, active: treeOverlay.filterMode === "all" },
-		{ action: "filter-user", label: compact ? `USR${treeOverlay.filterMode === "user" ? "●" : "○"}` : `USER ${treeOverlay.filterMode === "user" ? "●" : "○"}`, active: treeOverlay.filterMode === "user" },
-		{ action: "filter-labeled", label: compact ? `LBL${treeOverlay.filterMode === "labeled" ? "●" : "○"}` : `LABEL ${treeOverlay.filterMode === "labeled" ? "●" : "○"}`, active: treeOverlay.filterMode === "labeled" },
-		{ action: "toggle-sort", label: compact ? (treeOverlay.sortMode === "newest" ? "NEW" : "TREE") : `SORT ${treeOverlay.sortMode === "newest" ? "new" : "tree"}`, active: treeOverlay.sortMode === "newest" },
-		{ action: "toggle-summary", label: compact ? (treeOverlay.summaryMode === "summary" ? "SUM●" : "SUM○") : `SUM ${treeOverlay.summaryMode === "summary" ? "yes" : "no"}`, active: treeOverlay.summaryMode === "summary" },
+		{ action: "filter-all", label: compact ? `A${treeOverlay.filterMode === "all" ? "●" : "○"}` : `ALL ${treeOverlay.filterMode === "all" ? "●" : "○"}`, active: treeOverlay.filterMode === "all" },
+		{ action: "filter-user", label: compact ? `U${treeOverlay.filterMode === "user" ? "●" : "○"}` : `USER ${treeOverlay.filterMode === "user" ? "●" : "○"}`, active: treeOverlay.filterMode === "user" },
+		{ action: "filter-labeled", label: compact ? `L${treeOverlay.filterMode === "labeled" ? "●" : "○"}` : `LABEL ${treeOverlay.filterMode === "labeled" ? "●" : "○"}`, active: treeOverlay.filterMode === "labeled" },
+		{ action: "toggle-sort", label: compact ? (treeOverlay.sortMode === "newest" ? "N" : "T") : `SORT ${treeOverlay.sortMode === "newest" ? "new" : "tree"}`, active: treeOverlay.sortMode === "newest" },
+		{ action: "toggle-summary", label: compact ? `Σ${treeOverlay.summaryMode === "none" ? "○" : treeOverlay.summaryMode === "summary" ? "●" : "✎"}` : `SUM ${treeOverlay.summaryMode === "none" ? "no" : treeOverlay.summaryMode === "summary" ? "yes" : "ask"}`, active: treeOverlay.summaryMode !== "none" },
+		{ action: "toggle-tap-mode", label: compact ? (treeOverlay.tapMode === "nav" ? "↵" : treeOverlay.tapMode === "label" ? "L" : "F") : `TAP ${treeOverlay.tapMode}`, active: treeOverlay.tapMode !== "nav" },
+		{ action: "toggle-label-timestamps", label: compact ? `T${treeOverlay.showLabelTimestamps ? "●" : "○"}` : `TS ${treeOverlay.showLabelTimestamps ? "on" : "off"}`, active: treeOverlay.showLabelTimestamps },
 	];
 
 	let content = "";
@@ -373,12 +488,16 @@ function renderFooter(innerWidth: number, rowOffset: number, shownStart: number,
 		? [
 			{ action: "page-up", label: "PG↑", active: true },
 			{ action: "page-down", label: "PG↓", active: true },
+			{ action: "prev-branch", label: "B↑", active: true },
+			{ action: "next-branch", label: "B↓", active: true },
 			{ action: "close", label: "X", active: false },
 		]
 		: [
 			{ action: "top", label: "TOP", active: true },
+			{ action: "prev-branch", label: "BR↑", active: true },
 			{ action: "page-up", label: "PG↑", active: true },
 			{ action: "page-down", label: "PG↓", active: true },
+			{ action: "next-branch", label: "BR↓", active: true },
 			{ action: "bottom", label: "BTM", active: true },
 			{ action: "close", label: "CLOSE", active: false },
 		];
@@ -444,12 +563,15 @@ class PhoneTreeOverlayComponent implements Component {
 				const rowStart = lines.length;
 				const depthMarker = item.depth > 0 ? `${"·".repeat(Math.min(item.depth, 6))} ` : "";
 				const activeMarker = item.isLeaf ? "●" : item.isOnActiveBranch ? "•" : " ";
+				const foldMarker = item.node.children.length === 0 ? "" : treeOverlay.collapsedIds.has(entry.id) ? "▸ " : "▾ ";
 				const kind = entryKind(entry);
 				const label = item.node.label ? ` #${item.node.label}` : "";
 				const preview = entryPreview(entry);
-				const title = truncateToWidth(`${activeMarker} ${absoluteIndex + 1}. ${depthMarker}${kind}:${label} ${preview}`, innerWidth - 1, "…");
+				const title = truncateToWidth(`${activeMarker} ${absoluteIndex + 1}. ${foldMarker}${depthMarker}${kind}:${label} ${preview}`, innerWidth - 1, "…");
 				const styledTitle = styleEntryTitle(item, title);
-				const meta = truncateToWidth(`   ${item.node.children.length} child${item.node.children.length === 1 ? "" : "ren"} · ${formatAge(entry.timestamp)} · ${entry.id.slice(0, 8)}`, innerWidth - 1, "…");
+				const labelTime = treeOverlay.showLabelTimestamps && item.node.labelTimestamp ? ` · label ${formatAge(item.node.labelTimestamp)}` : "";
+				const tapHint = treeOverlay.tapMode === "nav" ? "nav" : treeOverlay.tapMode === "label" ? "label" : "fold";
+				const meta = truncateToWidth(`   ${item.node.children.length} child${item.node.children.length === 1 ? "" : "ren"} · ${formatAge(entry.timestamp)}${labelTime} · ${tapHint} · ${entry.id.slice(0, 8)}`, innerWidth - 1, "…");
 				const styledMeta = theme ? theme.fg(item.isOnActiveBranch ? "accent" : "dim", meta) : meta;
 				lines.push(boxLine(` ${styledTitle}`, renderWidth));
 				lines.push(boxLine(styledMeta, renderWidth));
@@ -505,6 +627,9 @@ export function showPhoneTreeOverlay(ctx: ExtensionCommandContext): void {
 	treeOverlay.filterMode = "all";
 	treeOverlay.sortMode = "newest";
 	treeOverlay.summaryMode = "none";
+	treeOverlay.tapMode = "nav";
+	treeOverlay.showLabelTimestamps = false;
+	treeOverlay.collapsedIds = new Set();
 	treeOverlay.tree = tree;
 	treeOverlay.leafId = ctx.sessionManager.getLeafId();
 	treeOverlay.branchIds = new Set(ctx.sessionManager.getBranch().map((entry) => entry.id));
@@ -609,6 +734,34 @@ export function handlePhoneTreeOverlayKey(data: string): InputResponse {
 	}
 	if (matchesKey(data, Key.end)) {
 		activateControl("bottom");
+		return { consume: true };
+	}
+	if (data === "a") {
+		activateControl("filter-all");
+		return { consume: true };
+	}
+	if (data === "u") {
+		activateControl("filter-user");
+		return { consume: true };
+	}
+	if (data === "l") {
+		activateControl("filter-labeled");
+		return { consume: true };
+	}
+	if (data === "r") {
+		activateControl("toggle-sort");
+		return { consume: true };
+	}
+	if (data === "s") {
+		activateControl("toggle-summary");
+		return { consume: true };
+	}
+	if (data === "m") {
+		activateControl("toggle-tap-mode");
+		return { consume: true };
+	}
+	if (data === "t") {
+		activateControl("toggle-label-timestamps");
 		return { consume: true };
 	}
 	return { consume: true };
