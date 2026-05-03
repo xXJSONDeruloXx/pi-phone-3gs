@@ -45,6 +45,7 @@ import {
 } from "./dropdowns.js";
 import { handleRecentOverlayKey, handleRecentOverlayMouse, hideRecentOverlay } from "./recent.js";
 import { handlePhoneTreeOverlayKey, handlePhoneTreeOverlayMouse, hidePhoneTreeOverlay } from "./phone-tree.js";
+import { handlePdiffOverlayKey, handlePdiffOverlayMouse, hidePdiffOverlay } from "./pdiff.js";
 import type {
 	ButtonSpec,
 	MouseInput,
@@ -440,6 +441,8 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 				queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
 			}
 			if (!state.shell.enabled) return { consume: true };
+			const pdiffMouseResponse = handlePdiffOverlayMouse(mouse);
+			if (pdiffMouseResponse) return pdiffMouseResponse;
 			const phoneTreeMouseResponse = handlePhoneTreeOverlayMouse(mouse);
 			if (phoneTreeMouseResponse) return phoneTreeMouseResponse;
 			const recentMouseResponse = handleRecentOverlayMouse(mouse);
@@ -531,6 +534,8 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 		if (state.shell.enabled && (state.ui.overlays.utility.visible || state.ui.overlays.models.visible || state.ui.overlays.allModels.visible || state.ui.overlays.prompts.visible)) scheduleRender();
 		if (!state.shell.enabled) return undefined;
 
+		const pdiffKeyResponse = handlePdiffOverlayKey(data);
+		if (pdiffKeyResponse) return pdiffKeyResponse;
 		const phoneTreeKeyResponse = handlePhoneTreeOverlayKey(data);
 		if (phoneTreeKeyResponse) return phoneTreeKeyResponse;
 		const recentKeyResponse = handleRecentOverlayKey(data);
@@ -574,4 +579,5 @@ export function unregisterInputHandler(): void {
 	state.ui.overlays.allModels.drag = undefined;
 	hideRecentOverlay();
 	hidePhoneTreeOverlay();
+	hidePdiffOverlay();
 }

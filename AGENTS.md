@@ -200,7 +200,9 @@ Every `render(width)` method must ensure **every returned line** is clamped to `
 1. **Always end `render()` with `.map(line => padLineToWidth(line, width))`** unless every line is already constructed with `padLineToWidth`.
 2. **Never return raw concatenated strings** without a final `padLineToWidth` pass — even if the math looks right, ANSI codes and wide chars can cause visible-width drift.
 3. **Never use `truncateToWidth` alone as the final step** — it does not reset ANSI state. Use `padLineToWidth` which does both truncate+pad+reset.
-4. **Test narrow terminals** — a 20-column terminal should not crash or corrupt. The phone is the primary target; width can be very small.
+4. **Never inflate the render target above the supplied `width`** — patterns like `const renderWidth = Math.max(20, width)` violate the TUI contract when Pi gives a narrower overlay/component width. Use `Math.max(1, width)` for internal math and clamp every line to that exact supplied width.
+5. **Normalize tabs before width math** — terminal tabs expand visually and can bypass ANSI width helpers. `padLineToWidth` handles this globally; do not bypass it for raw file/diff content.
+6. **Test narrow terminals** — a 20-column terminal should not crash or corrupt. The phone is the primary target; width can be very small.
 
 ### Why this matters
 

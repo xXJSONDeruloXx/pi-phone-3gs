@@ -347,7 +347,7 @@ class RecentOverlayComponent implements Component {
 		const theme = state.session.theme;
 		const terminalRows = state.session.tui?.terminal.rows ?? 24;
 		const maxHeight = Math.max(6, terminalRows - recent.row + 1);
-		const renderWidth = Math.max(20, width);
+		const renderWidth = Math.max(1, width);
 		const innerWidth = Math.max(0, renderWidth - 2);
 		const lines: string[] = [];
 		recent.hits = [];
@@ -432,7 +432,7 @@ export function showRecentOverlay(ctx: ExtensionCommandContext): void {
 	const terminalRows = state.session.tui.terminal.rows;
 	recent.row = state.shell.headerInstalled && terminalRows >= 14 ? HEADER_HEIGHT + 1 : 1;
 	recent.col = terminalCols <= 42 ? 1 : 2;
-	recent.width = Math.max(20, terminalCols - (recent.col === 1 ? 0 : 2));
+	recent.width = Math.max(1, terminalCols - (recent.col === 1 ? 0 : 2));
 	recent.scope = "current";
 	recent.nameFilter = "all";
 	recent.sortMode = "recent";

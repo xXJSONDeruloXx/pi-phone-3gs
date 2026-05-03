@@ -7,6 +7,7 @@ import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 import { showRecentOverlay } from "./recent.js";
 import { showPhoneTreeOverlay } from "./phone-tree.js";
+import { showPdiffOverlay } from "./pdiff.js";
 
 // ---------------------------------------------------------------------------
 // Agent event wiring
@@ -195,6 +196,18 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			}
 			captureUiBindings(ctx);
 			showPhoneTreeOverlay(ctx);
+		},
+	});
+
+	pi.registerCommand("pdiff", {
+		description: "Open a phone-friendly git diff overlay",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) {
+				console.log("/pdiff requires interactive mode.");
+				return;
+			}
+			captureUiBindings(ctx);
+			showPdiffOverlay(ctx);
 		},
 	});
 

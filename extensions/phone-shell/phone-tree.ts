@@ -535,7 +535,7 @@ class PhoneTreeOverlayComponent implements Component {
 		const theme = state.session.theme;
 		const terminalRows = state.session.tui?.terminal.rows ?? 24;
 		const maxHeight = Math.max(6, terminalRows - treeOverlay.row + 1);
-		const renderWidth = Math.max(20, width);
+		const renderWidth = Math.max(1, width);
 		const innerWidth = Math.max(0, renderWidth - 2);
 		const lines: string[] = [];
 		treeOverlay.hits = [];
@@ -623,7 +623,7 @@ export function showPhoneTreeOverlay(ctx: ExtensionCommandContext): void {
 	const terminalRows = state.session.tui.terminal.rows;
 	treeOverlay.row = state.shell.headerInstalled && terminalRows >= 14 ? HEADER_HEIGHT + 1 : 1;
 	treeOverlay.col = terminalCols <= 42 ? 1 : 2;
-	treeOverlay.width = Math.max(20, terminalCols - (treeOverlay.col === 1 ? 0 : 2));
+	treeOverlay.width = Math.max(1, terminalCols - (treeOverlay.col === 1 ? 0 : 2));
 	treeOverlay.filterMode = "all";
 	treeOverlay.sortMode = "newest";
 	treeOverlay.summaryMode = "none";

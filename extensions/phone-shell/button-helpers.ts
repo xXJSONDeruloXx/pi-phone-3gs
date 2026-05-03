@@ -52,7 +52,11 @@ export function renderBoxButton(spec: ButtonSpec, theme: ReturnType<PhoneShellRe
  */
 export function padLineToWidth(line: string, width: number): string {
 	if (width <= 0) return "";
-	const truncated = truncateToWidth(line, width, "", true);
+	// Terminal tabs expand visually, but ANSI width helpers may count them as
+	// one cell. Normalize tabs before any width math so arbitrary file/diff
+	// content cannot make rendered lines wider than `width`.
+	const tabSafeLine = line.replace(/\t/g, "  ");
+	const truncated = truncateToWidth(tabSafeLine, width, "", true);
 	const pad = Math.max(0, width - visibleWidth(truncated));
 	return `${truncated}\x1b[0m${" ".repeat(pad)}`;
 }
