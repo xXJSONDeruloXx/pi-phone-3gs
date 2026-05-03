@@ -5,6 +5,8 @@ import { AgentStateTracker } from "./header.js";
 import { captureUiBindings, queueLog, reloadRuntimeSettings, resetState, scheduleRender, state } from "./state.js";
 import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
+import { showRecentOverlay } from "./recent.js";
+import { showPhoneTreeOverlay } from "./phone-tree.js";
 
 // ---------------------------------------------------------------------------
 // Agent event wiring
@@ -171,6 +173,30 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			},
 		});
 	};
+
+	pi.registerCommand("recent", {
+		description: "Open a phone-friendly recent session overlay",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) {
+				console.log("/recent requires interactive mode.");
+				return;
+			}
+			captureUiBindings(ctx);
+			showRecentOverlay(ctx);
+		},
+	});
+
+	pi.registerCommand("ptree", {
+		description: "Open a phone-friendly current-session tree overlay",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) {
+				console.log("/ptree requires interactive mode.");
+				return;
+			}
+			captureUiBindings(ctx);
+			showPhoneTreeOverlay(ctx);
+		},
+	});
 
 	registerPrimaryHandler(
 		PRIMARY_COMMAND,

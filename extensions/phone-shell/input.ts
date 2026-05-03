@@ -43,6 +43,8 @@ import {
 	hideDropdown,
 	type DropdownKind,
 } from "./dropdowns.js";
+import { handleRecentOverlayKey, handleRecentOverlayMouse, hideRecentOverlay } from "./recent.js";
+import { handlePhoneTreeOverlayKey, handlePhoneTreeOverlayMouse, hidePhoneTreeOverlay } from "./phone-tree.js";
 import type {
 	ButtonSpec,
 	MouseInput,
@@ -438,6 +440,10 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 				queueLog(`mouse ${mouse.phase} code=${mouse.code} row=${mouse.row} col=${mouse.col}`);
 			}
 			if (!state.shell.enabled) return { consume: true };
+			const phoneTreeMouseResponse = handlePhoneTreeOverlayMouse(mouse);
+			if (phoneTreeMouseResponse) return phoneTreeMouseResponse;
+			const recentMouseResponse = handleRecentOverlayMouse(mouse);
+			if (recentMouseResponse) return recentMouseResponse;
 			if (mouse.phase === "scroll") {
 				if (state.ui.overlays.skills.visible) {
 					const skillsWheelResponse = handleSkillsDropdownWheel(mouse);
@@ -525,6 +531,11 @@ export function registerInputHandler(ctx: PiExtensionCtx): void {
 		if (state.shell.enabled && (state.ui.overlays.utility.visible || state.ui.overlays.models.visible || state.ui.overlays.allModels.visible || state.ui.overlays.prompts.visible)) scheduleRender();
 		if (!state.shell.enabled) return undefined;
 
+		const phoneTreeKeyResponse = handlePhoneTreeOverlayKey(data);
+		if (phoneTreeKeyResponse) return phoneTreeKeyResponse;
+		const recentKeyResponse = handleRecentOverlayKey(data);
+		if (recentKeyResponse) return recentKeyResponse;
+
 		if (matchesKey(data, Key.pageUp)) {
 			setLastAction("keyboard:pageUp");
 			state.session.viewport?.pageUp();
@@ -561,4 +572,6 @@ export function unregisterInputHandler(): void {
 	state.ui.overlays.prompts.drag = undefined;
 	state.ui.overlays.models.drag = undefined;
 	state.ui.overlays.allModels.drag = undefined;
+	hideRecentOverlay();
+	hidePhoneTreeOverlay();
 }
