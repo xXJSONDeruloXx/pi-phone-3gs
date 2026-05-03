@@ -3,5 +3,5 @@
   { "label": "CMPT", "command": "/compact", "palette": "warning" },
   { "label": "RLD", "command": "/reload", "palette": "warning" },
   { "label": "RCNT", "command": "/recent" },
-  { "label": "TREE", "command": "/tree" }
+  { "label": "TREE", "command": "/ptree" }
 ]

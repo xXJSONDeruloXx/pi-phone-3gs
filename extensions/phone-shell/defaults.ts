@@ -91,7 +91,7 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "reload", label: "/reload", command: "/reload", palette: "warning" },
 	{ kind: "command", id: "compact", label: "/compact", command: "/compact", palette: "warning" },
 	{ kind: "command", id: "recent", label: "/recent", command: "/recent", palette: "warning" },
-	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
+	{ kind: "command", id: "ptree", label: "/ptree ", command: "/ptree", palette: "warning" },
 	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\u0003", palette: "warning" },
 	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
 	{ kind: "action", id: "new-terminal-tab", label: "⌘ T", action: "newTerminalTab", palette: "accent" },
@@ -167,7 +167,7 @@ export const DEFAULT_FAVORITES: FavoriteEntry[] = [
 	{ label: "CMPT", command: "/compact", palette: "warning" },
 	{ label: "RLD", command: "/reload", palette: "warning" },
 	{ label: "RCNT", command: "/recent" },
-	{ label: "TREE", command: "/tree" },
+	{ label: "TREE", command: "/ptree" },
 ];
 
 export const FAVORITES_TEMPLATE = JSON.stringify(DEFAULT_FAVORITES, null, 2);

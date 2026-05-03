@@ -6,6 +6,7 @@ import { captureUiBindings, queueLog, reloadRuntimeSettings, resetState, schedul
 import { disableTouchMode, enableTouchMode, toggleEditorPosition } from "./mode.js";
 import { commandItems, handlePrimaryCommand } from "./commands.js";
 import { showRecentOverlay } from "./recent.js";
+import { showPhoneTreeOverlay } from "./phone-tree.js";
 
 // ---------------------------------------------------------------------------
 // Agent event wiring
@@ -182,6 +183,18 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			}
 			captureUiBindings(ctx);
 			showRecentOverlay(ctx);
+		},
+	});
+
+	pi.registerCommand("ptree", {
+		description: "Open a phone-friendly current-session tree overlay",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) {
+				console.log("/ptree requires interactive mode.");
+				return;
+			}
+			captureUiBindings(ctx);
+			showPhoneTreeOverlay(ctx);
 		},
 	});
 
