@@ -90,7 +90,7 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "new", label: " /new  ", command: "/new", palette: "warning" },
 	{ kind: "command", id: "reload", label: "/reload", command: "/reload", palette: "warning" },
 	{ kind: "command", id: "compact", label: "/compact", command: "/compact", palette: "warning" },
-	{ kind: "command", id: "resume", label: "/resume", command: "/resume", palette: "warning" },
+	{ kind: "command", id: "recent", label: "/recent", command: "/recent", palette: "warning" },
 	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
 	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\u0003", palette: "warning" },
 	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
@@ -166,7 +166,7 @@ export const DEFAULT_FAVORITES: FavoriteEntry[] = [
 	{ label: "NEW", command: "/new", palette: "warning" },
 	{ label: "CMPT", command: "/compact", palette: "warning" },
 	{ label: "RLD", command: "/reload", palette: "warning" },
-	{ label: "RSME", command: "/resume" },
+	{ label: "RCNT", command: "/recent" },
 	{ label: "TREE", command: "/tree" },
 ];
 
