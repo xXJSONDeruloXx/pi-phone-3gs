@@ -1,7 +1,7 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import { HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
-import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleTopEditorFollowUpButton, toggleTopEditorEscButton, toggleTopEditorInterruptButton, toggleViewportJumpButtons, togglePiFooter } from "./mode.js";
+import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleTopEditorFollowUpButton, toggleTopEditorEscButton, toggleTopEditorInterruptButton, toggleViewportJumpButtons, toggleViewportScrollDirection, togglePiFooter } from "./mode.js";
 import type { PiExtensionCtx } from "./pi-types.js";
 import {
 	parseMouseInput,
@@ -141,8 +141,9 @@ function computeDragVelocity(): number {
 	// Convert to rows/frame at the configured frame interval
 	const velocityPerFrame = velocityPerMs * config.frameIntervalMs;
 
-	// Negate because dragging down (positive row delta) scrolls content up (negative scroll)
-	return -velocityPerFrame;
+	// Normal drag is touch-like: dragging down (positive row delta) scrolls content up (negative scroll).
+	// Inverted drag flips that relationship for users who prefer mouse-wheel style panning.
+	return (state.shell.viewportScrollDirectionInverted ? 1 : -1) * velocityPerFrame;
 }
 
 function startViewportDrag(mouse: MouseInput): InputResponse {
@@ -164,20 +165,21 @@ function startViewportDrag(mouse: MouseInput): InputResponse {
 function updateViewportDrag(mouse: MouseInput): InputResponse {
 	if (!state.ui.viewport.drag || !state.session.viewport) return { consume: true };
 	const deltaRows = mouse.row - state.ui.viewport.drag.anchorRow;
+	const directedDeltaRows = state.shell.viewportScrollDirectionInverted ? -deltaRows : deltaRows;
 	state.ui.viewport.drag.lastRow = mouse.row;
 	recordVelocitySample(mouse.row);
 
 	const config = state.config.kineticScroll;
 	if (config.enabled) {
 		// Apply diminishing-returns damping past content edges (soft rubber band)
-		const rawTarget = state.ui.viewport.drag.anchorScrollTop - deltaRows;
+		const rawTarget = state.ui.viewport.drag.anchorScrollTop - directedDeltaRows;
 		const damped = state.session.viewport.applyDragDamping(
 			rawTarget,
 			state.session.viewport.getDebugState().maxTop,
 		);
 		state.session.viewport.setScrollTopSmooth(damped);
 	} else {
-		state.session.viewport.setScrollTop(state.ui.viewport.drag.anchorScrollTop - deltaRows);
+		state.session.viewport.setScrollTop(state.ui.viewport.drag.anchorScrollTop - directedDeltaRows);
 	}
 	return { consume: true };
 }
@@ -253,6 +255,9 @@ export function performAction(action: ShellAction): InputResponse {
 			return { consume: true };
 		case "toggleViewportJumpButtons":
 			toggleViewportJumpButtons();
+			return { consume: true };
+		case "toggleViewportScrollDirection":
+			toggleViewportScrollDirection();
 			return { consume: true };
 		case "toggleTopEditorSendButton":
 			toggleTopEditorSendButton();

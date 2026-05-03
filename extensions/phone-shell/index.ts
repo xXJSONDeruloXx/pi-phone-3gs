@@ -105,6 +105,7 @@ export default function phoneShellExtension(pi: ExtensionAPI) {
 			state.shell.barVisible = persisted.barVisible;
 			state.shell.navPadVisible = persisted.navPadVisible;
 			state.shell.viewportJumpButtonsVisible = persisted.viewportJumpButtonsVisible;
+			state.shell.viewportScrollDirectionInverted = persisted.viewportScrollDirectionInverted ?? false;
 			state.shell.topEditorSendButtonVisible = persisted.topEditorSendButtonVisible;
 			state.shell.topEditorStashButtonVisible = persisted.topEditorStashButtonVisible;
 			state.shell.topEditorFollowUpButtonVisible = persisted.topEditorFollowUpButtonVisible;

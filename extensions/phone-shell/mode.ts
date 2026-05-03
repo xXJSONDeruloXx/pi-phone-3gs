@@ -49,6 +49,7 @@ function persistShellState(patch: Partial<PersistedShellState> = {}): Promise<vo
 		barVisible: state.shell.barVisible,
 		navPadVisible: state.shell.navPadVisible,
 		viewportJumpButtonsVisible: state.shell.viewportJumpButtonsVisible,
+		viewportScrollDirectionInverted: state.shell.viewportScrollDirectionInverted,
 		topEditorSendButtonVisible: state.shell.topEditorSendButtonVisible,
 		topEditorStashButtonVisible: state.shell.topEditorStashButtonVisible,
 		topEditorFollowUpButtonVisible: state.shell.topEditorFollowUpButtonVisible,
@@ -135,7 +136,7 @@ export function toggleEditorPosition(): void {
 // Toggle factory
 // ---------------------------------------------------------------------------
 
-type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible" | "topEditorEscButtonVisible" | "topEditorInterruptButtonVisible" | "piFooterVisible";
+type TogglableBooleanKey = "barVisible" | "navPadVisible" | "viewportJumpButtonsVisible" | "viewportScrollDirectionInverted" | "topEditorSendButtonVisible" | "topEditorStashButtonVisible" | "topEditorFollowUpButtonVisible" | "topEditorEscButtonVisible" | "topEditorInterruptButtonVisible" | "piFooterVisible";
 
 function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): () => void {
 	return function toggle(): void {
@@ -150,6 +151,7 @@ function makeToggle(key: TogglableBooleanKey, syncFn: () => void = () => {}): ()
 export const toggleBottomBar = makeToggle("barVisible", syncBottomWidgets);
 export const toggleNavPad = makeToggle("navPadVisible", syncNavPadPlacement);
 export const toggleViewportJumpButtons = makeToggle("viewportJumpButtonsVisible");
+export const toggleViewportScrollDirection = makeToggle("viewportScrollDirectionInverted");
 export const toggleTopEditorSendButton = makeToggle("topEditorSendButtonVisible");
 export const toggleTopEditorStashButton = makeToggle("topEditorStashButtonVisible");
 export const toggleTopEditorFollowUpButton = makeToggle("topEditorFollowUpButtonVisible");
