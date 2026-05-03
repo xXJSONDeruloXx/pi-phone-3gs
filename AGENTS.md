@@ -122,14 +122,48 @@ The favorites rail (`BottomBarComponent`) lives as a `belowEditor` widget. Dropd
 
 `main` is sacred. It must always be in a known-good, tested state. A broken `main` means the user cannot even start pi until they manually revert — this has happened before and must never happen again.
 
-### Rules (no exceptions)
+### Rules
 
-1. **Always cut a new branch from `main` BEFORE writing any code.** No exceptions — not even for one-line fixes, not even for typos. **Before editing any file, verify `git branch --show-current` is not `main`. If you are on `main`, stop and create a branch first.**
-2. **Never commit directly on `main`.** If you realize you've started coding on `main`, stash, create a branch, pop the stash, then continue.
-3. **Never push `main`.** Only the user may push to `main`. The agent may push feature branches to `origin`, but `main` pushes are exclusively the user's decision.
-4. **Never merge a branch into `main` until the user has tested it and explicitly says to merge.** The user saying "merge and push" means they tested and approve — until those exact words (or equivalent explicit confirmation), the branch stays separate.
-5. **Keep `main` as the last known-good fallback.** If a branch breaks something, the user can `git checkout main` and immediately have a working shell again.
-6. **Type checks pass ≠ tested.** `npm run check` only catches compile errors. Runtime rendering bugs (off-by-one column math, hit region misalignment, layout blowups) will pass type checking but break the shell. Only the user reloading pi counts as tested.
+1. **Always cut a new branch from `main` BEFORE writing any code.**
+   - No exceptions — not even for one-line fixes, not even for typos.
+   - **Before editing any file, verify `git branch --show-current` is not `main`.**
+   - If you are on `main`, stop and create a branch first.
+2. **Never commit directly on `main`.**
+   - If you realize you've started coding on `main`, stash, create a branch, pop the stash, then continue.
+3. **Never push `main` yourself.**
+   - Only the user may push to `main`.
+   - The agent may push feature branches to `origin`, but `main` pushes are exclusively the user's decision.
+4. **Merge to `main` only after explicit user confirmation.**
+   - The user saying **"merge `<branch>` into `main` and push `main`"** (or equivalent) means they have tested the branch and approve.
+   - Until those exact words (or clear equivalent), the branch stays separate.
+   - **Special case:** If you are already on a feature branch and the user says "merge this branch into main and push main",
+     you may merge the current branch into `main` and push `main` directly — no need to create a new branch.
+5. **After merging to `main` and pushing, start fresh.**
+   - After `main` is updated, the next feature starts with a **new branch from `main`**.
+   - The cycle resets: `main` → new branch → implement → test → user approves → merge to `main` → push `main` → repeat.
+6. **Keep `main` as the last known-good fallback.**
+   - If a branch breaks something, the user can `git checkout main` and immediately have a working shell again.
+7. **Type checks pass ≠ tested.**
+   - `npm run check` only catches compile errors.
+   - Runtime rendering bugs (off-by-one column math, hit region misalignment, layout blowups) will pass type checking but break the shell.
+   - Only the user reloading pi counts as tested.
+
+### Notes on Pi's interactive workflow
+
+- **Pi's interactive session state lives outside this repo** in `~/.pi/agent/`:
+  - Session files: `~/.pi/agent/sessions/<encoded-cwd>/`
+  - Extension config: `~/.pi/agent/pi-phone-3gs/` (user overrides of config/layout/favorites/state)
+  - Logs: `~/.pi/agent/logs/`
+- Commands like `/recent` and `/ptree` are **extension commands** that run inside Pi's interactive TUI.
+  - They are not shell commands, not repo scripts, and not part of the branch workflow.
+  - The user may say "test `/ptree`" or "run `/recent`" — they mean *inside the running Pi session*, not in this repo.
+- **Typical validated flow:**
+  1. Agent creates branch `feat/foo` from `main`, implements, commits, pushes branch.
+  2. User tests in Pi (`/reload`, tries the feature).
+  3. User says: "looks good, merge `feat/foo` into `main` and push `main`".
+  4. Agent merges `feat/foo` → `main`, pushes `main`.
+  5. Now on `main` — next feature starts a NEW branch from `main`.
+  6. Cleanup: delete merged branch (agent or user).
 
 ## Width-safety rules (no exceptions)
 
