@@ -1,4 +1,5 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
+import { execSync } from "child_process";
 import { HEADER_HEIGHT } from "./defaults.js";
 import { queueLog, scheduleRender, setLastAction, state } from "./state.js";
 import { toggleBottomBar, toggleEditorPosition, toggleNavPad, toggleTopEditorSendButton, toggleTopEditorStashButton, toggleTopEditorFollowUpButton, toggleTopEditorEscButton, toggleTopEditorInterruptButton, toggleViewportJumpButtons, toggleViewportScrollDirection, togglePiFooter } from "./mode.js";
@@ -328,6 +329,46 @@ export function performAction(action: ShellAction): InputResponse {
 			return { data: "\x1b[C" };
 		case "sendEnter":
 			return { data: "\r" };
+		case "newTerminalTab":
+			try {
+				execSync(
+					`osascript -e 'tell application "System Events" to keystroke "t" using command down'`,
+					{ timeout: 1000 },
+				);
+			} catch (e) {
+				queueLog(`newTerminalTab failed: ${e}`);
+			}
+			return { consume: true };
+		case "closeTerminalTab":
+			try {
+				execSync(
+					`osascript -e 'tell application "System Events" to keystroke "w" using command down'`,
+					{ timeout: 1000 },
+				);
+			} catch (e) {
+				queueLog(`closeTerminalTab failed: ${e}`);
+			}
+			return { consume: true };
+		case "nextTerminalTab":
+			try {
+				execSync(
+					`osascript -e 'tell application "System Events" to keystroke (ASCII character 9) using control down'`,
+					{ timeout: 1000 },
+				);
+			} catch (e) {
+				queueLog(`nextTerminalTab failed: ${e}`);
+			}
+			return { consume: true };
+		case "prevTerminalTab":
+			try {
+				execSync(
+					`osascript -e 'tell application "System Events" to keystroke (ASCII character 9) using {control down, shift down}'`,
+					{ timeout: 1000 },
+				);
+			} catch (e) {
+				queueLog(`prevTerminalTab failed: ${e}`);
+			}
+			return { consume: true };
 	}
 }
 

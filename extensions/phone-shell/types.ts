@@ -69,7 +69,11 @@ export type ShellAction =
 	| "arrowUp"
 	| "arrowDown"
 	| "arrowRight"
-	| "sendEnter";
+	| "sendEnter"
+	| "newTerminalTab"
+	| "closeTerminalTab"
+	| "nextTerminalTab"
+	| "prevTerminalTab";
 
 export type CommandMode =
 	| "on"

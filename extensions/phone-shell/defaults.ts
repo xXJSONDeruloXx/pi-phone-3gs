@@ -94,6 +94,10 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "command", id: "tree", label: " /tree ", command: "/tree", palette: "warning" },
 	{ kind: "input", id: "interrupt", label: "  ^C   ", data: "\u0003", palette: "warning" },
 	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
+	{ kind: "action", id: "new-terminal-tab", label: "⌘ T", action: "newTerminalTab", palette: "accent" },
+	{ kind: "action", id: "close-terminal-tab", label: "⌘ W", action: "closeTerminalTab", palette: "accent" },
+	{ kind: "action", id: "next-terminal-tab", label: "^⇥", action: "nextTerminalTab", palette: "accent" },
+	{ kind: "action", id: "prev-terminal-tab", label: "^⇧⇥", action: "prevTerminalTab", palette: "accent" },
 ];
 
 /**
