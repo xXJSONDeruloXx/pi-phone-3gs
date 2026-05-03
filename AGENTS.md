@@ -193,3 +193,55 @@ Per-user files live at `~/.pi/agent/pi-phone-3gs/`:
 - `phone-shell.state.json` — session persistence (`enabled`, `autoEnable`, bar/nav visibility, proxy/editor position state)
 
 Templates are in `extras/`, including `phone-shell.favorites.example.json`.
+
+## Lessons learned / common pitfalls
+
+### User layout files override defaults completely
+
+When `~/.pi/agent/pi-phone-3gs/phone-shell.layout.json` exists, it **completely overrides** `defaults.ts`. Changes to `defaults.ts` alone will NOT show up for existing users.
+
+**Fix**: Always update the user's layout file at `~/.pi/agent/pi-phone-3gs/phone-shell.layout.json` in addition to `defaults.ts`.
+
+### Adding new button actions — full checklist
+
+When adding a new `ShellAction` (button action handler), you must update **4 files**:
+
+1. **`types.ts`** — Add to `ShellAction` type union
+2. **`input.ts`** — Add case handler in `performAction()` function
+3. **`config.ts`** — Add to `ACTIONS` array for config validation (critical!)
+4. **`defaults.ts`** — Update `utilityButtons` or other button arrays for new installations
+
+Also update the user's `~/.pi/agent/pi-phone-3gs/phone-shell.layout.json` for existing users.
+
+**Common mistake**: Forgetting to add the action to `config.ts`'s `ACTIONS` array. The config loader will reject the action as invalid, and the button won't appear.
+
+### Terminal key combos (Cmd, Ctrl) can't be sent as PTY input
+
+macOS key combos like Cmd+T, Cmd+W, Ctrl+Tab are intercepted by the terminal app **before** they reach the PTY shell. There are no standard escape sequences for these.
+
+**Correct approach for terminal app control**: Use AppleScript via `osascript`:
+```typescript
+import { execSync } from "child_process";
+execSync(`osascript -e 'tell application "System Events" to keystroke "t" using command down'`);
+```
+
+Use `kind: "action"` buttons with a handler in `performAction()`, not `kind: "input"` with escape sequences.
+
+**Requirements**: Terminal app needs Accessibility permissions (System Settings > Privacy & Security > Accessibility).
+
+### Dropdown scrolling
+
+The utility dropdown scrolls when there are more buttons than fit on screen. Look for:
+- `▲` at top border = can scroll up
+- `▼` at bottom border = can scroll down
+
+New buttons may not be visible without scrolling.
+
+### Button kind selection
+
+| Goal | Button kind | Example |
+|------|-------------|--------|
+| Send slash command | `command` | `{ kind: "command", command: "/reload" }` |
+| Send raw terminal bytes | `input` | `{ kind: "input", data: "\x03" }` (Ctrl+C) |
+| Call action handler | `action` | `{ kind: "action", action: "scrollTop" }` |
+| Editor-aware keystroke | `editorKey` | `{ kind: "editorKey", data: "\t" }` |
