@@ -34,6 +34,7 @@ function fakeRenderState(): PhoneShellRenderState {
 			barVisible: true,
 			navPadVisible: true,
 			viewportJumpButtonsVisible: true,
+			viewportScrollDirectionInverted: false,
 			topEditorSendButtonVisible: true,
 			topEditorStashButtonVisible: true,
 			topEditorFollowUpButtonVisible: false,

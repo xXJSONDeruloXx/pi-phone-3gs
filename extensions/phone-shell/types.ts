@@ -46,6 +46,7 @@ export type ShellAction =
 	| "toggleEditorPosition"
 	| "toggleNavPad"
 	| "toggleViewportJumpButtons"
+	| "toggleViewportScrollDirection"
 	| "toggleTopEditorSendButton"
 	| "toggleTopEditorStashButton"
 	| "toggleTopEditorFollowUpButton"
@@ -177,6 +178,7 @@ export interface PersistedShellState {
 	barVisible: boolean;
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
+	viewportScrollDirectionInverted: boolean;
 	topEditorSendButtonVisible: boolean;
 	topEditorStashButtonVisible: boolean;
 	topEditorFollowUpButtonVisible: boolean;
@@ -359,6 +361,7 @@ export interface ShellModeState {
 	barVisible: boolean;
 	navPadVisible: boolean;
 	viewportJumpButtonsVisible: boolean;
+	viewportScrollDirectionInverted: boolean;
 	topEditorSendButtonVisible: boolean;
 	topEditorStashButtonVisible: boolean;
 	topEditorFollowUpButtonVisible: boolean;
