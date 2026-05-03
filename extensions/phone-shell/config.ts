@@ -51,6 +51,10 @@ const ACTIONS: readonly ShellAction[] = [
 	"arrowDown",
 	"arrowRight",
 	"sendEnter",
+	"newTerminalTab",
+	"closeTerminalTab",
+	"nextTerminalTab",
+	"prevTerminalTab",
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
