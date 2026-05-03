@@ -96,8 +96,8 @@ const utilityButtons: ButtonSpec[] = [
 	{ kind: "action", id: "follow-up", label: " ⌥ ↵ ", action: "sendFollowUp", palette: "warning" },
 	{ kind: "action", id: "new-terminal-tab", label: "⌘ T", action: "newTerminalTab", palette: "accent" },
 	{ kind: "action", id: "close-terminal-tab", label: "⌘ W", action: "closeTerminalTab", palette: "accent" },
-	{ kind: "action", id: "next-terminal-tab", label: "^⇥", action: "nextTerminalTab", palette: "accent" },
-	{ kind: "action", id: "prev-terminal-tab", label: "^⇧⇥", action: "prevTerminalTab", palette: "accent" },
+	{ kind: "action", id: "next-terminal-tab", label: "►T", action: "nextTerminalTab", palette: "accent" },
+	{ kind: "action", id: "prev-terminal-tab", label: "◄T", action: "prevTerminalTab", palette: "accent" },
 ];
 
 /**
