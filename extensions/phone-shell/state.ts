@@ -131,6 +131,7 @@ export const state: RuntimeState = {
 		viewport: {
 			row: 0,
 			height: 0,
+			renderedHeight: 0,
 			buttons: [],
 			drag: undefined,
 			velocitySamples: [],
@@ -242,6 +243,7 @@ export function createInitialState(): RuntimeState {
 			viewport: {
 				row: 0,
 				height: 0,
+				renderedHeight: 0,
 				buttons: [],
 				drag: undefined,
 				velocitySamples: [],

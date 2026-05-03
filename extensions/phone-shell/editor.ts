@@ -83,7 +83,7 @@ function shouldUseInlineButtons(width: number): boolean {
 		&& width >= MIN_EDITOR_CONTENT_WIDTH + leftWidth + rightWidth;
 }
 
-function getEditorRow(width: number): number {
+function getEditorRow(): number {
 	if (!state.shell.enabled) return 0;
 	if (state.shell.editorAtTop) return state.shell.headerInstalled ? HEADER_HEIGHT + 1 : 1;
 
@@ -98,10 +98,9 @@ function getEditorRow(width: number): number {
 	for (let index = 0; index < editorIndex; index++) {
 		const child = tui.children[index]!;
 		if (child === state.session.viewport && state.session.viewport) {
-			// Use the viewport's actual rendered height (including jump bars)
-			// instead of state.ui.viewport.height which only stores chatVisibleHeight
-			const viewportLines = state.session.viewport.render(width);
-			row += viewportLines.length;
+			// Use the stored rendered height (including jump bars)
+			// which is set during the viewport's render method
+			row += state.ui.viewport.renderedHeight;
 			continue;
 		}
 		row += child.render(tui.terminal.columns).length;
@@ -121,7 +120,7 @@ export class PhoneShellEditor extends CustomEditor {
 	}
 
 	override render(width: number): string[] {
-		const editorRow = getEditorRow(width);
+		const editorRow = getEditorRow();
 		if (!shouldUseInlineButtons(width)) {
 			const lines = super.render(width);
 			state.ui.editor.row = editorRow;

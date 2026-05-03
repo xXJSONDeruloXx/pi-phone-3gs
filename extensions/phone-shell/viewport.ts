@@ -166,6 +166,7 @@ export class TouchViewport implements Component {
 		}
 
 		this.ctx.state.ui.viewport.buttons = viewportButtons;
+		this.ctx.state.ui.viewport.renderedHeight = result.length;
 
 		// Width-safety: every line must be clamped to `width` to prevent
 		// terminal overflow. padLineToWidth also resets ANSI state per line.

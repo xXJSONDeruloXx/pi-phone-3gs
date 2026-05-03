@@ -331,6 +331,8 @@ export interface MomentumState {
 export interface ViewportLayoutState {
 	row: number;
 	height: number;
+	/** Total rendered height including jump bars. */
+	renderedHeight: number;
 	buttons: ButtonHitRegion[];
 	drag?: ViewportDragState;
 	velocitySamples: VelocitySample[];

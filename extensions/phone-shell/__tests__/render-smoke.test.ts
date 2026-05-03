@@ -61,7 +61,7 @@ function fakeRenderState(): PhoneShellRenderState {
 				models: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 			allModels: { visible: false, row: 0, col: 0, width: 0, buttons: [], actualHeight: 3, scrollOffset: 0, maxVisibleItems: 0, handle: undefined, drag: undefined },
 			},
-			viewport: { row: 0, height: 0, buttons: [], drag: undefined, velocitySamples: [], momentum: undefined },
+			viewport: { row: 0, height: 0, renderedHeight: 0, buttons: [], drag: undefined, velocitySamples: [], momentum: undefined },
 			editor: { row: 0, height: 0, buttons: [] },
 		},
 		thinkingLevel: "off" as ThinkingLevel,
